@@ -1,13 +1,16 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Hono } from "hono";
 import { z } from "zod";
+import { taoFacebookClient } from "../../facebook/facebook-api-client.js";
 import { taoZaloBotClient } from "../../zalo-bot/zalo-bot-api-client.js";
 import { TOOL_KEYS } from "../../agent/tools/index.js";
 import {
   createAccount,
   deleteAccount,
   datBotToken,
+  datFbConfig,
   datLoaiKenh,
   getAccount,
   listAccounts,
@@ -35,7 +38,14 @@ const createSchema = z.object({
    * so với token bot) - dễ thành một tài khoản nửa nọ nửa kia mà không ai
    * nhận ra. Muốn đổi thì xóa và tạo lại.
    */
-  loai: z.enum(["ca_nhan", "bot"]).default("ca_nhan"),
+  loai: z.enum(["ca_nhan", "bot", "facebook"]).default("ca_nhan"),
+});
+
+const facebookConfigSchema = z.object({
+  pageAccessToken: z.string().max(1000).optional(),
+  verifyToken: z.string().min(4).max(200).optional(),
+  appSecret: z.string().max(200).optional(),
+  pageId: z.string().max(100).optional(),
 });
 
 const botTokenSchema = z.object({
@@ -123,11 +133,12 @@ export const accountRoutes = new Hono()
     const account = createAccount(parsed.data);
     if (parsed.data.loai === "bot") {
       datLoaiKenh(account.id, "bot");
-      // Tài khoản bot mặc định ĐÓNG danh sách cho phép, khác tài khoản cá nhân.
-      // Bán kính khác hẳn: nick cá nhân phải là bạn bè mới nhắn được, còn bot
-      // thì ai có link cũng nhắn được - mở sẵn là mời người lạ đốt token và thử
-      // prompt injection. Chủ bot tự thêm mình vào danh sách.
       updateAccount(account.id, { allowlist: { mode: "list", userIds: [] } });
+    } else if (parsed.data.loai === "facebook") {
+      datLoaiKenh(account.id, "facebook");
+      const verifyTokenMacDinh = `fb-verify-${crypto.randomBytes(6).toString("hex")}`;
+      datFbConfig(account.id, { verifyToken: verifyTokenMacDinh });
+      updateAccount(account.id, { allowlist: { mode: "all", userIds: [] }, respondToGroups: false });
     }
     log.info({ accountId: account.id, loai: parsed.data.loai }, "Tạo account từ dashboard");
     return c.json({ account: withStatus(getAccount(account.id)!) }, 201);
@@ -171,8 +182,8 @@ export const accountRoutes = new Hono()
     // file, nhưng `buildAgentTools` vẫn đọc `loai: "bot"` nên ẩn 8 tool và
     // persona vẫn dạy model nói rõ tài khoản bot không làm được mấy việc đó.
     // Giao diện đã ẩn nút, nhưng đó là lớp client.
-    if (acc.loai === "bot") {
-      return c.json({ error: "Tài khoản bot không đăng nhập QR - nhập token ở phần Sửa" }, 400);
+    if (acc.loai !== "ca_nhan") {
+      return c.json({ error: "Tài khoản này không đăng nhập QR - nhập cấu hình ở phần Sửa" }, 400);
     }
     startQrLogin(id);
     return c.json(getQrLoginStatus(id));
@@ -232,6 +243,72 @@ export const accountRoutes = new Hono()
     }
 
     return c.json({ ok: true, botName: me.display_name ?? me.id, ...(warning ? { warning } : {}) });
+  })
+
+  /**
+   * Lưu cấu hình Facebook Fanpage (Page Access Token, Verify Token, App Secret, Page ID).
+   * Cho phép lưu trước Verify Token / App Secret ngay cả khi chưa có Page Access Token;
+   * khi có Page Access Token thì tự động kiểm tra với Facebook Graph API và lấy Page ID + Tên Page.
+   */
+  .put("/:id/facebook-config", async (c) => {
+    const id = c.req.param("id");
+    const account = getAccount(id);
+    if (!account) return c.json({ error: "Account không tồn tại" }, 404);
+    if (account.loai !== "facebook") {
+      return c.json({ error: "Chỉ tài khoản loại Facebook Fanpage mới dùng cấu hình này" }, 400);
+    }
+
+    const parsed = facebookConfigSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: "Dữ liệu cấu hình Facebook không hợp lệ", issues: parsed.error.issues }, 400);
+    }
+
+    const { pageAccessToken, verifyToken, appSecret, pageId } = parsed.data;
+    let resolvedPageId = pageId;
+    let pageName: string | undefined;
+
+    if (pageAccessToken && pageAccessToken.trim()) {
+      try {
+        const me = await taoFacebookClient({ pageAccessToken: pageAccessToken.trim() }).getMe();
+        resolvedPageId = me.id || resolvedPageId;
+        pageName = me.name;
+      } catch (err) {
+        log.warn({ accountId: id, err }, "Page Access Token không hợp lệ - không lưu token");
+        return c.json(
+          {
+            error: `Page Access Token không hợp lệ hoặc không gọi được Facebook Graph API: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          },
+          400,
+        );
+      }
+      datBotToken(id, pageAccessToken.trim());
+    }
+
+    datFbConfig(id, {
+      pageId: resolvedPageId,
+      verifyToken,
+      appSecret,
+    });
+
+    let warning: string | undefined;
+    const updated = getAccount(id)!;
+    if (updated.enabled && updated.coBotToken) {
+      stopAccount(id);
+      try {
+        await startAccount(id);
+      } catch (err) {
+        warning = err instanceof Error ? err.message : "Không khởi động được tài khoản Facebook";
+      }
+    }
+
+    return c.json({
+      ok: true,
+      pageId: updated.fbPageId,
+      pageName,
+      ...(warning ? { warning } : {}),
+    });
   })
 
   .delete("/:id", (c) => {

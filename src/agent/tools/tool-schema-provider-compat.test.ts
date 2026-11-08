@@ -67,6 +67,7 @@ function makeContext() {
     account: {
       id: "acc-test",
       label: "Test",
+      loai: "ca_nhan" as const,
       enabled: true,
       agentId: "agent-test",
       allowlist: { mode: "all" as const, userIds: [] },

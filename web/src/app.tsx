@@ -100,13 +100,13 @@ function DashboardShell() {
             title="Về trang chính"
           >
             <img
-              src="/zalo-agent-icon.webp"
+              src="/zalo-agent-icon.svg"
               alt="Zalo Agent"
               width={128}
               height={128}
               className="h-7 w-7"
             />
-            <span className="truncate text-[15px] font-semibold text-ink">Zalo Agent</span>
+            <span className="truncate text-[15px] font-bold text-ink font-mono">ZALO<span className="text-zalo-500">AGENT</span></span>
           </Link>
         </header>
 

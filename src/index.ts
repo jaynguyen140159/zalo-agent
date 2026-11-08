@@ -3,6 +3,7 @@ import { getEffectiveLlmSettings } from "./config/runtime-llm-settings.js";
 import { closeHistoryStore } from "./conversation/history-store.js";
 import { startMediaCleanupSchedule } from "./conversation/media-store.js";
 import { batDauWorker as batDauKbIngestWorker } from "./knowledge/kb-ingest-worker.js";
+import { batDauAutoReminderWorker } from "./notification/auto-reminder-worker.js";
 import { startMcpManager } from "./mcp/mcp-manager.js";
 import { startScheduler, stopScheduler } from "./scheduler/scheduler-loop.js";
 import { startDashboardServer, stopDashboardServer } from "./server/dashboard-server.js";
@@ -40,10 +41,12 @@ let shuttingDown = false;
 let stopKbIngestWorker: () => void = () => {};
 let stopFriendSweep: () => void = () => {};
 let stopMcpManager: () => void = () => {};
+let stopAutoReminder: () => void = () => {};
 function shutdown(signal: string): void {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info({ signal }, "Đang tắt zalo-agent...");
+  stopAutoReminder();
   stopScheduler();
   stopFriendSweep();
   stopKbIngestWorker();
@@ -101,6 +104,7 @@ startAllAccounts()
   // không phải song song. SCHEDULER_ENABLED=false thì hàm này tự no-op.
   .then(() => {
     startScheduler();
+    stopAutoReminder = batDauAutoReminderWorker();
     // Vòng quét auto-accept kết bạn (tab Bạn bè). Đọc account đang chạy mỗi
     // nhịp nên khởi động sau khi account đã lên.
     stopFriendSweep = startFriendAutoAcceptSweep();

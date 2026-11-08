@@ -16,19 +16,25 @@ const log = createLogger("account-store");
  * - `bot`: tài khoản bot chính thức qua Zalo Bot API. Không có rủi ro khóa,
  *   đổi lại 8 trong 15 tool không chạy được - xem `nang-luc-kenh-bot.ts`.
  */
-export type LoaiKenh = "ca_nhan" | "bot";
+export type LoaiKenh = "ca_nhan" | "bot" | "facebook";
 
-/** Tài khoản Zalo (kênh). Não nằm ở agent, trỏ qua agentId. */
+/** Tài khoản Zalo / Facebook (kênh). Não nằm ở agent, trỏ qua agentId. */
 export type AccountConfig = {
   id: string;
   label: string;
   loai: LoaiKenh;
   /**
-   * Đã có token bot chưa. CỐ Ý không mang chính token: object này đi thẳng ra
-   * `GET /api/accounts` nên để token ở đây là lộ bí mật cho mọi phiên dashboard.
-   * Code cần token thật thì gọi `layBotTokenGiaiMa()` - một đường riêng, dễ soi.
+   * Đã có token bot (Zalo Bot Token hoặc Facebook Page Access Token) chưa.
+   * CỐ Ý không mang chính token: object này đi thẳng ra `GET /api/accounts`
+   * nên để token ở đây là lộ bí mật cho mọi phiên dashboard.
    */
   coBotToken: boolean;
+  /** Facebook Page ID (tự lấy khi xác thực Page Access Token hoặc nhập tay) */
+  fbPageId?: string;
+  /** Facebook Webhook Verify Token */
+  fbVerifyToken?: string;
+  /** Đã cấu hình Facebook App Secret chưa */
+  coFbAppSecret?: boolean;
   enabled: boolean;
   agentId: string;
   allowlist: { mode: "all" | "list"; userIds: string[] };
@@ -69,6 +75,9 @@ type Row = {
   disabled_tools: string;
   loai: string;
   bot_token_enc: string;
+  fb_page_id: string;
+  fb_verify_token: string;
+  fb_app_secret_enc: string;
   auto_accept_friends: number;
   auto_accept_friend_delay_minutes: number;
 };
@@ -78,8 +87,11 @@ const toConfig = (r: Row): AccountConfig => ({
   label: r.label,
   // Giá trị lạ trong cột (sửa tay DB, hoặc bản cũ hơn) rơi về "ca_nhan" thay vì
   // ép kiểu bừa: đó là loại duy nhất tồn tại trước khi có cột này.
-  loai: r.loai === "bot" ? "bot" : "ca_nhan",
+  loai: r.loai === "bot" ? "bot" : r.loai === "facebook" ? "facebook" : "ca_nhan",
   coBotToken: r.bot_token_enc !== "",
+  fbPageId: r.fb_page_id ?? "",
+  fbVerifyToken: r.fb_verify_token ?? "",
+  coFbAppSecret: Boolean(r.fb_app_secret_enc),
   enabled: r.enabled === 1,
   agentId: r.agent_id,
   allowlist: { mode: r.allowlist_mode, userIds: JSON.parse(r.allowlist_user_ids) as string[] },
@@ -98,6 +110,7 @@ const SELECT = `SELECT id, label, enabled, agent_id, allowlist_mode, allowlist_u
                        group_require_mention, respond_to_groups, group_passive_listen,
                        auto_react_enabled, auto_react_icon, typing_indicator_enabled,
                        disabled_tools, loai, bot_token_enc,
+                       fb_page_id, fb_verify_token, fb_app_secret_enc,
                        auto_accept_friends, auto_accept_friend_delay_minutes
                 FROM accounts`;
 
@@ -133,7 +146,9 @@ export function updateAccount(
    * dashboard không đổi gì. Đổi loại kênh đi qua `datLoaiKenh()`, đổi token đi
    * qua `datBotToken()`.
    */
-  patch: Partial<Omit<AccountConfig, "id" | "loai" | "coBotToken">>,
+  patch: Partial<
+    Omit<AccountConfig, "id" | "loai" | "coBotToken" | "fbPageId" | "fbVerifyToken" | "coFbAppSecret">
+  >,
 ): AccountConfig | null {
   const current = getAccount(id);
   if (!current) return null;
@@ -271,3 +286,42 @@ export function datBotToken(id: string, token: string): void {
 export function datLoaiKenh(id: string, loai: LoaiKenh): void {
   db.prepare("UPDATE accounts SET loai = ? WHERE id = ?").run(loai, id);
 }
+
+export function layFbAppSecretGiaiMa(id: string): string | null {
+  const row = db.prepare("SELECT fb_app_secret_enc FROM accounts WHERE id = ?").get(id) as
+    | { fb_app_secret_enc: string }
+    | undefined;
+  if (!row?.fb_app_secret_enc) return null;
+  try {
+    return decryptSecret(row.fb_app_secret_enc);
+  } catch (err) {
+    log.error({ err, accountId: id }, "Không giải mã được Facebook App Secret");
+    return null;
+  }
+}
+
+export function datFbConfig(
+  id: string,
+  p: { pageId?: string; verifyToken?: string; appSecret?: string },
+): void {
+  const current = db
+    .prepare("SELECT fb_page_id, fb_verify_token, fb_app_secret_enc FROM accounts WHERE id = ?")
+    .get(id) as
+    | { fb_page_id: string; fb_verify_token: string; fb_app_secret_enc: string }
+    | undefined;
+  if (!current) return;
+
+  const pageId = p.pageId !== undefined ? p.pageId.trim() : current.fb_page_id;
+  const verifyToken = p.verifyToken !== undefined ? p.verifyToken.trim() : current.fb_verify_token;
+  const appSecretEnc =
+    p.appSecret !== undefined
+      ? p.appSecret.trim()
+        ? encryptSecret(p.appSecret.trim())
+        : ""
+      : current.fb_app_secret_enc;
+
+  db.prepare(
+    "UPDATE accounts SET fb_page_id = ?, fb_verify_token = ?, fb_app_secret_enc = ? WHERE id = ?",
+  ).run(pageId, verifyToken, appSecretEnc, id);
+}
+

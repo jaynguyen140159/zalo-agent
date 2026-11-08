@@ -143,21 +143,38 @@ export function SidebarNav({
             title="Về trang chính"
           >
             <img
-              src="/zalo-agent-icon.webp"
+              src="/zalo-agent-icon.svg"
               alt="Zalo Agent"
               width={128}
               height={128}
-              className="h-9 w-9"
+              className="h-8 w-8"
             />
-            <span className="text-[17px] font-bold tracking-tight text-ink">Zalo Agent</span>
+            <div className="flex flex-col">
+              <span className="text-[17px] font-bold tracking-tight text-ink">Zalo<span className="text-muted-foreground font-medium text-ink-soft">Agent</span></span>
+              <span className="text-[10px] font-medium text-[#F5C744] tracking-wider uppercase">Enterprise Studio</span>
+            </div>
           </NavLink>
           <button
             onClick={onCloseMobile}
             aria-label="Đóng menu"
-            className="ml-auto rounded-lg p-1.5 text-ink-soft hover:bg-tile lg:hidden"
+            className="ml-auto rounded-full p-2 text-ink-soft hover:bg-tile lg:hidden"
           >
             <IconClose size={17} />
           </button>
+        </div>
+
+        <div className="px-3 mb-3">
+          <a
+            href="/portal"
+            className="flex items-center justify-between rounded-full bg-[#18181B] text-white px-4 py-2.5 text-[13px] font-semibold tracking-tight transition-all hover:bg-[#27272A] hover:shadow-md"
+            title="Chuyển sang Cổng Quản Lý Dự Án & Tiến Độ"
+          >
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#F5C744]"></span>
+              <span>Cổng Quản Trị Dự Án</span>
+            </div>
+            <span className="text-[10px] font-bold bg-[#F5C744] text-[#18181B] px-2 py-0.5 rounded-full">PORTAL</span>
+          </a>
         </div>
 
         <nav className="mt-1 flex-1 overflow-y-auto px-3">

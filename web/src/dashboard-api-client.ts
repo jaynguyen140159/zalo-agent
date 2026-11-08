@@ -267,7 +267,7 @@ export const api = {
   accountsAdmin: {
     list: () => request<{ items: ManagedAccount[] }>("/api/accounts"),
     reactionIcons: () => request<{ items: ReactionIcon[] }>("/api/accounts/reaction-icons"),
-    create: (input: { id: string; label: string; agentId?: string; loai?: "ca_nhan" | "bot" }) =>
+    create: (input: { id: string; label: string; agentId?: string; loai?: "ca_nhan" | "bot" | "facebook" }) =>
       request<{ account: ManagedAccount }>("/api/accounts", {
         method: "POST",
         body: JSON.stringify(input),
@@ -282,13 +282,26 @@ export const api = {
         `/api/accounts/${encodeURIComponent(id)}/bot-token`,
         { method: "PUT", body: JSON.stringify({ token }) },
       ),
+    setFacebookConfig: (
+      id: string,
+      input: { pageAccessToken?: string; verifyToken?: string; appSecret?: string; pageId?: string },
+    ) =>
+      request<{ ok: true; pageId?: string; pageName?: string; warning?: string }>(
+        `/api/accounts/${encodeURIComponent(id)}/facebook-config`,
+        { method: "PUT", body: JSON.stringify(input) },
+      ),
     // `loai`/`coBotToken` KHÔNG nằm trong patch: `updateAccount` phía server đã
     // thu hẹp kiểu để chặn (câu UPDATE không có hai cột đó, nhận vào là nuốt
     // lặng lẽ rồi trả giá trị cũ). Phía client phải soi gương, không thì
     // `update(id, {loai:"bot"})` biên dịch trót lọt rồi im lặng không làm gì.
     update: (
       id: string,
-      patch: Partial<Omit<ManagedAccount, "id" | "running" | "hasCredentials" | "loai" | "coBotToken">>,
+      patch: Partial<
+        Omit<
+          ManagedAccount,
+          "id" | "running" | "hasCredentials" | "loai" | "coBotToken" | "fbPageId" | "fbVerifyToken" | "coFbAppSecret"
+        >
+      >,
     ) =>
       request<{ account: ManagedAccount; warning?: string }>(
         `/api/accounts/${encodeURIComponent(id)}`,
@@ -606,12 +619,15 @@ export type ManagedAccount = {
   autoAcceptFriends: boolean;
   autoAcceptFriendDelayMinutes: number;
   /** Loại kênh - chốt lúc tạo, không đổi được sau đó */
-  loai: "ca_nhan" | "bot";
+  loai: "ca_nhan" | "bot" | "facebook";
   /**
    * Đã có token bot chưa. CỐ Ý không mang chính token: object này là response
    * của `GET /api/accounts` nên để token ở đây là lộ cho mọi phiên dashboard.
    */
   coBotToken: boolean;
+  fbPageId?: string;
+  fbVerifyToken?: string;
+  coFbAppSecret?: boolean;
   running: boolean;
   hasCredentials: boolean;
 };

@@ -1,0 +1,598 @@
+  // API Đăng nhập / Kiểm tra mã PIN bảo mật
+  .post("/api/login", async (c) => {
+    const { phone, pin } = await c.req.json<{ phone?: string; pin?: string }>();
+    if (!phone) return c.json({ ok: false, error: "Vui lòng nhập số điện thoại" }, 400);
+
+    const cleanPhone = phone.trim();
+    const cleanPin = (pin || "").trim();
+
+    if (cleanPhone === "admin") {
+      if (cleanPin === "admin" || cleanPin === "123456") {
+        return c.json({
+          ok: true,
+          user: {
+            phone: "admin",
+            name: "Quản Trị Viên (Tôi)",
+            role: "admin",
+            isAdmin: true,
+            isManager: true,
+            isMember: false,
+            isViewer: false
+          }
+        });
+      }
+      return c.json({ ok: false, error: "Mã PIN của Quản Trị Viên không chính xác (mặc định 123456)" }, 401);
+    }
+
+    const member = db.prepare("SELECT * FROM pm_members WHERE phone = ?").get(cleanPhone) as {
+      phone: string;
+      name: string;
+      role: string;
+      pin?: string;
+    } | undefined;
+
+    if (!member) {
+      return c.json({ ok: false, error: "Số điện thoại chưa được đăng ký trong hệ thống" }, 404);
+    }
+
+    const expectedPin = member.pin || "123456";
+    if (cleanPin && cleanPin !== expectedPin) {
+      return c.json({ ok: false, error: "Mã PIN bảo mật không đúng" }, 401);
+    }
+
+    const role = member.role || "member";
+    return c.json({
+      ok: true,
+      user: {
+        phone: member.phone,
+        name: member.name,
+        role: role,
+        isAdmin: role === "admin",
+        isManager: role === "manager" || role === "admin",
+        isMember: role === "member",
+        isViewer: role === "viewer"
+      }
+    });
+  })
+
+  // API Lấy dữ liệu Portal theo phone và projectId (Enriched với thống kê cho từng dự án)
+  .get("/api/data", (c) => {
+    const phone = c.req.query("phone") || "admin";
+    const projectIdParam = c.req.query("projectId");
+
+    let currentUser = {
+      phone: "admin",
+      name: "Quản Trị Viên (Tôi)",
+      role: "admin",
+      isAdmin: true,
+      isManager: true,
+      isMember: false,
+      isViewer: false
+    };
+
+    if (phone !== "admin") {
+      const mem = db.prepare("SELECT * FROM pm_members WHERE phone = ?").get(phone) as {
+        phone: string;
+        name: string;
+        role: string;
+      } | undefined;
+
+      if (mem) {
+        currentUser = {
+          phone: mem.phone,
+          name: mem.name,
+          role: mem.role || "member",
+          isAdmin: mem.role === "admin",
+          isManager: mem.role === "manager" || mem.role === "admin",
+          isMember: mem.role === "member",
+          isViewer: mem.role === "viewer"
+        };
+      } else {
+        currentUser = {
+          phone,
+          name: "Người Dùng",
+          role: "viewer",
+          isAdmin: false,
+          isManager: false,
+          isMember: false,
+          isViewer: true
+        };
+      }
+    }
+
+    const rawProjects = db.prepare("SELECT * FROM pm_projects ORDER BY id ASC").all() as {
+      id: number;
+      name: string;
+      description?: string;
+      budget?: number;
+      status?: string;
+    }[];
+
+    const allProjects = rawProjects.map(p => {
+      const pTasks = db.prepare("SELECT id, progress, status FROM pm_tasks WHERE project_id = ?").all(p.id) as { progress: number; status: string }[];
+      const tasks_count = pTasks.length;
+      const completed_tasks = pTasks.filter(t => t.progress >= 100 || t.status === "completed").length;
+      let overall_progress = 0;
+      if (tasks_count > 0) {
+        const sumPct = pTasks.reduce((s, t) => s + (t.progress || 0), 0);
+        overall_progress = Math.round(sumPct / tasks_count);
+      }
+      const stages_count = (db.prepare("SELECT count(*) as c FROM pm_stages WHERE project_id = ?").get(p.id) as { c: number })?.c || 0;
+      const expenses_sum = (db.prepare("SELECT COALESCE(SUM(amount), 0) as s FROM pm_expenses WHERE project_id = ?").get(p.id) as { s: number })?.s || 0;
+
+      return {
+        ...p,
+        tasks_count,
+        completed_tasks,
+        overall_progress,
+        stages_count,
+        expenses_sum
+      };
+    });
+
+    const activeProjectId = Number(projectIdParam) || (allProjects[0]?.id as number) || 1;
+    const activeProject = allProjects.find(p => p.id === activeProjectId) || allProjects[0] || null;
+
+    // Giai đoạn của dự án này
+    const stages = db.prepare("SELECT * FROM pm_stages WHERE project_id = ? ORDER BY step_order ASC").all(activeProjectId) as {
+      id: number;
+      step_order: number;
+      title: string;
+      description?: string;
+      status?: string;
+    }[];
+
+    // Công việc của dự án này
+    const rawTasks = db.prepare("SELECT * FROM pm_tasks WHERE project_id = ? ORDER BY id DESC").all(activeProjectId) as {
+      id: number;
+      project_id: number;
+      stage_id: number;
+      title: string;
+      description?: string;
+      assigned_phone?: string;
+      deadline?: string;
+      status?: string;
+      progress?: number;
+      checklist?: string;
+      assignees?: string;
+    }[];
+
+    // Chi phí phát sinh của dự án này
+    const expenses = db.prepare("SELECT * FROM pm_expenses WHERE project_id = ? ORDER BY id DESC").all(activeProjectId) as {
+      id: number;
+      project_id: number;
+      task_id?: number | null;
+      title: string;
+      amount: number;
+      category?: string;
+      spent_by?: string;
+      spent_at?: string;
+      note?: string;
+    }[];
+
+    // Danh sách thành viên
+    const members = db.prepare("SELECT id, phone, name, role, avatar, thread_id, email FROM pm_members").all() as {
+      id: number;
+      phone: string;
+      name: string;
+      role: string;
+      avatar?: string;
+      thread_id?: string;
+      email?: string;
+    }[];
+
+    const membersMap = new Map<string, string>();
+    members.forEach(m => membersMap.set(m.phone, m.name));
+
+    const taskExpensesMap = new Map<number, number>();
+    expenses.forEach(e => {
+      if (e.task_id) {
+        taskExpensesMap.set(e.task_id, (taskExpensesMap.get(e.task_id) || 0) + (Number(e.amount) || 0));
+      }
+    });
+
+    const stagesMap = new Map<number, string>();
+    stages.forEach(s => stagesMap.set(s.id, s.title));
+
+    const tasks = rawTasks.map(t => {
+      let checklistArr: { id: string; text: string; done: boolean }[] = [];
+      try {
+        if (t.checklist) checklistArr = JSON.parse(t.checklist);
+      } catch {
+        checklistArr = [];
+      }
+
+      return {
+        ...t,
+        assigned_name: t.assigned_phone ? (membersMap.get(t.assigned_phone) || t.assigned_phone) : "",
+        stage_title: stagesMap.get(t.stage_id) || `Bước ${t.stage_id}`,
+        checklist: checklistArr,
+        expenses_sum: taskExpensesMap.get(t.id) || 0,
+        gcal_link: taoLinkGoogleCalendarWeb({
+          title: t.title,
+          description: t.description,
+          deadline: t.deadline,
+          stage_title: stagesMap.get(t.stage_id) || ""
+        })
+      };
+    });
+
+    const smtp = getSmtpConfig();
+    const smtpConfigured = !!(smtp.host && smtp.user);
+
+    return c.json({
+      currentUser,
+      projects: allProjects,
+      activeProject,
+      stages,
+      tasks,
+      expenses,
+      members,
+      smtpConfigured: currentUser.isAdmin ? smtpConfigured : false
+    });
+  })
+
+  // API Gửi tin nhắn Zalo tùy chọn (Test Bot Trợ Lý Jay)
+  .post("/api/zalo/send-test", async (c) => {
+    const { targetThread, message } = await c.req.json<{ targetThread: string; message: string }>();
+    if (!targetThread || !message?.trim()) {
+      return c.json({ ok: false, error: "Thiếu thread người nhận hoặc nội dung tin nhắn" }, 400);
+    }
+
+    const token = layBotTokenGiaiMa("bot-tro-ly-jay");
+    if (!token) return c.json({ ok: false, error: "Chưa cấu hình token Bot Trợ Lý Jay" }, 500);
+
+    const client = taoZaloBotClient({ token });
+    await client.sendMessage(targetThread.trim(), message.trim());
+    return c.json({ ok: true, message: `Đã gửi tin nhắn Zalo thành công đến ${targetThread}!` });
+  })
+
+  // API Tạo dự án mới (Admin only)
+  .post("/api/projects", async (c) => {
+    const { name, description, budget } = await c.req.json<{
+      name: string;
+      description?: string;
+      budget?: number;
+    }>();
+
+    if (!name?.trim()) return c.json({ ok: false, error: "Thiếu tên dự án" }, 400);
+
+    const proj = db.prepare("INSERT INTO pm_projects (name, description, budget, status) VALUES (?, ?, ?, ?) RETURNING id")
+      .get(name.trim(), description || "", Number(budget) || 0, "active") as { id: number };
+
+    db.prepare("INSERT INTO pm_stages (project_id, step_order, title, description, status) VALUES (?, ?, ?, ?, ?)").run(proj.id, 1, "Bước 1: Khảo sát & Kế hoạch", "Khảo sát yêu cầu và lập kế hoạch", "in_progress");
+    db.prepare("INSERT INTO pm_stages (project_id, step_order, title, description, status) VALUES (?, ?, ?, ?, ?)").run(proj.id, 2, "Bước 2: Thiết kế & Chuẩn bị", "Thiết kế giải pháp và chuẩn bị vật tư", "todo");
+    db.prepare("INSERT INTO pm_stages (project_id, step_order, title, description, status) VALUES (?, ?, ?, ?, ?)").run(proj.id, 3, "Bước 3: Thi công & Triển khai", "Thực hiện lắp đặt và tích hợp", "todo");
+    db.prepare("INSERT INTO pm_stages (project_id, step_order, title, description, status) VALUES (?, ?, ?, ?, ?)").run(proj.id, 4, "Bước 4: Kiểm thử & Bàn giao", "Nghiệm thu và bàn giao", "todo");
+
+    return c.json({ ok: true, id: proj.id });
+  })
+
+  // API Tạo công việc mới
+  .post("/api/tasks", async (c) => {
+    const { project_id, stage_id, title, description, assigned_phone, deadline, progress } = await c.req.json<{
+      project_id: number;
+      stage_id: number;
+      title: string;
+      description?: string;
+      assigned_phone?: string;
+      deadline?: string;
+      progress?: number;
+    }>();
+
+    if (!title?.trim()) return c.json({ ok: false, error: "Thiếu tên công việc" }, 400);
+
+    const res = db.prepare(`
+      INSERT INTO pm_tasks (project_id, stage_id, title, description, assigned_phone, deadline, progress, status, checklist)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING id
+    `).get(
+      Number(project_id) || 1,
+      Number(stage_id) || 1,
+      title.trim(),
+      description || "",
+      assigned_phone || "",
+      deadline || "",
+      Number(progress) || 0,
+      (Number(progress) >= 100) ? "completed" : "in_progress",
+      "[]"
+    ) as { id: number };
+
+    return c.json({ ok: true, id: res.id });
+  })
+
+  // API Cập nhật công việc (kéo thả Kanban, đổi hạn, sửa tên...)
+  .patch("/api/tasks/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = await c.req.json();
+
+    const current = db.prepare("SELECT * FROM pm_tasks WHERE id = ?").get(id) as {
+      stage_id: number;
+      progress: number;
+      status: string;
+    } | undefined;
+
+    if (!current) return c.json({ ok: false, error: "Không tìm thấy công việc" }, 404);
+
+    const newStage = (body.stage_id !== undefined) ? Number(body.stage_id) : current.stage_id;
+    let newProgress = (body.progress !== undefined) ? Number(body.progress) : current.progress;
+    let newStatus = body.status || current.status;
+
+    if (newProgress >= 100) newStatus = "completed";
+
+    db.prepare(`
+      UPDATE pm_tasks
+      SET stage_id = ?,
+          title = COALESCE(?, title),
+          description = COALESCE(?, description),
+          assigned_phone = COALESCE(?, assigned_phone),
+          deadline = COALESCE(?, deadline),
+          progress = ?,
+          status = ?,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE id = ?
+    `).run(
+      newStage,
+      body.title,
+      body.description,
+      body.assigned_phone,
+      body.deadline,
+      newProgress,
+      newStatus,
+      id
+    );
+
+    return c.json({ ok: true });
+  })
+
+  // API Tương tác Checklist việc nhỏ bên trong công việc
+  .post("/api/tasks/:id/checklist", async (c) => {
+    const id = Number(c.req.param("id"));
+    const { action, text, itemId } = await c.req.json<{
+      action: "add" | "toggle" | "delete";
+      text?: string;
+      itemId?: string;
+    }>();
+
+    const task = db.prepare("SELECT checklist, progress FROM pm_tasks WHERE id = ?").get(id) as {
+      checklist?: string;
+      progress: number;
+    } | undefined;
+
+    if (!task) return c.json({ ok: false, error: "Không tìm thấy công việc" }, 404);
+
+    let items: { id: string; text: string; done: boolean }[] = [];
+    try {
+      if (task.checklist) items = JSON.parse(task.checklist);
+    } catch {
+      items = [];
+    }
+
+    if (action === "add" && text?.trim()) {
+      items.push({ id: Date.now().toString(), text: text.trim(), done: false });
+    } else if (action === "toggle" && itemId) {
+      const it = items.find(i => i.id === itemId);
+      if (it) it.done = !it.done;
+    } else if (action === "delete" && itemId) {
+      items = items.filter(i => i.id !== itemId);
+    }
+
+    let newProgress = task.progress;
+    if (items.length > 0) {
+      const doneCount = items.filter(i => i.done).length;
+      newProgress = Math.round((doneCount / items.length) * 100);
+    }
+
+    db.prepare(`
+      UPDATE pm_tasks
+      SET checklist = ?,
+          progress = ?,
+          status = CASE WHEN ? >= 100 THEN 'completed' ELSE 'in_progress' END,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE id = ?
+    `).run(JSON.stringify(items), newProgress, newProgress, id);
+
+    return c.json({ ok: true, checklist: items, progress: newProgress });
+  })
+
+  // API Ghi nhận chi phí gắn liền trực tiếp với công việc
+  .post("/api/tasks/:id/expense", async (c) => {
+    const id = Number(c.req.param("id"));
+    const { title, amount, category, spent_by, note } = await c.req.json<{
+      title: string;
+      amount: number;
+      category?: string;
+      spent_by?: string;
+      note?: string;
+    }>();
+
+    if (!title?.trim() || !amount) return c.json({ ok: false, error: "Thiếu tiêu đề hoặc số tiền" }, 400);
+
+    const task = db.prepare("SELECT project_id FROM pm_tasks WHERE id = ?").get(id) as {
+      project_id: number;
+    } | undefined;
+
+    if (!task) return c.json({ ok: false, error: "Không tìm thấy công việc" }, 404);
+
+    db.prepare(`
+      INSERT INTO pm_expenses (project_id, task_id, title, amount, category, spent_by, note)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      task.project_id,
+      id,
+      title.trim(),
+      Number(amount) || 0,
+      category || "Khác",
+      spent_by || "",
+      note || ""
+    );
+
+    return c.json({ ok: true });
+  })
+
+  // API Xóa công việc
+  .delete("/api/tasks/:id", (c) => {
+    const id = Number(c.req.param("id"));
+    db.prepare("DELETE FROM pm_tasks WHERE id = ?").run(id);
+    db.prepare("DELETE FROM pm_expenses WHERE task_id = ?").run(id);
+    return c.json({ ok: true });
+  })
+
+  // API Tạo bước / giai đoạn mới
+  .post("/api/stages", async (c) => {
+    const { project_id, title, description } = await c.req.json<{
+      project_id: number;
+      title: string;
+      description?: string;
+    }>();
+
+    if (!title?.trim()) return c.json({ ok: false, error: "Thiếu tên bước" }, 400);
+
+    const maxOrder = (db.prepare("SELECT MAX(step_order) as m FROM pm_stages WHERE project_id = ?").get(Number(project_id) || 1) as { m: number | null })?.m || 0;
+
+    const res = db.prepare(`
+      INSERT INTO pm_stages (project_id, step_order, title, description, status)
+      VALUES (?, ?, ?, ?, 'todo')
+      RETURNING id
+    `).get(Number(project_id) || 1, maxOrder + 1, title.trim(), description || "") as { id: number };
+
+    return c.json({ ok: true, id: res.id });
+  })
+
+  // API Ghi nhận chi phí chung của dự án
+  .post("/api/expenses", async (c) => {
+    const { project_id, title, amount, category, spent_by, note } = await c.req.json<{
+      project_id: number;
+      title: string;
+      amount: number;
+      category?: string;
+      spent_by?: string;
+      note?: string;
+    }>();
+
+    if (!title?.trim() || !amount) return c.json({ ok: false, error: "Thiếu tiêu đề hoặc số tiền" }, 400);
+
+    db.prepare(`
+      INSERT INTO pm_expenses (project_id, task_id, title, amount, category, spent_by, note)
+      VALUES (?, NULL, ?, ?, ?, ?, ?)
+    `).run(
+      Number(project_id) || 1,
+      title.trim(),
+      Number(amount) || 0,
+      category || "Khác",
+      spent_by || "",
+      note || ""
+    );
+
+    return c.json({ ok: true });
+  })
+
+  // API Thêm thành viên mới (Admin only)
+  .post("/api/members", async (c) => {
+    const { phone, name, email, role, pin } = await c.req.json<{
+      phone: string;
+      name: string;
+      email?: string;
+      role?: string;
+      pin?: string;
+    }>();
+
+    if (!phone?.trim() || !name?.trim()) {
+      return c.json({ ok: false, error: "Thiếu số điện thoại hoặc tên" }, 400);
+    }
+
+    db.prepare(`
+      INSERT INTO pm_members (phone, name, email, role, pin)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(phone) DO UPDATE SET
+        name = excluded.name,
+        email = excluded.email,
+        role = excluded.role,
+        pin = excluded.pin
+    `).run(phone.trim(), name.trim(), email || "", role || "member", pin || "123456");
+
+    return c.json({ ok: true });
+  })
+
+  // API Thay đổi vai trò thành viên (Admin only)
+  .post("/api/members/role", async (c) => {
+    const { phone, role } = await c.req.json<{ phone: string; role: string }>();
+    if (!phone || !role) return c.json({ ok: false, error: "Thiếu tham số" }, 400);
+
+    db.prepare("UPDATE pm_members SET role = ? WHERE phone = ?").run(role, phone);
+    return c.json({ ok: true });
+  })
+
+  // API iCal Feed đồng bộ Google Calendar
+  .get("/api/calendar.ics", (c) => {
+    const tasks = db.prepare("SELECT * FROM pm_tasks ORDER BY id DESC").all() as any[];
+    const icsContent = taoIcalFeed(tasks);
+    return new Response(icsContent, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/calendar; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="zalo-project-calendar.ics"',
+        "Cache-Control": "no-cache"
+      }
+    });
+  })
+
+  // API Quét nhắc việc khẩn cấp tức thời (Admin only)
+  .post("/api/sync-reminders", async (c) => {
+    const result = await quetVaGuiNhacViecTuDong();
+    return c.json({ ok: true, ...result });
+  })
+
+  // API Gửi email thử nghiệm (Admin only)
+  .post("/api/test-email", async (c) => {
+    const { email } = await c.req.json<{ email: string }>();
+    if (!email) return c.json({ ok: false, error: "Thiếu địa chỉ email" }, 400);
+
+    const res = await guiEmailNhacViec({
+      to: email,
+      taskTitle: "Thử nghiệm kết nối SMTP từ Cổng Quản Lý Zalo Agent",
+      name: "Quản Trị Viên"
+    });
+
+    return c.json(res);
+  })
+
+  // API Gửi tin nhắn Zalo nhắc việc tức thì cho 1 công việc
+  .post("/api/remind/:taskId", async (c) => {
+    const taskId = Number(c.req.param("taskId"));
+    const task = db.prepare("SELECT * FROM pm_tasks WHERE id = ?").get(taskId) as {
+      id: number;
+      title: string;
+      assigned_phone: string;
+      deadline: string;
+    } | undefined;
+
+    if (!task) return c.json({ ok: false, error: "Không tìm thấy công việc" }, 404);
+
+    let targetThread = "";
+    if (task.assigned_phone) {
+      const mem = db.prepare("SELECT thread_id FROM pm_members WHERE phone = ?").get(task.assigned_phone) as { thread_id?: string } | undefined;
+      if (mem?.thread_id) targetThread = mem.thread_id;
+    }
+
+    if (!targetThread) {
+      const adminMem = db.prepare("SELECT thread_id FROM pm_members WHERE phone = 'admin'").get() as { thread_id?: string } | undefined;
+      targetThread = adminMem?.thread_id || "";
+    }
+
+    if (!targetThread) {
+      return c.json({ ok: false, error: "Chưa có cuộc trò chuyện Zalo 1-1 nào kết nối với bot" }, 400);
+    }
+
+    const token = layBotTokenGiaiMa("bot-tro-ly-jay");
+    if (!token) return c.json({ ok: false, error: "Chưa có token bot" }, 500);
+
+    const client = taoZaloBotClient({ token });
+    const msg = `🔔 [NHẮC VIỆC KHẨN CẤP // ZALO AGENT STUDIO]\n` +
+      `📌 Công việc: ${task.title}\n` +
+      `⏰ Hạn chót: ${task.deadline ? task.deadline.replace("T", " ") : "Chưa đặt"}\n` +
+      `🔗 Xem trên Cổng Portal: http://127.0.0.1:3901/portal`;
+
+    await client.sendMessage(targetThread, msg);
+    return c.json({ ok: true, message: `Đã gửi tin nhắn nhắc việc qua Zalo đến thread ${targetThread}` });
+  });

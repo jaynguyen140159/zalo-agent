@@ -57,7 +57,7 @@ export function AccountsPage() {
       <PageHeader
         icon={IconSignal}
         title="Accounts"
-        subtitle="Tài khoản Zalo của bot - mỗi account gắn một agent (não) và có policies riêng"
+        subtitle="Tài khoản Zalo & Facebook Fanpage của bot - mỗi account gắn một agent (não) và có policies riêng"
         aside={
           <button
             onClick={() => setCreating(true)}
@@ -77,7 +77,7 @@ export function AccountsPage() {
       <div className="space-y-3">
         {accounts.length === 0 && (
           <div className="gc-card px-5 py-10 text-center text-ink-soft">
-            Chưa có account nào - bấm "Thêm account", chọn tài khoản cá nhân (quét QR) hoặc tài khoản bot (nhập token)
+            Chưa có account nào - bấm "Thêm account", chọn Zalo cá nhân (quét QR), Zalo Bot (nhập token) hoặc Facebook Fanpage (Webhook)
           </div>
         )}
         {accounts.map((acc) => {
@@ -88,9 +88,8 @@ export function AccountsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-ink">{acc.label}</span>
-                  {acc.loai === "bot" && <Badge tone="blue">Bot chính thức</Badge>}
-                  {/* Tài khoản bot không login QR mà nhập token, nên nhãn "chưa
-                      login QR" là chỉ sai đường ngay ở chỗ người ta nhìn đầu tiên */}
+                  {acc.loai === "bot" && <Badge tone="blue">Zalo Bot chính thức</Badge>}
+                  {acc.loai === "facebook" && <Badge tone="blue">Facebook Fanpage</Badge>}
                   {acc.running ? (
                     <Badge tone="green">Đang chạy</Badge>
                   ) : acc.loai === "bot" ? (
@@ -98,6 +97,12 @@ export function AccountsPage() {
                       <Badge tone="gray">Đã có token, chưa chạy</Badge>
                     ) : (
                       <Badge tone="amber">Chưa nhập token</Badge>
+                    )
+                  ) : acc.loai === "facebook" ? (
+                    acc.coBotToken ? (
+                      <Badge tone="gray">Đã có Page Token, chưa chạy</Badge>
+                    ) : (
+                      <Badge tone="amber">Chờ nhập Page Access Token</Badge>
                     )
                   ) : acc.hasCredentials ? (
                     <Badge tone="gray">Đã login, chưa chạy</Badge>
@@ -107,6 +112,7 @@ export function AccountsPage() {
                 </div>
                 <div className="mt-0.5 text-[12px] text-ink-soft">
                   {acc.id} · não: {agent ? `${agent.icon} ${agent.name}` : acc.agentId}
+                  {acc.loai === "facebook" && acc.fbPageId ? ` · Page ID: ${acc.fbPageId}` : ""}
                 </div>
               </div>
 
@@ -124,9 +130,7 @@ export function AccountsPage() {
                     }`}
                   />
                 </button>
-                {/* Chỉ tài khoản cá nhân mới quét QR; tài khoản bot nhập token
-                    trong drawer Sửa. Hiện nút QR cho bot là dẫn vào ngõ cụt. */}
-                {acc.loai !== "bot" && (
+                {acc.loai === "ca_nhan" && (
                   <button
                     onClick={() => setQrAccount(acc)}
                     className="rounded-lg border border-line px-3 py-1.5 text-[13px] font-medium text-zalo-600 hover:bg-zalo-50"

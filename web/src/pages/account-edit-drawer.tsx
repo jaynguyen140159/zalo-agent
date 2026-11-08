@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ManagedAccount, ManagedAgent, ReactionIcon } from "../dashboard-api-client";
 import { api, ApiError } from "../dashboard-api-client";
 import { useChotNen } from "../shared/backdrop-close-guard";
-import { MO_TA_KENH_BOT, MO_TA_KENH_CA_NHAN } from "./mo-ta-loai-kenh";
+import { MO_TA_KENH_BOT, MO_TA_KENH_CA_NHAN, MO_TA_KENH_FACEBOOK } from "./mo-ta-loai-kenh";
 import { SelectMenu } from "../shared/select-menu";
 import { ToggleKnob } from "../shared/ui-bits";
 
@@ -50,10 +50,18 @@ export function AccountEditDrawer({
     allowlistMode: account?.allowlist.mode ?? "all",
     allowlistIds: (account?.allowlist.userIds ?? []).join("\n"),
     /** Chốt LÚC TẠO, không đổi được sau đó - xem `createSchema` ở account-routes */
-    loai: account?.loai ?? ("ca_nhan" as "ca_nhan" | "bot"),
+    loai: account?.loai ?? ("ca_nhan" as "ca_nhan" | "bot" | "facebook"),
   });
   /** Token bot nhập mới; rỗng = không đụng tới token đã lưu */
   const [botToken, setBotToken] = useState("");
+  /** Cấu hình riêng cho kênh Facebook Fanpage */
+  const [fbPageToken, setFbPageToken] = useState("");
+  const [fbVerifyToken, setFbVerifyToken] = useState(
+    () => account?.fbVerifyToken || `fb-verify-${Math.random().toString(36).slice(2, 10)}`,
+  );
+  const [fbAppSecret, setFbAppSecret] = useState("");
+  const [fbPageId, setFbPageId] = useState(account?.fbPageId ?? "");
+  const [daCopy, setDaCopy] = useState<"" | "url" | "verify">("");
   /**
    * Id đã TẠO XONG trong chính lần mở drawer này.
    *
@@ -84,8 +92,14 @@ export function AccountEditDrawer({
    * cũng đặt mặc định này lúc tạo, nhưng drawer gọi `update()` NGAY sau `create()`
    * nên không đồng bộ ở đây là ghi đè mất mặc định an toàn vừa đặt.
    */
-  function doiLoai(loai: "ca_nhan" | "bot") {
+  function doiLoai(loai: "ca_nhan" | "bot" | "facebook") {
     setForm((truoc) => ({ ...truoc, loai, allowlistMode: loai === "bot" ? "list" : "all" }));
+  }
+
+  function copyChuoi(text: string, loaiCopy: "url" | "verify") {
+    void navigator.clipboard?.writeText(text);
+    setDaCopy(loaiCopy);
+    setTimeout(() => setDaCopy(""), 2000);
   }
 
   const agentOptions = agents.map((a) => ({
@@ -131,6 +145,14 @@ export function AccountEditDrawer({
       if (form.loai === "bot" && botToken.trim()) {
         await api.accountsAdmin.setBotToken(account?.id ?? form.id, botToken.trim());
       }
+      if (form.loai === "facebook") {
+        await api.accountsAdmin.setFacebookConfig(account?.id ?? form.id, {
+          pageAccessToken: fbPageToken.trim() || undefined,
+          verifyToken: fbVerifyToken.trim() || undefined,
+          appSecret: fbAppSecret.trim() || undefined,
+          pageId: fbPageId.trim() || undefined,
+        });
+      }
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Lưu thất bại");
@@ -143,7 +165,7 @@ export function AccountEditDrawer({
     <div className="fixed inset-0 z-50 flex justify-end bg-ink/25 backdrop-blur-[2px]" {...nen}>
       <div className="flex h-full w-full max-w-md flex-col border-l border-line bg-surface">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div className="font-semibold text-ink">{account ? `Sửa: ${account.label}` : "Thêm account Zalo"}</div>
+          <div className="font-semibold text-ink">{account ? `Sửa: ${account.label}` : "Thêm account (Zalo / Facebook)"}</div>
           <button onClick={onClose} className="rounded-lg border border-line px-3 py-1 text-[13px] text-ink-soft hover:bg-tile">
             Đóng
           </button>
@@ -159,7 +181,7 @@ export function AccountEditDrawer({
                 className="gc-input w-full"
                 value={form.id}
                 onChange={(e) => setForm({ ...form, id: e.target.value })}
-                placeholder="vd: acc-cham-soc"
+                placeholder="vd: fanpage-chinh hoặc bot-cskh"
               />
             </div>
           )}
@@ -169,18 +191,19 @@ export function AccountEditDrawer({
               <label className="mb-1.5 block text-[13px] font-medium text-ink">Loại kênh</label>
               <SelectMenu
                 value={form.loai}
-                /*
-                 * Hint NGẮN: đoạn giải thích đầy đủ đã nằm ngay dưới ô chọn, nên
-                 * hint dài chỉ lặp lại và đẩy popup rộng quá drawer.
-                 */
                 options={[
-                  { value: "ca_nhan", label: "Tài khoản cá nhân", hint: "quét QR" },
-                  { value: "bot", label: "Tài khoản bot chính thức", hint: "nhập token" },
+                  { value: "ca_nhan", label: "Zalo cá nhân", hint: "quét QR" },
+                  { value: "bot", label: "Zalo Bot chính thức", hint: "nhập token" },
+                  { value: "facebook", label: "Facebook Fanpage (Messenger)", hint: "webhook + token" },
                 ]}
-                onChange={(v) => doiLoai(v as "ca_nhan" | "bot")}
+                onChange={(v) => doiLoai(v as "ca_nhan" | "bot" | "facebook")}
               />
               <p className="mt-1.5 text-[12px] leading-[1.6] text-ink-soft">
-                {form.loai === "bot" ? MO_TA_KENH_BOT : MO_TA_KENH_CA_NHAN}
+                {form.loai === "bot"
+                  ? MO_TA_KENH_BOT
+                  : form.loai === "facebook"
+                    ? MO_TA_KENH_FACEBOOK
+                    : MO_TA_KENH_CA_NHAN}
               </p>
               <p className="mt-1 text-[12px] text-ink-soft">Chốt lúc tạo, không đổi được sau đó.</p>
             </div>
@@ -192,7 +215,7 @@ export function AccountEditDrawer({
               className="gc-input w-full"
               value={form.label}
               onChange={(e) => setForm({ ...form, label: e.target.value })}
-              placeholder="vd: Nick chăm sóc khách hàng"
+              placeholder="vd: Fanpage Chăm Sóc Khách Hàng"
             />
           </div>
 
@@ -217,6 +240,111 @@ export function AccountEditDrawer({
             </div>
           )}
 
+          {form.loai === "facebook" && (
+            <div className="space-y-3 rounded-xl border border-line bg-tile/40 p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Cấu hình Facebook Fanpage (Meta Messenger API)
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-ink">
+                  1. Callback URL (dán vào mục Webhook trên Meta for Developers)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    className="gc-input flex-1 font-mono text-[12px] text-ink-soft"
+                    value={`${window.location.origin}/api/webhooks/facebook/${(account?.id || form.id || "ten-account").trim()}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyChuoi(
+                        `${window.location.origin}/api/webhooks/facebook/${(account?.id || form.id || "ten-account").trim()}`,
+                        "url",
+                      )
+                    }
+                    className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-tile"
+                  >
+                    {daCopy === "url" ? "Đã chép!" : "Chép"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-ink">
+                  2. Verify Token (Mã xác minh Webhook)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="gc-input flex-1 font-mono text-[13px]"
+                    value={fbVerifyToken}
+                    onChange={(e) => setFbVerifyToken(e.target.value)}
+                    placeholder="vd: fb-verify-123456"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyChuoi(fbVerifyToken, "verify")}
+                    className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-tile"
+                  >
+                    {daCopy === "verify" ? "Đã chép!" : "Chép"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-ink">
+                  3. Page Access Token{" "}
+                  {account?.coBotToken ? (
+                    <span className="font-normal text-ink-soft">(đã lưu - nhập mới nếu muốn đổi)</span>
+                  ) : (
+                    <span className="font-normal text-ink-soft">(có thể tạo account trước, dán mã EAA... sau)</span>
+                  )}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  className="gc-input w-full font-mono text-[13px]"
+                  value={fbPageToken}
+                  onChange={(e) => setFbPageToken(e.target.value)}
+                  placeholder={account?.coBotToken ? "Để trống nếu giữ nguyên Page Token cũ" : "EAA..."}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[12px] font-medium text-ink">
+                    App Secret <span className="font-normal text-ink-soft">(tùy chọn)</span>
+                  </label>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    className="gc-input w-full font-mono text-[12px]"
+                    value={fbAppSecret}
+                    onChange={(e) => setFbAppSecret(e.target.value)}
+                    placeholder={account?.coFbAppSecret ? "Đã lưu (để trống nếu giữ)" : "Khóa bí mật ứng dụng"}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[12px] font-medium text-ink">
+                    Page ID <span className="font-normal text-ink-soft">(tự lấy khi có token)</span>
+                  </label>
+                  <input
+                    className="gc-input w-full font-mono text-[12px]"
+                    value={fbPageId}
+                    onChange={(e) => setFbPageId(e.target.value)}
+                    placeholder="Tự động điền từ Token"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[12px] leading-[1.6] text-ink-soft">
+                Bạn có thể bấm <b>Tạo account</b> ngay bây giờ để giữ chỗ cấu hình. Khi nào có{" "}
+                <code>Page Access Token</code> từ Meta for Developers, mở <b>Sửa</b> và dán vào là bot tự kết nối!
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="mb-1.5 block text-[13px] font-medium text-ink">Agent (não)</label>
             <SelectMenu
@@ -226,25 +354,27 @@ export function AccountEditDrawer({
             />
           </div>
 
-          <div className="space-y-2 rounded-xl border border-line p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Policies</div>
-            <Toggle
-              value={form.respondToGroups}
-              onChange={(v) => setForm({ ...form, respondToGroups: v })}
-              label="Trả lời trong nhóm"
-            />
-            <Toggle
-              value={form.groupRequireMention}
-              onChange={(v) => setForm({ ...form, groupRequireMention: v })}
-              label="Nhóm phải @mention mới trả lời"
-            />
-            <Toggle
-              value={form.groupPassiveListen}
-              onChange={(v) => setForm({ ...form, groupPassiveListen: v })}
-              label="Nghe passive trong nhóm"
-              hint="Tin không @mention vẫn ghi vào ngữ cảnh, không tốn LLM"
-            />
-          </div>
+          {form.loai !== "facebook" && (
+            <div className="space-y-2 rounded-xl border border-line p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Policies</div>
+              <Toggle
+                value={form.respondToGroups}
+                onChange={(v) => setForm({ ...form, respondToGroups: v })}
+                label="Trả lời trong nhóm"
+              />
+              <Toggle
+                value={form.groupRequireMention}
+                onChange={(v) => setForm({ ...form, groupRequireMention: v })}
+                label="Nhóm phải @mention mới trả lời"
+              />
+              <Toggle
+                value={form.groupPassiveListen}
+                onChange={(v) => setForm({ ...form, groupPassiveListen: v })}
+                label="Nghe passive trong nhóm"
+                hint="Tin không @mention vẫn ghi vào ngữ cảnh, không tốn LLM"
+              />
+            </div>
+          )}
 
           <div className="space-y-2 rounded-xl border border-line p-4">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
@@ -256,14 +386,12 @@ export function AccountEditDrawer({
               label='Hiện "đang nhập" khi bot xử lý'
               hint="Giống người thật đang gõ, tự tắt khi gửi xong"
             />
-            {/* Kênh bot KHÔNG thả được cảm xúc (`setMessageReaction` trả 404).
-                Để ô này hiện thì người vận hành bật xong tưởng có, mà chẳng
-                bao giờ thấy cảm xúc nào - cùng lớp lỗi với việc trang Tools
-                từng hiện "Gửi file" xanh cho tài khoản bot. */}
-            {form.loai === "bot" ? (
+            {form.loai !== "ca_nhan" ? (
               <p className="py-1 text-[13px] leading-[1.6] text-ink-soft">
-                <span className="font-medium text-ink">Thả cảm xúc khi nhận tin</span> - Zalo Bot API
-                không có method thả cảm xúc nên tài khoản bot không dùng được mục này.
+                <span className="font-medium text-ink">Thả cảm xúc khi nhận tin</span> -{" "}
+                {form.loai === "facebook"
+                  ? "Facebook Fanpage tự động đánh dấu 'Đã xem' (mark_seen) khi nhận tin."
+                  : "Zalo Bot API không có method thả cảm xúc nên tài khoản bot không dùng được mục này."}
               </p>
             ) : (
               <>

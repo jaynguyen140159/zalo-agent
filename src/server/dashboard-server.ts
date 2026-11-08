@@ -18,6 +18,9 @@ import {
   verifySessionToken,
 } from "./dashboard-auth.js";
 import { setStoredPassword } from "./dashboard-password-store.js";
+import { facebookWebhookRoutes } from "../facebook/facebook-webhook-routes.js";
+import { uploadRoutes } from "./routes/upload-routes.js";
+import { portalRoutes } from "./routes/portal-routes.js";
 import { accountRoutes } from "./routes/account-routes.js";
 import { agentRoutes } from "./routes/agent-routes.js";
 import { contactRoutes } from "./routes/contact-routes.js";
@@ -80,6 +83,15 @@ export function buildDashboardApp(): Hono {
     c.header("Cache-Control", "no-store");
     return c.json({ ok: true });
   });
+
+  // Webhook công khai cho Facebook Messenger Platform (xác thực qua Verify Token & X-Hub-Signature-256)
+  app.route("/api/webhooks/facebook", facebookWebhookRoutes);
+
+  // Trang web Upload file công khai (đẩy thẳng vào thư mục lưu trữ và thông báo Zalo)
+  app.route("/upload", uploadRoutes);
+
+  // Cổng Quản lý Dự án, Phân chia Công việc, Deadline & Chi phí (Zalo Portal)
+  app.route("/portal", portalRoutes);
 
   app.post("/api/auth/login", async (c) => {
     const ip = resolveClientIp(c);

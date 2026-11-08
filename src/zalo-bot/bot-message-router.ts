@@ -13,6 +13,7 @@ import { reportPayloadAnomalies } from "../zalo/payload-anomaly-watch.js";
 import { replyTargetTuKenh } from "../zalo/reply-target-tu-kenh.js";
 import { doiUpdateSangParsedMessage } from "./zalo-bot-update-parser.js";
 import type { ZaloBotUpdate } from "./zalo-bot-api-types.js";
+import { kiemTraLaTinDangKy, xuLyDangKyThanhVien } from "./bot-member-registration.js";
 
 const log = createLogger("bot-message-router");
 
@@ -63,6 +64,16 @@ export function routeBotUpdate(accountId: string, kenh: KenhLuot, update: ZaloBo
     displayName: msg.isGroup ? "" : msg.senderName,
     lastSenderName: msg.senderName,
   });
+
+  // Tự động nhận diện và xử lý đăng ký tài khoản nhận việc 1-1 từ Bot
+  if (kiemTraLaTinDangKy(msg.text)) {
+    log.info({ threadId: msg.threadId, text: msg.text }, "Nhận tin nhắn đăng ký nhận việc 1-1");
+    try {
+      ghiTinDenVaoHistory(config.id, msg, { luuAnhNgay: true });
+    } catch {}
+    void xuLyDangKyThanhVien(kenh, msg);
+    return;
+  }
 
   const decision = shouldRespond(config, msg, isBotEnabled(config.id, msg.threadId));
 

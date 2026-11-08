@@ -309,6 +309,10 @@ function runMigrations(): void {
   // Token bot, MÃ HÓA bằng cùng khóa với cookie Zalo (credential-encryption).
   // Rỗng với tài khoản cá nhân.
   addColumnIfMissing("accounts", "bot_token_enc", "TEXT NOT NULL DEFAULT ''");
+  // Cấu hình kênh Facebook Fanpage (Messenger Webhook)
+  addColumnIfMissing("accounts", "fb_page_id", "TEXT NOT NULL DEFAULT ''");
+  addColumnIfMissing("accounts", "fb_verify_token", "TEXT NOT NULL DEFAULT ''");
+  addColumnIfMissing("accounts", "fb_app_secret_enc", "TEXT NOT NULL DEFAULT ''");
 
   // Lớp tool THỨ HAI, theo agent - GIAO với lớp account ở trên, không thay thế.
   // Agent khai NĂNG LỰC (agent này biết làm gì), account áp CHÍNH SÁCH (nick này
@@ -322,6 +326,9 @@ function runMigrations(): void {
   // Trần token riêng cho agent này (NULL = theo LLM_CONTEXT_WINDOW ở Cấu hình).
   // Phải nằm ở agent chứ không chỉ ở cấu hình chung: trần phụ thuộc CỬA SỔ của
   // model, mà model đặt được theo từng agent.
+  // Bảng Quản lý Dự án & Tiến độ (Cổng Portal)
+  taoBangProjectManagement(db);
+
   addColumnIfMissing("agents", "context_window", "INTEGER");
 
   // Lượt do lịch hẹn tự bắn (source='schedule') khác lượt trả lời tin nhắn
@@ -335,6 +342,78 @@ function runMigrations(): void {
   // phải ngay lần đầu (bất biến "chưa từng gửi được thì không coi là đã
   // chạy"). Mặc định 0 để mọi job cũ coi như chưa từng thử hỏng lần nào.
   addColumnIfMissing("scheduled_jobs", "delivery_attempts", "INTEGER NOT NULL DEFAULT 0");
+}
+
+function taoBangProjectManagement(database: DatabaseSync): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      budget REAL DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_stages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL DEFAULT 1,
+      step_order INTEGER NOT NULL DEFAULT 1,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      status TEXT DEFAULT 'todo',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL DEFAULT 1,
+      stage_id INTEGER NOT NULL DEFAULT 1,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      assigned_phone TEXT DEFAULT '',
+      deadline TEXT DEFAULT '',
+      status TEXT DEFAULT 'todo',
+      progress INTEGER DEFAULT 0,
+      reminded_at TEXT DEFAULT NULL,
+      google_event_id TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT DEFAULT 'member',
+      avatar TEXT DEFAULT '',
+      thread_id TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL DEFAULT 1,
+      task_id INTEGER DEFAULT NULL,
+      title TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      category TEXT DEFAULT 'Khác',
+      spent_by TEXT DEFAULT '',
+      spent_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      receipt_file TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  addColumnIfMissing("pm_members", "email", "TEXT NOT NULL DEFAULT ''");
+  addColumnIfMissing("pm_members", "pin", "TEXT NOT NULL DEFAULT '123456'");
+  addColumnIfMissing("pm_tasks", "reminded_at", "TEXT");
+  addColumnIfMissing("pm_tasks", "google_event_id", "TEXT");
+  addColumnIfMissing("pm_tasks", "parent_id", "INTEGER DEFAULT NULL");
+  addColumnIfMissing("pm_tasks", "checklist", "TEXT NOT NULL DEFAULT '[]'");
+  addColumnIfMissing("pm_tasks", "assignees", "TEXT NOT NULL DEFAULT '[]'");
 }
 
 function addColumnIfMissing(table: string, column: string, definition: string): void {

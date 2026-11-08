@@ -1,4 +1,6 @@
 import type { API } from "zca-js";
+import { taoFacebookClient } from "../facebook/facebook-api-client.js";
+import { kenhFacebook } from "../facebook/kenh-facebook.js";
 import { chayTaiKhoanBot } from "../zalo-bot/bot-account-runner.js";
 import {
   getAccount,
@@ -95,8 +97,8 @@ export function attachAccount(config: AccountConfig, api: API): void {
   // nửa kia (gửi được file, nhưng toolset và persona vẫn theo `loai: "bot"`).
   // Route login đã chặn, nhưng `qr-login-manager` gọi thẳng vào đây nên phải
   // có chốt ở chính hàm này.
-  if (config.loai === "bot") {
-    throw new Error(`Account "${config.id}" là tài khoản bot - không gắn được API zca-js`);
+  if (config.loai !== "ca_nhan") {
+    throw new Error(`Account "${config.id}" thuộc loại "${config.loai}" - không gắn được API zca-js`);
   }
   stopAccount(config.id);
   const selfId = String(api.getOwnId());
@@ -121,8 +123,32 @@ export async function startAccount(accountId: string): Promise<void> {
     return;
   }
 
+  if (config.loai === "facebook") {
+    await startFacebookAccount(config);
+    return;
+  }
+
   const api = await loginWithStoredCredentials(accountId);
   attachAccount(config, api);
+}
+
+async function startFacebookAccount(config: AccountConfig): Promise<void> {
+  const token = layBotTokenGiaiMa(config.id);
+  if (!token) {
+    throw new Error(
+      `Tài khoản Facebook "${config.id}" chưa có Page Access Token - nhập token ở trang Accounts`,
+    );
+  }
+  const client = taoFacebookClient({ pageAccessToken: token });
+  const kenh = kenhFacebook(client);
+  stopAccount(config.id);
+  running.set(config.id, {
+    config,
+    kenh,
+    selfId: config.fbPageId ?? "",
+    stopListener: () => {},
+  });
+  log.info({ accountId: config.id, label: config.label }, "Tài khoản Facebook Fanpage sẵn sàng (Webhook)");
 }
 
 /**

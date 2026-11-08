@@ -35,25 +35,25 @@ export function LoginPage() {
     >
       <form onSubmit={submit} className="gc-card w-full max-w-sm p-8">
         <div className="mb-6 flex flex-col items-center gap-1">
-          {/* Logo bản đầy đủ đã có chữ "Zalo Agent" bên trong */}
+          {/* Logo bản đầy đủ phong cách Claude Tech Studio */}
           <img
-            src="/zalo-agent-logo.webp"
+            src="/zalo-agent-logo.svg"
             alt="Zalo Agent"
-            width={384}
-            height={368}
-            className="h-40 w-auto"
+            width={420}
+            height={120}
+            className="h-20 w-auto mb-2"
           />
-          <div className="text-[13px] text-ink-soft">Dashboard quản trị bot</div>
+          <div className="text-[12.5px] font-medium text-ink-soft">Hệ thống Quản trị Trợ lý AI</div>
         </div>
 
         <label className="mb-1.5 block text-[13px] font-medium text-ink">Mật khẩu dashboard</label>
-        <SecretInput value={password} onChange={setPassword} autoFocus className="mb-3" />
+        <SecretInput value={password} onChange={setPassword} autoFocus className="mb-4" />
         {error && <p className="mb-3 text-[13px] text-red-600 dark:text-red-400">{error}</p>}
 
         <button
           type="submit"
           disabled={busy || password.length === 0}
-          className="w-full rounded-lg bg-zalo-500 py-2.5 text-[14px] font-medium text-white hover:bg-zalo-600 disabled:opacity-50"
+          className="w-full rounded-full bg-[#18181B] py-3 text-[14px] font-semibold text-white transition-all hover:bg-[#27272A] hover:shadow-md disabled:opacity-50"
         >
           {busy ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>

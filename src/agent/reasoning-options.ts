@@ -54,10 +54,10 @@ export const ROUTER_PROVIDER_OPTIONS_KEY = "llmRouter";
  * hạ về "high" vì không có nấc nào cao hơn; im lặng hạ mức vẫn hơn là gửi giá
  * trị lạ rồi ăn 400 cho cả lượt.
  */
-function mucNghiCuaGoogle(effort: ReasoningEffort): "minimal" | "low" | "medium" | "high" {
-  if (effort === "off") return "minimal";
+function mucNghiCuaGoogle(effort: ReasoningEffort): "low" | "medium" | "high" {
+  if (effort === "off") return "low";
   if (effort === "xhigh") return "high";
-  return effort;
+  return effort as "low" | "medium" | "high";
 }
 
 export function reasoningProviderOptions(

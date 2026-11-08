@@ -1,4 +1,5 @@
 import { botTimeZone, getTuning } from "../../config/runtime-tuning-settings.js";
+import { db } from "../../conversation/database.js";
 import { parseSchedule, type ParsedSchedule } from "../../scheduler/schedule-parser.js";
 import {
   createJob,
@@ -67,32 +68,63 @@ export function doCreate(
   });
   if (!parsed.ok) return ketQuaLoi(parsed.error);
 
-  // KHỬ TRÙNG trước cả trần job/thread - cố ý. Lời gọi trùng khít KHÔNG thêm
-  // job nào, nên chặn nó bằng "đã chạm trần" là báo sai chuyện: người dùng chỉ
-  // muốn biết lịch đã đặt chưa, mà lại nhận câu bảo đi hủy bớt lịch cũ. Đổi
-  // lại `parseSchedule` phải chạy sớm hơn một bậc - nó thuần, không tác dụng phụ.
-  //
-  // Vì sao cần: model KHÔNG thấy tool call của lượt trước trong lịch sử, nên
-  // nó "kiểm tra lịch đã đặt chưa" bằng cách gọi create lần nữa. Xem
-  // `tim-lich-hen-trung.ts` cho ca thật và số đo.
+  // Giải quyết đích gửi nếu có yêu cầu nhắc chéo nhóm hoặc gửi riêng
+  let targetThreadId = ctx.message.threadId;
+  let targetThreadType = ctx.message.threadType;
+  let targetDesc = "";
+
+  if (input.targetThread) {
+    targetThreadId = input.targetThread;
+    targetDesc = `tới thread "${targetThreadId}"`;
+  } else if (input.targetName) {
+    const rawTarget = input.targetName.trim();
+    // 1. Tìm trong pm_members theo tên hoặc phone
+    const member = db
+      .prepare(
+        "SELECT name, phone, thread_id FROM pm_members WHERE thread_id != '' AND (name LIKE ? OR phone = ?)",
+      )
+      .get(`%${rawTarget}%`, rawTarget) as
+      | { name: string; phone: string; thread_id: string }
+      | undefined;
+
+    if (member?.thread_id) {
+      targetThreadId = member.thread_id;
+      targetThreadType = 0;
+      targetDesc = `riêng cho ${member.name} (${member.phone})`;
+    } else {
+      // 2. Tìm trong threads table theo display_name hoặc thread_id
+      const threadRow = db
+        .prepare(
+          "SELECT thread_id, thread_type, display_name FROM threads WHERE account_id = ? AND (display_name LIKE ? OR thread_id = ?)",
+        )
+        .get(ctx.account.id, `%${rawTarget}%`, rawTarget) as
+        | { thread_id: string; thread_type: number; display_name: string }
+        | undefined;
+
+      if (threadRow) {
+        targetThreadId = threadRow.thread_id;
+        targetThreadType = threadRow.thread_type;
+        targetDesc = `tới ${threadRow.thread_type === 1 ? "nhóm" : "cuộc trò chuyện"} "${threadRow.display_name || threadRow.thread_id}"`;
+      }
+    }
+  }
+
+  // KHỬ TRÙNG trước cả trần job/thread - cố ý.
   const trung = timLichHenTrung({
-    jobs: listJobsForThread(ctx.account.id, ctx.message.threadId),
+    jobs: listJobsForThread(ctx.account.id, targetThreadId),
     name: input.name,
     kind: input.kind,
     schedule: parsed.schedule,
   });
   if (trung.trungKhit) {
     const j = trung.trungKhit;
-    // Chuỗi trần, KHÔNG `ketQuaLoi`: trạng thái người dùng muốn ĐÃ CÓ SẴN nên
-    // đây là thành công, không phải hỏng. Nói rõ "không tạo thêm" để model
-    // đừng báo với người dùng là vừa đặt thêm một lịch nữa.
     return (
       `Lịch này ĐÃ CÓ SẴN, không tạo thêm bản trùng: "${j.name}" (id: ${j.id}) - ${describeSchedule(j)}. ` +
       `Nói với người dùng là lịch đã được đặt từ trước và vẫn còn hiệu lực - ĐỪNG nói bạn vừa đặt thêm một lịch mới.`
     );
   }
 
-  const cap = checkThreadJobCap(ctx.account.id, ctx.message.threadId);
+  const cap = checkThreadJobCap(ctx.account.id, targetThreadId);
   if (!cap.ok) {
     return ketQuaLoi(
       `${cap.reason} Gọi action='list' rồi hủy bớt lịch cũ (action='cancel') trước khi đặt lịch mới.`,
@@ -101,8 +133,8 @@ export function doCreate(
 
   const job = createJob({
     accountId: ctx.account.id,
-    threadId: ctx.message.threadId,
-    threadType: ctx.message.threadType,
+    threadId: targetThreadId,
+    threadType: targetThreadType,
     name: input.name,
     kind: input.kind,
     payload: input.payload,
@@ -110,17 +142,14 @@ export function doCreate(
     createdBy: ctx.message.senderId,
   });
 
-  // Cùng lịch chạy mà KHÁC tên thì vẫn tạo - một người hoàn toàn có thể hẹn
-  // hai việc khác nhau vào cùng một giờ. Chỉ NÓI RA cho model biết: đây là
-  // lưới đỡ cho lúc phép so theo tên trượt (model đặt tên lệch một chữ), và
-  // cũng là thông tin người dùng đáng được nghe.
   const nhacCungLich =
     trung.cungLich.length > 0
       ? ` LƯU Ý: cuộc trò chuyện này đã có ${trung.cungLich.length} lịch khác chạy cùng nhịp/mốc giờ đó` +
         ` (${trung.cungLich.map((j) => `"${j.name}"`).join(", ")}) - nói cho người dùng biết để họ tự quyết có trùng ý không.`
       : "";
 
-  return `Đã tạo lịch "${job.name}" (id: ${job.id}) - ${describeSchedule(job)}. Đọc lại mốc giờ này cho người dùng nghe để họ xác nhận đúng ý.${nhacCungLich}`;
+  const diaDiem = targetDesc ? ` (sẽ gửi ${targetDesc})` : "";
+  return `Đã tạo lịch "${job.name}" (id: ${job.id})${diaDiem} - ${describeSchedule(job)}. Đọc lại mốc giờ này cho người dùng nghe để họ xác nhận đúng ý.${nhacCungLich}`;
 }
 
 export function doList(ctx: ToolContext): string {

@@ -93,6 +93,18 @@ export const scheduleTaskInputSchema = z.discriminatedUnion("action", [
         "Nội dung gửi (kind='message') hoặc prompt cho lượt agent (kind='agent') - phải TỰ CHỨA đủ ngữ cảnh",
       ),
     schedule: scheduleInputSchema,
+    targetThread: z
+      .string()
+      .optional()
+      .describe(
+        "Tùy chọn. ID của nhóm hoặc thread muốn gửi tin nhắc đến (để nhắc việc chéo nhóm hoặc gửi tin nhắn riêng).",
+      ),
+    targetName: z
+      .string()
+      .optional()
+      .describe(
+        "Tùy chọn. Tên người nhận (ví dụ 'Tuấn', 'Huy') hoặc tên nhóm (ví dụ 'Kỹ Thuật') muốn nhận lời nhắc. Bot sẽ tự động tìm đúng thread để gửi đến.",
+      ),
   }),
   z.object({
     action: z.literal("list"),
@@ -186,6 +198,18 @@ export const scheduleTaskWireSchema = z.object({
       "BẮT BUỘC với create. Với update: bỏ trống = giữ lịch cũ. Đúng 1 trong 4 dạng: once theo mốc giờ " +
         "tuyệt đối (date+time), once tương đối (inMinutes), every lặp theo phút, hoặc cron theo biểu thức " +
         "cron - cả 4 đều hiểu theo giờ Việt Nam.",
+    ),
+  targetThread: z
+    .string()
+    .optional()
+    .describe(
+      "Tùy chọn cho create: ID của nhóm hoặc thread muốn gửi tin nhắc đến (để nhắc việc chéo nhóm hoặc gửi tin nhắn riêng).",
+    ),
+  targetName: z
+    .string()
+    .optional()
+    .describe(
+      "Tùy chọn cho create: Tên người nhận hoặc tên nhóm muốn nhận lời nhắc. Bot sẽ tự tìm đúng thread để gửi đến thay vì nhóm hiện tại.",
     ),
 });
 

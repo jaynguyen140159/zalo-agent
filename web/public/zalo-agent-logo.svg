@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" width="280" height="64" fill="none">
+  <!-- Left Organic Mark (Tech Blue & Emerald Green) -->
+  <g transform="translate(32, 32)">
+    <g transform="rotate(0)">
+      <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#2563EB"/>
+    </g>
+    <g transform="rotate(120)">
+      <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#1D4ED8"/>
+    </g>
+    <g transform="rotate(240)">
+      <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#10B981"/>
+    </g>
+    <circle cx="0" cy="0" r="3.5" fill="#059669"/>
+  </g>
+  
+  <!-- Text: Clean elegant grotesque sans-serif -->
+  <text x="68" y="38" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5" fill="#0F172A">
+    Zalo<tspan font-weight="600" fill="#2563EB">Agent</tspan>
+  </text>
+  <circle cx="196" cy="34" r="3" fill="#10B981"/>
+</svg>

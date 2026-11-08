@@ -8,8 +8,7 @@
  * cách) mà model không thể tự suy ra nếu thiếu.
  */
 export const SCHEDULE_TASK_DESCRIPTION =
-  "Đặt, xem, sửa hoặc hủy lịch để bot tự nhắn vào ĐÚNG cuộc trò chuyện này ở một mốc giờ " +
-  "trong tương lai (nhắc hẹn, báo cáo định kỳ...). Không đặt được lịch gửi sang hội thoại khác.\n" +
+  "Đặt, xem, sửa hoặc hủy lịch để bot tự nhắn vào cuộc trò chuyện này, hoặc gửi sang nhóm khác hay nhắn riêng cho thành viên (qua tham số targetName hoặc targetThread) ở một mốc giờ trong tương lai (nhắc hẹn, báo cáo định kỳ...).\n" +
   "action='create': kind='message' gửi nguyên văn payload lúc tới giờ, không tốn lượt LLM - " +
   "dùng cho nhắc hẹn đơn thuần, RẺ HƠN NHIỀU. kind='agent' chạy một lượt agent (có tool) với " +
   "payload là PROMPT - chỉ dùng khi lúc chạy cần tra cứu/tổng hợp gì đó.\n" +

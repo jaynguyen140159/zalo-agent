@@ -5,64 +5,95 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design tokens - trích từ GoClaw dashboard thật (card trắng border 0.67px
- * radius 12, nền off-white, không shadow) nhưng đổi hệ màu: neutral warm ->
- * cool, primary cam -> xanh Zalo #0068FF.
- *
- * Font Plus Jakarta Sans: dáng tròn, hình học, chữ số cao đều - gọn và hiện
- * đại hơn Be Vietnam Pro dùng trước đây ở dashboard này. Có đủ dấu tiếng Việt
- * (Latin Extended) nên không phải lo chữ có dấu rơi về font hệ thống.
+ * DESIGN TOKENS - MODERN TECH BLUE & EMERALD GREEN THEME
+ * Nền Slate nhẹ #F8FAFC, thẻ trắng tinh khôi bo tròn 20px-24px,
+ * Điểm nhấn Xanh Dương Công Nghệ #2563EB & Xanh Lá Ngọc #10B981, chữ đậm nét #0F172A.
  */
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
 
-  --color-zalo-50: #eaf2ff;
-  --color-zalo-100: #d6e6ff;
-  --color-zalo-200: #adcdff;
-  --color-zalo-500: #0068ff;
-  --color-zalo-600: #0054d6;
-  --color-zalo-700: #0043ab;
+  --color-zalo-50: #eff6ff;
+  --color-zalo-100: #dbeafe;
+  --color-zalo-200: #bfdbfe;
+  --color-zalo-500: #2563eb; /* Tech Blue */
+  --color-zalo-600: #1d4ed8;
+  --color-zalo-700: #1e40af;
 
-  --color-canvas: #f6f8fb;      /* nền trang */
-  --color-surface: #ffffff;     /* nền card/panel - KHÔNG dùng bg-white trực tiếp */
-  --color-ink: #1c2433;         /* chữ chính */
-  --color-ink-soft: #67748b;    /* chữ phụ */
-  --color-line: #e4e8ef;        /* border card */
-  --color-tile: #eef1f6;        /* nền tile/hover */
+  --color-canvas: #f8fafc;      /* Nền sáng tinh sạch dễ nhìn */
+  --color-surface: #ffffff;     /* Thẻ trắng tinh */
+  --color-ink: #0f172a;         /* Chữ xanh đen đậm nét siêu rõ */
+  --color-ink-soft: #64748b;    /* Chữ phụ xám xanh dịu mắt */
+  --color-line: #e2e8f0;        /* Viền mảnh sắc nét */
+  --color-tile: #f1f5f9;        /* Nền hover êm ái */
 }
 
 /*
- * Chế độ tối: ĐỊNH NGHĨA LẠI đúng bộ token ở trên, không đụng tới component.
- * Nhờ vậy `bg-surface`, `text-ink`, `border-line`... trong mọi file tự đổi
- * theo, không phải rắc `dark:` khắp nơi rồi sót chỗ này chỗ kia.
- *
- * Tông xanh đêm (không phải xám trung tính) để hợp ảnh nền dark và giữ đúng
- * chất Zalo. Nền card sáng hơn nền trang một bậc - đó là thứ tạo ra chiều sâu
- * khi không có bóng đổ.
+ * Chế độ tối: Modern Deep Slate & Cyan Blue
  */
 .dark {
-  --color-zalo-50: #16233a;     /* nền nhạt cho mục đang chọn */
-  --color-zalo-100: #1e3357;
-  --color-zalo-200: #2a4573;
-  --color-zalo-500: #3b82f6;    /* sáng hơn bản light để nổi trên nền tối */
+  --color-zalo-50: #0f172a;
+  --color-zalo-100: #1e293b;
+  --color-zalo-200: #334155;
+  --color-zalo-500: #3b82f6;
   --color-zalo-600: #60a5fa;
-  --color-zalo-700: #93c5fd;    /* chữ trên nền zalo-50 tối */
+  --color-zalo-700: #93c5fd;
 
-  --color-canvas: #0a1020;
-  --color-surface: #111a2e;
-  --color-ink: #e8edf5;
+  --color-canvas: #090d16;
+  --color-surface: #0f172a;
+  --color-ink: #f8fafc;
   --color-ink-soft: #94a3b8;
-  --color-line: #1f2c47;
-  --color-tile: #18243c;
+  --color-line: #1e293b;
+  --color-tile: #131d2e;
 }
 
 body {
   @apply bg-canvas font-sans text-ink antialiased;
   font-size: 15px;
-  /* Plus Jakarta Sans ở weight 400 mảnh hơn Be Vietnam Pro dùng trước đây -
-     nâng nền lên 500 để chữ thường không bị mỏng, các chỗ đặt font-medium/
-     semibold tường minh vẫn đè lên được */
   font-weight: 500;
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(circle at 100% 100%, rgba(245, 199, 68, 0.08) 0%, transparent 40%),
+                    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.8) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+button:not(:disabled),
+select:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+@layer components {
+  /* Card Crextio: trắng tinh, bo góc lớn 22px, bóng đổ êm ái, viền siêu mảnh */
+  .gc-card {
+    border-radius: 22px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    background-color: var(--color-surface);
+    box-shadow: 0 10px 30px rgba(24, 24, 27, 0.03), 0 1px 3px rgba(24, 24, 27, 0.02);
+  }
+
+  .gc-tile {
+    border-radius: 18px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    background-color: #f8f8f6;
+    padding: 0.85rem;
+  }
+
+  .gc-input {
+    border-radius: 9999px;
+    border: 1px solid #e4e4e7;
+    background-color: var(--color-surface);
+    padding: 0.6rem 1.1rem;
+    font-size: 14.5px;
+    color: var(--color-ink);
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+  }
+  .gc-input:focus {
+    border-color: #f5c744;
+    box-shadow: 0 0 0 3px rgba(245, 199, 68, 0.25);
+  }
 }
 
 /*

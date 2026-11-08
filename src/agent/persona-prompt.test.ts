@@ -45,7 +45,7 @@ const MSG = {
 } as ParsedMessage;
 
 function account(disabledTools: string[]) {
-  return { id: "acc-1", disabledTools } as never;
+  return { id: "acc-1", disabledTools, loai: "ca_nhan" } as never;
 }
 
 /** Agent tắt sẵn vài tool - dùng cho các ca kiểm lớp lọc phía agent */

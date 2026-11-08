@@ -54,3 +54,8 @@ export const MO_TA_KENH_BOT =
 export const MO_TA_KENH_CA_NHAN =
   "Dùng nick Zalo thật qua giao thức không chính thức - đủ tính năng nhất nhưng CÓ rủi ro " +
   "bị Zalo khóa. Chỉ dùng nick phụ.";
+
+export const MO_TA_KENH_FACEBOOK =
+  "Kết nối trực tiếp với Facebook Fanpage qua Messenger Platform API (Webhook + Page Access Token). " +
+  "An toàn, chính thức từ Meta, tự động trả lời khách hàng nhắn tin vào Fanpage.";
+

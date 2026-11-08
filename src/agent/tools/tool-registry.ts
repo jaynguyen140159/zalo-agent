@@ -94,7 +94,8 @@ export function kiemTraKhaDung(
   // Kênh BOT trước: giới hạn nền tảng thắng mọi cấu hình. Zalo Bot API không có
   // method gửi file/thả cảm xúc/tag thành viên nên bật kiểu gì cũng hỏng, và
   // hỏng theo cách người nhắn tưởng agent bị lỗi.
-  if (scope.account.loai === "bot") {
+  const loai = scope.account.loai ?? "ca_nhan";
+  if (loai === "bot" || loai === "facebook") {
     const ly = TOOL_KHONG_CHAY_TREN_BOT[def.key];
     if (ly) return { khaDung: false, hint: ly.hint };
   }

@@ -53,9 +53,10 @@ describe("reasoningProviderOptions - google", () => {
     assert.equal(muc("high"), "high");
   });
 
-  it('"off" thành "minimal" chứ KHÔNG bỏ tham số - Gemini 3 không tắt hẳn nghĩ được', () => {
-    // Bỏ tham số là để model tự chọn mức, đúng thứ mà "off" muốn tránh
-    assert.equal(muc("off"), "minimal");
+  it('"off" thành "low" chứ KHÔNG bỏ tham số - Gemini 3 không nhận minimal', () => {
+    // Bỏ tham số là để model tự chọn mức, đúng thứ mà "off" muốn tránh.
+    // Gemini 3.8 Flash không nhận "minimal" (400), nên hạ về "low".
+    assert.equal(muc("off"), "low");
     assert.notEqual(reasoningProviderOptions("google", "off"), undefined);
   });
 
@@ -64,7 +65,7 @@ describe("reasoningProviderOptions - google", () => {
   });
 
   it("MỌI mức đều ra giá trị Gemini nhận, không mức nào lọt ra ngoài danh sách", () => {
-    const hopLe = new Set(["minimal", "low", "medium", "high"]);
+    const hopLe = new Set(["low", "medium", "high"]);
     for (const e of ["off", "low", "medium", "high", "xhigh"] as const) {
       assert.ok(hopLe.has(muc(e)), `mức "${e}" ra "${muc(e)}" - Gemini sẽ trả 400`);
     }
