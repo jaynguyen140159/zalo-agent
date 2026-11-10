@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khởi Minh Homestyling // Giải Pháp Quản Trị Dự Án & Điều Phối Đa Thầu Zalo-Native</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <!-- GSAP Animation Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       EXECUTIVE ARCHITECTURAL DESIGN SYSTEM (STRICT 3-COLOR SYSTEM)
+       1. Nền (Canvas):       #0A0E17 (Obsidian Slate)
+       2. Chủ đạo (Accent):   #3B82F6 (Tech Blue)
+       3. Phụ trợ (Auxiliary): rgba(255, 255, 255, 0.08) / #94A3B8
+       ========================================================================== */
+    :root {
+      /* 1. MÀU NỀN */
+      --bg-canvas: #0A0E17;
+      --bg-surface: #0F1626;
+      --bg-card: rgba(15, 22, 38, 0.88);
+      --bg-card-hover: rgba(20, 30, 52, 0.96);
+
+      /* 2. MÀU CHỦ ĐẠO */
+      --primary: #3B82F6;
+      --primary-light: #60A5FA;
+      --primary-subtle: rgba(59, 130, 246, 0.12);
+      --primary-border: rgba(59, 130, 246, 0.35);
+
+      /* 3. MÀU MỜ PHỤ TRỢ */
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(59, 130, 246, 0.45);
+      --text-pure: #FFFFFF;
+      --text-main: #E2E8F0;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP PROGRESS BAR */
+    .top-progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: var(--primary);
+      z-index: 999;
+      transition: width 0.35s ease;
+    }
+
+    /* AMBIENT LIGHTING */
+    .ambient-glow {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 380px;
+      background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.09), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* PRESENTATION VIEWPORT */
+    .deck-viewport {
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 64px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* SLIDE BASE STYLES */
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: clamp(24px, 4vh, 48px) clamp(32px, 5.5vw, 84px) 80px;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      background-size: cover;
+      background-position: center;
+      overflow-y: auto;
+      z-index: 1;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    /* SOLID OVERLAY FOR ARCHITECTURAL PHOTOS */
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 23, 0.93);
+      backdrop-filter: blur(8px);
+      z-index: 0;
+    }
+
+    .slide > * {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* BACKGROUND PHOTOS */
+    .bg-cover { background-image: url('screenshots/bg_luxury_living.jpg'); }
+    .bg-arch { background-image: url('screenshots/bg_architecture.jpg'); }
+    .bg-interior { background-image: url('screenshots/bg_interior_styling.jpg'); }
+    .bg-villa { background-image: url('screenshots/bg_luxury_villa.jpg'); }
+
+    /* EDITORIAL SECTION KICKER */
+    .slide-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+
+    .slide-kicker::before {
+      content: "";
+      display: inline-block;
+      width: 16px;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    .slide-title {
+      font-size: clamp(26px, 2.7vw, 38px);
+      font-weight: 800;
+      color: var(--text-pure);
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
+    }
+
+    .slide-desc {
+      font-size: clamp(14.5px, 1.1vw, 16.5px);
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 960px;
+      margin-bottom: 26px;
+      letter-spacing: 0.005em;
+    }
+
+    /* CONTENT CARDS */
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      height: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.35s ease,
+                  box-shadow 0.35s ease,
+                  background 0.35s ease;
+      position: relative;
+    }
+
+    .content-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 14px 32px -8px rgba(59, 130, 246, 0.25);
+    }
+
+    /* CARD INDEX & HEADERS */
+    .card-index {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-light);
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      display: inline-block;
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      font-size: 17.5px;
+      font-weight: 700;
+      color: var(--text-pure);
+      line-height: 1.35;
+      margin-bottom: 12px;
+    }
+
+    .card-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-main);
+      line-height: 1.65;
+    }
+
+    .card-bullets .bullet-item {
+      position: relative;
+      padding-left: 16px;
+    }
+
+    .card-bullets .bullet-item::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+      font-weight: bold;
+    }
+
+    .card-bullets b {
+      color: var(--text-pure);
+      font-weight: 600;
+    }
+
+    /* GRID LAYOUTS */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .split-layout.reversed {
+      grid-template-columns: 0.85fr 1.15fr;
+    }
+
+    /* BROWSER MOCKUP FRAME (FIT TIGHT, ZERO GAP) */
+    .browser-frame {
+      background: #0B101C;
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      align-self: center;
+      height: auto;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .browser-frame:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.25);
+    }
+
+    .browser-topbar {
+      background: #070B14;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .browser-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .browser-url {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 3px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .browser-caption {
+      font-size: 11.5px;
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+
+    .browser-content-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* REFINED COMPARISON TABLE */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .comp-table th {
+      background: #0B101C;
+      color: var(--text-muted);
+      padding: 15px 22px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comp-table th.primary-col {
+      color: var(--primary-light);
+      background: rgba(59, 130, 246, 0.08);
+      border-bottom: 1px solid var(--primary-border);
+    }
+
+    .comp-table td {
+      padding: 15px 22px;
+      font-size: 14px;
+      line-height: 1.65;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+      color: var(--text-main);
+    }
+
+    .comp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comp-table td.primary-cell {
+      background: rgba(59, 130, 246, 0.03);
+      color: #FFFFFF;
+    }
+
+    .comp-table td.aux-cell {
+      color: var(--text-muted);
+    }
+
+    .lead-highlight {
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-right: 6px;
+    }
+
+    .lead-muted {
+      font-weight: 600;
+      color: var(--text-pure);
+      margin-right: 6px;
+    }
+
+    /* FOOTER TOOLBAR */
+    .deck-nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(10, 14, 23, 0.95);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 36px;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-pure);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .nav-btn.primary-action {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .nav-btn.primary-action:hover {
+      background: #2563EB;
+      border-color: #2563EB;
+    }
+
+    .nav-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-counter {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot-node {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  background 0.3s ease;
+    }
+
+    .dot-node.active {
+      width: 24px;
+      background: var(--primary);
+    }
+
+    .action-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .action-link-btn {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-link-btn:hover {
+      color: var(--text-pure);
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ACTION CALLOUT */
+    .action-callout {
+      margin-top: 24px;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid var(--primary-border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP PROGRESS BAR -->
+  <div class="top-progress-bar" id="progressBar"></div>
+
+  <!-- AMBIENT TOP LIGHTING -->
+  <div class="ambient-glow"></div>
+
+  <!-- PRESENTATION VIEWPORT -->
+  <div class="deck-viewport">
+
+    <!-- ==========================================
+         SLIDE 1: BÌA & ĐỊNH VỊ GIẢI PHÁP
+         ========================================== -->
+    <div class="slide bg-cover active" id="slide-0">
+      <div style="max-width: 1050px;">
+        <div class="slide-kicker anim-target">GIẢI PHÁP QUẢN TRỊ DỰ ÁN KIẾN TRÚC & NỘI THẤT</div>
+        <h1 class="slide-title anim-target" style="font-size: clamp(32px, 3.6vw, 48px); line-height: 1.2; margin-bottom: 18px;">
+          HỆ THỐNG ĐIỀU HÀNH ĐA THẦU ZALO-NATIVE
+        </h1>
+        <p class="slide-desc anim-target" style="font-size: clamp(15px, 1.25vw, 18px); line-height: 1.8; margin-bottom: 34px;">
+          Giải pháp quản trị tiến độ, tự động hóa nhắc việc và bảo mật hồ sơ công trình may đo riêng cho <b>Khởi Minh Homestyling</b>. Giữ trọn thói quen trao đổi Zalo quen thuộc nhưng nâng cấp toàn diện năng lực quản lý chuyên nghiệp.
+        </p>
+
+        <div class="grid-3 anim-target">
+          <div class="content-card">
+            <span class="card-index">ƯU THẾ 01</span>
+            <div class="card-title">Tận Dụng Thói Quen Zalo</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thợ thi công và các tổ thầu phụ tương tác ngay trên Zalo cá nhân.</div>
+              <div class="bullet-item">Không phát sinh rào cản đào tạo hay thay đổi thói quen làm việc.</div>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <span class="card-index">ƯU THẾ 02</span>
+            <div class="card-title">Kiểm Soát & Bảo Mật Tuyệt Đối</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Phân tách dữ liệu kỹ thuật theo từng gói thầu độc lập.</div>
+              <div class="bullet-item">Bảo mật tuyệt đối hồ sơ dự toán, đơn giá và dòng tiền nội bộ.</div>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <span class="card-index">ƯU THẾ 03</span>
+            <div class="card-title">Lưu Trữ Bản Vẽ Kỹ Thuật</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg), phối cảnh 3D và hồ sơ hiện trường.</div>
+              <div class="bullet-item">Kết nối hạ tầng đám mây mở rộng, không lo giới hạn dung lượng.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 2: PHÂN TÍCH HIỆN TRẠNG & BÀI HỌC VẬN HÀNH
+         ========================================== -->
+    <div class="slide bg-arch" id="slide-1">
+      <div>
+        <div class="slide-kicker anim-target">PHÂN TÍCH HIỆN TRẠNG & BÀI HỌC VẬN HÀNH</div>
+        <h2 class="slide-title anim-target">Vì Sao Khởi Minh Cần Phương Thức Tiếp Cận Mới?</h2>
+        <p class="slide-desc anim-target">
+          Đặc thù mô hình vận hành: Đội ngũ nòng cốt 5 nhân sự phải điều phối hơn 10 chuyên gia tự do và 30–50 nhà thầu phụ trong suốt vòng đời công trình kéo dài 2–3 năm.
+        </p>
+      </div>
+
+      <div class="grid-3 anim-target">
+        <div class="content-card">
+          <span class="card-index">VẤN ĐỀ 01</span>
+          <div class="card-title">Rào Cản Tiếp Nhận Ứng Dụng Mới</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Đội ngũ thầu thi công từ chối sử dụng phần mềm quản lý độc lập (như bài học từ 1Office).</div>
+            <div class="bullet-item">Báo cáo mang tính đối phó và nhanh chóng quay lại nhắn tin Zalo tự phát.</div>
+            <div class="bullet-item">Việc ép buộc công cụ mới gây đứt gãy luồng thông tin giám sát hiện trường.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">VẤN ĐỀ 02</span>
+          <div class="card-title">Phân Mảnh & Thất Thoát Dữ Liệu Zalo</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Quá nhiều nhóm chat khiến thông tin bị phân tán và trôi mất hạn chót công việc.</div>
+            <div class="bullet-item">File bản vẽ CAD và hình ảnh tiến độ tự động hết hạn tải về sau vài ngày.</div>
+            <div class="bullet-item">Người quản lý mất nhiều thời gian tổng hợp thủ công để nắm bắt tiến độ chung.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">VẤN ĐỀ 03</span>
+          <div class="card-title">Bất Cập Trong Phân Quyền Hồ Sơ</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Khó phân chia quyền truy cập tài liệu kỹ thuật giữa các tổ thầu riêng biệt.</div>
+            <div class="bullet-item">Nguy cơ rò rỉ đơn giá, dự toán chi phí và thông tin tài chính nhạy cảm giữa các bên.</div>
+            <div class="bullet-item">Các giải pháp lưu trữ thông thường (Drive, OneDrive) chưa đáp ứng nhu cầu bảo mật theo gói thầu.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 3: ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ
+         ========================================== -->
+    <div class="slide bg-interior" id="slide-2">
+      <div>
+        <div class="slide-kicker anim-target">ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ</div>
+        <h2 class="slide-title anim-target">So Sánh Phương Án: Zalo Agent vs Odoo Enterprise</h2>
+        <p class="slide-desc anim-target">
+          Phân tích tính khả thi dựa trên nhu cầu thực tế và đề xuất ngân sách $2,820 USD (~72 triệu VNĐ) giai đoạn 1 của Odoo.
+        </p>
+      </div>
+
+      <div class="table-container anim-target">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th style="width: 24%;">Tiêu Chí Đánh Giá</th>
+              <th class="primary-col" style="width: 38%;">Zalo Agent Studio (Hệ Thống Đề Xuất)</th>
+              <th style="width: 38%;">Odoo Enterprise (Phương Án Chào Giá)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Khả Năng Tương Thích Zalo</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Có sẵn 100% —</span> Tự động nhắc việc 1-1, nhận diện số điện thoại, gửi link duyệt hồ sơ trực tiếp.</td>
+              <td class="aux-cell"><span class="lead-muted">Chưa hỗ trợ —</span> Hoãn sang Phase 2; cần viết API riêng và phát sinh chi phí tin nhắn ZNS.</td>
+            </tr>
+            <tr>
+              <td><b>Mức Độ Tiếp Nhận Của Thầu Phụ</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Dễ dàng tiếp nhận —</span> Tương tác ngay trên Zalo cá nhân, không phát sinh chi phí đào tạo.</td>
+              <td class="aux-cell"><span class="lead-muted">Khó triển khai —</span> Bắt buộc thầu phụ đăng nhập hệ thống web, nguy cơ thất bại cao như 1Office.</td>
+            </tr>
+            <tr>
+              <td><b>Thời Gian Đưa Vào Vận Hành</b></td>
+              <td class="primary-cell"><span class="lead-highlight">1 – 2 Tuần —</span> Hệ thống lõi đã hoàn thiện và chạy thực tế, sẵn sàng vận hành ngay.</td>
+              <td class="aux-cell"><span class="lead-muted">3 – 4 Tháng —</span> Khảo sát 3 tuần + dựng gói lõi 50 giờ, dự kiến tháng 3/2027 mới hoàn tất.</td>
+            </tr>
+            <tr>
+              <td><b>Quản Lý File Thiết Kế Lớn</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Không giới hạn —</span> Kết nối Cloud Storage lưu trữ bản vẽ .dwg, ảnh render 3D độ phân giải cao.</td>
+              <td class="aux-cell"><span class="lead-muted">Giới hạn hệ thống —</span> Dung lượng SaaS bị giới hạn 64MB/file và 100GB tổng kho lưu trữ.</td>
+            </tr>
+            <tr>
+              <td><b>Hiệu Quả Chi Phí</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Tối ưu ngân sách —</span> Trọn gói giải pháp, không tính phí theo tài khoản, không phí duy trì hàng năm.</td>
+              <td class="aux-cell"><span class="lead-muted">Chi phí định kỳ cao —</span> ~72 triệu VNĐ năm đầu; tiếp tục đóng phí duy trì bản quyền các năm sau.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 4: MINH CHỨNG 1 - LỘ TRÌNH GIAI ĐOẠN & KANBAN
+         ========================================== -->
+    <div class="slide bg-arch" id="slide-3">
+      <div>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 01</div>
+        <h2 class="slide-title anim-target">Quản Lý Vòng Đời Dự Án & Tiến Độ Theo Giai Đoạn</h2>
+        <p class="slide-desc anim-target">
+          Giao diện điều phối trực quan: Theo dõi xuyên suốt từ khảo sát, thiết kế đến hoàn thiện thi công (Live tại <code>http://127.0.0.1:3901/portal</code>).
+        </p>
+      </div>
+
+      <div class="split-layout anim-target">
+        <div class="browser-frame">
+          <div class="browser-topbar">
+            <div class="browser-dots">
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+            </div>
+            <div class="browser-url">khoiminh.zaloagent.vn/portal/kanban</div>
+            <div class="browser-caption">Trực Quan Hóa Tiến Độ</div>
+          </div>
+          <img src="screenshots/portal_kanban_stages.png" class="browser-content-img" alt="Lộ trình Milestones & Kanban">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card">
+            <span class="card-index">TIÊU CHÍ 01</span>
+            <div class="card-title">Chuẩn Hóa Tiến Độ Theo Giai Đoạn</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Phân tách rõ ràng: Khảo sát ➔ Thiết kế ➔ Thi công ➔ Bàn giao.</div>
+              <div class="bullet-item">Tiến độ % tự động tổng hợp từ các đầu mục công việc thành phần.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">TIÊU CHÍ 02</span>
+            <div class="card-title">Bố Cục Thẻ Ngang Tối Ưu Màn Hình</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thiết kế cuộn ngang mượt mà, phù hợp với dự án lớn có 50+ đầu việc.</div>
+              <div class="bullet-item">Không xảy ra tình trạng tràn màn hình hay che khuất danh mục theo dõi.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">TIÊU CHÍ 03</span>
+            <div class="card-title">Đồng Bộ Lịch Cá Nhân (iCal) Tự Động</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Đồng bộ 1 chạm vào Google Calendar hoặc Apple Calendar của từng KTS.</div>
+              <div class="bullet-item">Theo dõi lịch họp công trường và hạn chót bàn giao ngay trên điện thoại.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 5: MINH CHỨNG 2 - TỰ ĐỘNG NHẮC VIỆC ZALO 1-1
+         ========================================== -->
+    <div class="slide bg-interior" id="slide-4">
+      <div>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 02</div>
+        <h2 class="slide-title anim-target">Cơ Chế Nhắc Việc Tự Động 1-1 Qua Zalo</h2>
+        <p class="slide-desc anim-target">
+          Hệ thống tự động theo dõi hạn chót và gửi thông báo trực tiếp, giải phóng hoàn toàn thời gian giám sát thủ công của quản lý dự án.
+        </p>
+      </div>
+
+      <div class="split-layout reversed anim-target">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card">
+            <span class="card-index">CƠ CHẾ 01</span>
+            <div class="card-title">Rà Soát Tiến Độ Tự Động Chu Kỳ 60s</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Chương trình nền tự động quét các nhiệm vụ sắp đến hạn hoặc quá hạn.</div>
+              <div class="bullet-item">Kích hoạt thông báo tức thời tới đúng nhân sự đang phụ trách đầu việc.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">CƠ CHẾ 02</span>
+            <div class="card-title">Thông Báo Riêng Biệt 1-1 Qua Zalo</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Gửi tin nhắn riêng tư tới đúng số Zalo cá nhân của đại diện thầu phụ.</div>
+              <div class="bullet-item">Tránh làm loãng thông tin và trôi tin nhắn trong các nhóm chat chung đông người.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">CƠ CHẾ 03</span>
+            <div class="card-title">Cập Nhật Trạng Thái Tức Thì</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thầu phụ xác nhận hoàn thành công việc trực tiếp trên tin nhắn Zalo.</div>
+              <div class="bullet-item">Bảng Kanban trung tâm tự động cập nhật tiến độ ngay sau khi xác nhận.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="browser-frame">
+          <div class="browser-topbar">
+            <div class="browser-dots">
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+            </div>
+            <div class="browser-url">khoiminh.zaloagent.vn/portal/tasks</div>
+            <div class="browser-caption">Tự Động Hóa Nhắc Việc</div>
+          </div>
+          <img src="screenshots/portal_tasks_list.png" class="browser-content-img" alt="Danh sách Công Việc & Nhắc Hạn">
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 6: MINH CHỨNG 3 - PHÂN QUYỀN BẢO MẬT & SĐT
+         ========================================== -->
+    <div class="slide bg-arch" id="slide-5">
+      <div>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 03</div>
+        <h2 class="slide-title anim-target">Đơn Giản Hóa Tiếp Nhận & Phân Quyền Bảo Mật</h2>
+        <p class="slide-desc anim-target">
+          Giải quyết bài toán 30–50 thầu phụ luân chuyển liên tục: Xác thực trực tiếp qua Số điện thoại, loại bỏ hoàn toàn quy trình cấp tài khoản phức tạp.
+        </p>
+      </div>
+
+      <div class="split-layout anim-target">
+        <div class="browser-frame">
+          <div class="browser-topbar">
+            <div class="browser-dots">
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+            </div>
+            <div class="browser-url">khoiminh.zaloagent.vn/portal/rbac</div>
+            <div class="browser-caption">Phân Quyền Số Điện Thoại</div>
+          </div>
+          <img src="screenshots/portal_members_rbac.png" class="browser-content-img" alt="Phân Quyền Thành Viên">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card">
+            <span class="card-index">QUY TRÌNH 01</span>
+            <div class="card-title">Xác Thực Nhanh Qua Số Điện Thoại</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thầu phụ đăng ký trực tiếp bằng số điện thoại qua tin nhắn Zalo.</div>
+              <div class="bullet-item">Hệ thống tự động ghi nhận và phân luồng thông tin, không cần admin thao tác thủ công.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">QUY TRÌNH 02</span>
+            <div class="card-title">Bảo Vệ Dữ Liệu Báo Giá & Tài Chính</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thành viên đội thầu chỉ được xem các công việc và hồ sơ kỹ thuật được phân công.</div>
+              <div class="bullet-item">Khóa hoàn toàn quyền truy cập vào bảng dự toán chi phí và dòng tiền dự án.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">QUY TRÌNH 03</span>
+            <div class="card-title">Phân Cấp Quyền Quản Trị Linh Hoạt</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Dễ dàng phân quyền Chỉ huy trưởng cho đối tác thầu chính để quản lý nhóm thợ phụ.</div>
+              <div class="bullet-item">Thu hồi quyền truy cập nhanh chóng ngay sau khi hoàn thành gói thầu.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 7: MINH CHỨNG 4 - KHO FILE BẢN VẼ KHÔNG GIỚI HẠN
+         ========================================== -->
+    <div class="slide bg-interior" id="slide-6">
+      <div>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 04</div>
+        <h2 class="slide-title anim-target">Lưu Trữ Hồ Sơ Kỹ Thuật & Bản Vẽ Không Giới Hạn</h2>
+        <p class="slide-desc anim-target">
+          Khắc phục triệt để sự cố file bản vẽ hết hạn trên Zalo hoặc rào cản giới hạn dung lượng 64MB của các giải pháp SaaS đóng gói.
+        </p>
+      </div>
+
+      <div class="split-layout reversed anim-target">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card">
+            <span class="card-index">LƯU TRỮ 01</span>
+            <div class="card-title">Hỗ Trợ Toàn Diện Định Dạng Kỹ Thuật</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg, .dxf), SketchUp, PDF và hình ảnh 3D.</div>
+              <div class="bullet-item">Cho phép tải lên và truy xuất dữ liệu với đầy đủ thông số kỹ thuật gốc.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">LƯU TRỮ 02</span>
+            <div class="card-title">Hạ Tầng Lưu Trữ Đám Mây Mở Rộng</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Tích hợp Google Drive và Cloud Storage: Bảo mật dữ liệu và tối ưu hiệu năng.</div>
+              <div class="bullet-item">Lưu trữ hồ sơ vĩnh viễn theo từng công trình, không lo rủi ro hỏng liên kết tải.</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <span class="card-index">LƯU TRỮ 03</span>
+            <div class="card-title">Thông Báo Cập Nhật Hồ Sơ Tức Thời</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Tự động gửi thông báo qua Zalo khi có phiên bản bản vẽ thiết kế mới được duyệt.</div>
+              <div class="bullet-item">Đảm bảo toàn bộ các bên thi công luôn bám sát bản vẽ hiện hành mới nhất.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="browser-frame">
+          <div class="browser-topbar">
+            <div class="browser-dots">
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+            </div>
+            <div class="browser-url">khoiminh.zaloagent.vn/upload</div>
+            <div class="browser-caption">Kho Bản Vẽ CAD & 3D</div>
+          </div>
+          <img src="screenshots/portal_upload_storage.png" class="browser-content-img" alt="Kho Tải Lên Bản Vẽ">
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 8: ĐIỂM MẠNH & HẠN CHẾ SO VỚI ODOO
+         ========================================== -->
+    <div class="slide bg-villa" id="slide-7">
+      <div>
+        <div class="slide-kicker anim-target">ĐÁNH GIÁ KHÁCH QUAN</div>
+        <h2 class="slide-title anim-target">So Sánh Thực Tế: Điểm Mạnh Cốt Lõi & Phạm Vi Ứng Dụng</h2>
+        <p class="slide-desc anim-target">
+          Cơ sở đánh giá minh bạch giúp Khởi Minh tối ưu hóa nguồn lực và lựa chọn lộ trình chuyển đổi số phù hợp nhất.
+        </p>
+      </div>
+
+      <div class="split-layout anim-target">
+        <div class="content-card">
+          <span class="card-index">PHÂN TÍCH 01</span>
+          <div class="card-title" style="margin-bottom: 16px;">Lợi Thế Cốt Lõi Của Hệ Thống Zalo-Native</div>
+          <div class="card-bullets" style="gap: 12px;">
+            <div class="bullet-item"><b>Thân thiện với thói quen thầu phụ:</b> Tương tác 100% trên Zalo, loại bỏ rủi ro bị từ chối như thời 1Office.</div>
+            <div class="bullet-item"><b>Thời gian đưa vào sử dụng ngắn:</b> Hệ thống sẵn sàng vận hành thử nghiệm ngay trong tuần đầu tiên.</div>
+            <div class="bullet-item"><b>Chi phí đầu tư tối ưu:</b> Không thu phí bản quyền theo đầu tài khoản, không phí duy trì hàng năm.</div>
+            <div class="bullet-item"><b>Không giới hạn dung lượng:</b> Lưu trữ không hạn chế bản vẽ kỹ thuật lớn và hình ảnh công trường.</div>
+            <div class="bullet-item"><b>Trợ lý AI hỗ trợ:</b> Tự động tóm tắt tiến độ công việc và phản hồi thông tin nhanh chóng.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">PHÂN TÍCH 02</span>
+          <div class="card-title" style="margin-bottom: 16px;">Phạm Vi Cần Lưu Ý & Giải Pháp Thực Tế</div>
+          <div class="card-bullets" style="gap: 12px;">
+            <div class="bullet-item">
+              <b>Nghiệp vụ kế toán tài chính chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Tập trung quản trị chi phí thực tế tại công trình; xuất file dữ liệu chuẩn cho kế toán nội bộ.
+            </div>
+            <div class="bullet-item">
+              <b>Quản trị kho vận quy mô lớn:</b> Odoo hỗ trợ quét mã vạch và kiểm kê kho nguyên vật liệu phức tạp.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Phù hợp tích hợp ở giai đoạn tiếp theo khi Khởi Minh mở rộng nhà máy sản xuất.
+            </div>
+            <div class="bullet-item">
+              <b>Tùy biến kéo thả No-Code:</b> Không có công cụ kéo thả trực quan như các nền tảng ERP quốc tế.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Đội ngũ kỹ thuật hỗ trợ điều chỉnh các trường thông tin theo yêu cầu trong vòng 24 giờ.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 9: LỘ TRÌNH 4 TUẦN TRIỂN KHAI
+         ========================================== -->
+    <div class="slide bg-villa" id="slide-8">
+      <div>
+        <div class="slide-kicker anim-target">KẾ HOẠCH HÀNH ĐỘNG</div>
+        <h2 class="slide-title anim-target">Lộ Trình Triển Khai Thực Nghiệm Trong 04 Tuần</h2>
+        <p class="slide-desc anim-target">
+          Đưa hệ thống vào vận hành thực tế trên 01 công trình đang thi công, tối ưu hóa quy trình trước khi mở rộng toàn diện.
+        </p>
+      </div>
+
+      <div class="grid-4 anim-target">
+        <div class="content-card">
+          <span class="card-index">TUẦN 01</span>
+          <div class="card-title" style="font-size: 16px;">Quy Trình Duyệt 3 Cấp</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Thiết lập luồng duyệt: Thầu nộp ➔ KTS thẩm định ➔ Khách hàng chốt qua Zalo.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">TUẦN 02</span>
+          <div class="card-title" style="font-size: 16px;">Cổng Thông Tin Chủ Nhà</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Giao diện B2C tinh gọn cho khách hàng theo dõi hình ảnh tiến độ và duyệt mẫu vật liệu.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">TUẦN 03</span>
+          <div class="card-title" style="font-size: 16px;">Phân Quyền Hồ Sơ Thầu</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Phân tách bản vẽ theo từng nhà thầu: Điện nước (M&E), nội thất, đá; bảo mật giá dự toán.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">TUẦN 04</span>
+          <div class="card-title" style="font-size: 16px;">Vận Hành Thực Nghiệm</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Chạy thử nghiệm trên 01 dự án thực tế, tiếp thu phản hồi và hoàn thiện bàn giao.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-callout anim-target">
+        <div>
+          <div style="font-size: 15.5px; font-weight: 700; color: #FFFFFF;">Định hướng giải pháp:</div>
+          <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Không thay đổi thói quen của nhà thầu — Đưa năng lực quản trị chuyên nghiệp vào ngay Zalo họ sử dụng mỗi ngày.</div>
+        </div>
+        <a href="http://127.0.0.1:3901/portal" target="_blank" class="nav-btn primary-action" style="text-decoration: none; padding: 10px 24px;">Xem Bản Trình Diễn Live →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FIXED BOTTOM NAVIGATION BAR -->
+  <footer class="deck-nav-bar">
+    <button class="nav-btn" onclick="prevSlide()">← Trang Trước</button>
+    
+    <div class="nav-center">
+      <div class="nav-counter" id="slideCounter">SLIDE 01 / 09</div>
+      <div class="nav-dots" id="dotsContainer"></div>
+    </div>
+
+    <div class="action-group">
+      <button class="action-link-btn" onclick="toggleFullScreen()">Toàn Màn Hình (F)</button>
+      <button class="action-link-btn" onclick="window.print()">In / PDF</button>
+      <button class="nav-btn primary-action" onclick="nextSlide()">Tiếp Theo →</button>
+    </div>
+  </footer>
+
+  <!-- SCRIPT WITH GSAP BUTTER-SMOOTH ANIMATIONS -->
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('dotsContainer');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    let isAnimating = false;
+
+    // Create navigation dots
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot-node' + (idx === 0 ? ' active' : '');
+      dot.title = `Chuyển đến Slide ${idx + 1}`;
+      dot.onclick = () => goToSlide(idx);
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.dot-node');
+
+    // Trigger GSAP entrance animation on slide elements
+    function animateSlideIn(slideElement) {
+      const targets = slideElement.querySelectorAll('.anim-target');
+      if (targets.length === 0) return;
+
+      gsap.fromTo(targets, 
+        { 
+          y: 22, 
+          opacity: 0,
+          scale: 0.99
+        }, 
+        { 
+          y: 0, 
+          opacity: 1, 
+          scale: 1,
+          duration: 0.45, 
+          stagger: 0.08, 
+          ease: "power2.out",
+          clearProps: "transform,opacity"
+        }
+      );
+    }
+
+    function updateProgress() {
+      const pct = ((currentSlide + 1) / slides.length) * 100;
+      progressBar.style.width = pct + '%';
+      slideCounter.innerText = `SLIDE 0${currentSlide + 1} / 0${slides.length}`;
+    }
+
+    function goToSlide(idx) {
+      if (idx === currentSlide || isAnimating) return;
+      isAnimating = true;
+
+      const oldSlide = slides[currentSlide];
+      const newSlide = slides[idx];
+
+      // Update dots state
+      dots[currentSlide].classList.remove('active');
+      dots[idx].classList.add('active');
+
+      // GSAP smooth crossfade
+      gsap.to(oldSlide, {
+        opacity: 0,
+        scale: 0.98,
+        duration: 0.22,
+        ease: "power2.inOut",
+        onComplete: () => {
+          oldSlide.classList.remove('active');
+          oldSlide.style.display = 'none';
+
+          newSlide.style.display = 'flex';
+          newSlide.classList.add('active');
+          gsap.fromTo(newSlide, 
+            { opacity: 0, scale: 1.01 }, 
+            { 
+              opacity: 1, 
+              scale: 1, 
+              duration: 0.3, 
+              ease: "power2.out",
+              onComplete: () => {
+                isAnimating = false;
+              }
+            }
+          );
+          animateSlideIn(newSlide);
+        }
+      });
+
+      currentSlide = idx;
+      updateProgress();
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        goToSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        goToSlide(currentSlide - 1);
+      }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullScreen();
+      }
+    });
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Fullscreen request declined:', err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Initial setup on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateProgress();
+      animateSlideIn(slides[0]);
+    });
+  </script>
+</body>
+</html>
