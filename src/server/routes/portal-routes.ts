@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Hono } from "hono";
 import { db } from "../../conversation/database.js";
 import { layBotTokenGiaiMa } from "../../config/account-store.js";
@@ -2841,5 +2843,32 @@ export const portalRoutes = new Hono()
 
     await client.sendMessage(targetThread, msg);
     return c.json({ ok: true, message: `Đã gửi tin nhắn nhắc việc qua Zalo đến thread ${targetThread}` });
+  })
+
+  // API Phục vụ Trang Trình Chiếu Slide Thuyết Trình Khởi Minh
+  .get("/pitch", (c) => {
+    try {
+      const html = fs.readFileSync("/Users/m1/Desktop/Slide_Khoi_Minh/index.html", "utf-8");
+      return c.html(html);
+    } catch {
+      return c.text("Chưa tìm thấy file slide thuyết trình.");
+    }
+  })
+
+  // Phục vụ ảnh chụp thực tế cho slide
+  .get("/screenshots/:name", (c) => {
+    try {
+      const name = c.req.param("name");
+      const filePath = path.join("/Users/m1/screenshots", name);
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        return new Response(buf, {
+          headers: { "Content-Type": "image/png" }
+        });
+      }
+      return c.text("Ảnh không tồn tại", 404);
+    } catch {
+      return c.text("Lỗi đọc ảnh", 500);
+    }
   });
 
