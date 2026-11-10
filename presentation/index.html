@@ -171,6 +171,44 @@
       letter-spacing: 0.005em;
     }
 
+    /* COVER METADATA GRID */
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 22px 0;
+      margin-top: 14px;
+    }
+
+    .cover-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cover-meta-item:not(:last-child) {
+      border-right: 1px solid var(--border-subtle);
+      padding-right: 16px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary-light);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-pure);
+      line-height: 1.4;
+    }
+
     /* CONTENT CARDS */
     .content-card {
       background: var(--bg-card);
@@ -539,51 +577,48 @@
   <div class="deck-viewport">
 
     <!-- ==========================================
-         SLIDE 1: BÌA & ĐỊNH VỊ GIẢI PHÁP
+         SLIDE 1: TRANG MỞ ĐẦU (EXECUTIVE COVER)
          ========================================== -->
     <div class="slide bg-cover active" id="slide-0">
-      <div style="max-width: 1050px;">
-        <div class="slide-kicker anim-target">GIẢI PHÁP QUẢN TRỊ DỰ ÁN KIẾN TRÚC & NỘI THẤT</div>
-        <h1 class="slide-title anim-target" style="font-size: clamp(32px, 3.6vw, 48px); line-height: 1.2; margin-bottom: 18px;">
-          HỆ THỐNG ĐIỀU HÀNH ĐA THẦU ZALO-NATIVE
+      <div style="max-width: 980px;">
+        <div class="slide-kicker anim-target">ĐỀ ÁN CHUYỂN ĐỔI SỐ QUẢN TRỊ 2026</div>
+        <h1 class="slide-title anim-target" style="font-size: clamp(34px, 3.8vw, 50px); line-height: 1.2; margin-bottom: 20px;">
+          GIẢI PHÁP QUẢN TRỊ DỰ ÁN & ĐIỀU PHỐI ĐA THẦU ZALO-NATIVE
         </h1>
-        <p class="slide-desc anim-target" style="font-size: clamp(15px, 1.25vw, 18px); line-height: 1.8; margin-bottom: 34px;">
-          Giải pháp quản trị tiến độ, tự động hóa nhắc việc và bảo mật hồ sơ công trình may đo riêng cho <b>Khởi Minh Homestyling</b>. Giữ trọn thói quen trao đổi Zalo quen thuộc nhưng nâng cấp toàn diện năng lực quản lý chuyên nghiệp.
+        <p class="slide-desc anim-target" style="font-size: clamp(15.5px, 1.25vw, 18px); line-height: 1.8; margin-bottom: 34px; color: #CBD5E1;">
+          Nền tảng điều hành tiến độ thi công, tự động hóa giám sát và bảo mật hồ sơ kỹ thuật được thiết kế may đo riêng cho <b>Khởi Minh Homestyling</b>. Giải quyết bài toán đội ngũ nòng cốt 5 nhân sự điều phối hơn 30–50 nhà thầu phụ trong suốt vòng đời dự án kéo dài 2–3 năm.
         </p>
 
-        <div class="grid-3 anim-target">
-          <div class="content-card">
-            <span class="card-index">ƯU THẾ 01</span>
-            <div class="card-title">Tận Dụng Thói Quen Zalo</div>
-            <div class="card-bullets">
-              <div class="bullet-item">Thợ thi công và các tổ thầu phụ tương tác ngay trên Zalo cá nhân.</div>
-              <div class="bullet-item">Không phát sinh rào cản đào tạo hay thay đổi thói quen làm việc.</div>
-            </div>
+        <div class="cover-meta-grid anim-target">
+          <div class="cover-meta-item">
+            <div class="meta-label">ĐƠN VỊ THỤ HƯỞNG</div>
+            <div class="meta-value">Khởi Minh Homestyling</div>
           </div>
+          <div class="cover-meta-item">
+            <div class="meta-label">MÔ HÌNH VẬN HÀNH</div>
+            <div class="meta-value">Điều Phối Đa Thầu Zalo-Native</div>
+          </div>
+          <div class="cover-meta-item">
+            <div class="meta-label">MỤC TIÊU CỐT LÕI</div>
+            <div class="meta-value">0% Rào Cản — 100% Bảo Mật</div>
+          </div>
+          <div class="cover-meta-item">
+            <div class="meta-label">LỘ TRÌNH THỰC HIỆN</div>
+            <div class="meta-value">Vận Hành Thực Nghiệm 4 Tuần</div>
+          </div>
+        </div>
 
-          <div class="content-card">
-            <span class="card-index">ƯU THẾ 02</span>
-            <div class="card-title">Kiểm Soát & Bảo Mật Tuyệt Đối</div>
-            <div class="card-bullets">
-              <div class="bullet-item">Phân tách dữ liệu kỹ thuật theo từng gói thầu độc lập.</div>
-              <div class="bullet-item">Bảo mật tuyệt đối hồ sơ dự toán, đơn giá và dòng tiền nội bộ.</div>
-            </div>
-          </div>
-
-          <div class="content-card">
-            <span class="card-index">ƯU THẾ 03</span>
-            <div class="card-title">Lưu Trữ Bản Vẽ Kỹ Thuật</div>
-            <div class="card-bullets">
-              <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg), phối cảnh 3D và hồ sơ hiện trường.</div>
-              <div class="bullet-item">Kết nối hạ tầng đám mây mở rộng, không lo giới hạn dung lượng.</div>
-            </div>
-          </div>
+        <div class="anim-target" style="margin-top: 32px; display: flex; align-items: center; gap: 18px;">
+          <button class="nav-btn primary-action" onclick="nextSlide()" style="padding: 12px 28px; font-size: 14px;">
+            Bắt Đầu Báo Cáo Đề Án →
+          </button>
+          <span style="font-size: 13px; color: var(--text-muted);">Sử dụng phím ➡️ hoặc Space để chuyển trang</span>
         </div>
       </div>
     </div>
 
     <!-- ==========================================
-         SLIDE 2: PHÂN TÍCH HIỆN TRẠNG & BÀI HỌC VẬN HÀNH
+         SLIDE 2: PHÂN TÍCH HIỆN TRẠNG & VẤN ĐỀ (PROBLEM FIRST)
          ========================================== -->
     <div class="slide bg-arch" id="slide-1">
       <div>
@@ -628,9 +663,54 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 3: ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ
+         SLIDE 3: ĐỊNH HƯỚNG GIẢI PHÁP & ƯU THẾ CỐT LÕI (SOLUTION SECOND)
          ========================================== -->
     <div class="slide bg-interior" id="slide-2">
+      <div>
+        <div class="slide-kicker anim-target">ĐỊNH HƯỚNG GIẢI PHÁP CHIẾN LƯỢC</div>
+        <h2 class="slide-title anim-target">Giải Pháp Zalo-Native: Khắc Phục Triệt Để 3 Rào Cản</h2>
+        <p class="slide-desc anim-target">
+          Thay vì ép buộc 30–50 nhà thầu phụ thay đổi thói quen, giải pháp đưa toàn bộ năng lực quản trị dự án chuyên nghiệp vào ngay ứng dụng Zalo họ sử dụng mỗi ngày.
+        </p>
+      </div>
+
+      <div class="grid-3 anim-target">
+        <div class="content-card">
+          <span class="card-index">ƯU THẾ 01</span>
+          <div class="card-title">Tận Dụng Thói Quen Zalo Sẵn Có</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Thợ thi công và tổ thầu nhận việc, báo cáo 1-1 ngay trên Zalo cá nhân.</div>
+            <div class="bullet-item">0% rào cản đào tạo, không bắt buộc cài đặt hay đăng nhập phần mềm lạ.</div>
+            <div class="bullet-item">Tỷ lệ tương tác và phản hồi đạt 100% nhờ sự quen thuộc tuyệt đối.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">ƯU THẾ 02</span>
+          <div class="card-title">Kiểm Soát & Bảo Mật Tuyệt Đối</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Phân tách dữ liệu kỹ thuật theo từng gói thầu thi công độc lập.</div>
+            <div class="bullet-item">Khóa bảo mật hoàn toàn bảng dự toán, báo giá cạnh tranh và dòng tiền nội bộ.</div>
+            <div class="bullet-item">Thầu phụ chỉ được xem đúng bản vẽ và đầu việc được cấp quyền.</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <span class="card-index">ƯU THẾ 03</span>
+          <div class="card-title">Lưu Trữ Bản Vẽ CAD Không Giới Hạn</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg), phối cảnh 3D và hồ sơ hiện trường.</div>
+            <div class="bullet-item">Kết nối hạ tầng đám mây mở rộng, không lo rào cản trần dung lượng.</div>
+            <div class="bullet-item">Bản vẽ lưu trữ vĩnh viễn theo dự án, chấm dứt hoàn toàn sự cố hết hạn file.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 4: ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ SO VỚI ODOO
+         ========================================== -->
+    <div class="slide bg-arch" id="slide-3">
       <div>
         <div class="slide-kicker anim-target">ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ</div>
         <h2 class="slide-title anim-target">So Sánh Phương Án: Zalo Agent vs Odoo Enterprise</h2>
@@ -680,9 +760,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 4: MINH CHỨNG 1 - LỘ TRÌNH GIAI ĐOẠN & KANBAN
+         SLIDE 5: MINH CHỨNG 1 - LỘ TRÌNH GIAI ĐOẠN & KANBAN
          ========================================== -->
-    <div class="slide bg-arch" id="slide-3">
+    <div class="slide bg-interior" id="slide-4">
       <div>
         <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 01</div>
         <h2 class="slide-title anim-target">Quản Lý Vòng Đời Dự Án & Tiến Độ Theo Giai Đoạn</h2>
@@ -735,9 +815,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 5: MINH CHỨNG 2 - TỰ ĐỘNG NHẮC VIỆC ZALO 1-1
+         SLIDE 6: MINH CHỨNG 2 - TỰ ĐỘNG NHẮC VIỆC ZALO 1-1
          ========================================== -->
-    <div class="slide bg-interior" id="slide-4">
+    <div class="slide bg-arch" id="slide-5">
       <div>
         <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 02</div>
         <h2 class="slide-title anim-target">Cơ Chế Nhắc Việc Tự Động 1-1 Qua Zalo</h2>
@@ -790,9 +870,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 6: MINH CHỨNG 3 - PHÂN QUYỀN BẢO MẬT & SĐT
+         SLIDE 7: MINH CHỨNG 3 - PHÂN QUYỀN BẢO MẬT & SĐT
          ========================================== -->
-    <div class="slide bg-arch" id="slide-5">
+    <div class="slide bg-interior" id="slide-6">
       <div>
         <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 03</div>
         <h2 class="slide-title anim-target">Đơn Giản Hóa Tiếp Nhận & Phân Quyền Bảo Mật</h2>
@@ -845,9 +925,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 7: MINH CHỨNG 4 - KHO FILE BẢN VẼ KHÔNG GIỚI HẠN
+         SLIDE 8: MINH CHỨNG 4 - KHO FILE BẢN VẼ KHÔNG GIỚI HẠN
          ========================================== -->
-    <div class="slide bg-interior" id="slide-6">
+    <div class="slide bg-arch" id="slide-7">
       <div>
         <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 04</div>
         <h2 class="slide-title anim-target">Lưu Trữ Hồ Sơ Kỹ Thuật & Bản Vẽ Không Giới Hạn</h2>
@@ -900,9 +980,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 8: ĐIỂM MẠNH & HẠN CHẾ SO VỚI ODOO
+         SLIDE 9: ĐIỂM MẠNH & HẠN CHẾ SO VỚI ODOO
          ========================================== -->
-    <div class="slide bg-villa" id="slide-7">
+    <div class="slide bg-villa" id="slide-8">
       <div>
         <div class="slide-kicker anim-target">ĐÁNH GIÁ KHÁCH QUAN</div>
         <h2 class="slide-title anim-target">So Sánh Thực Tế: Điểm Mạnh Cốt Lõi & Phạm Vi Ứng Dụng</h2>
@@ -946,9 +1026,9 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 9: LỘ TRÌNH 4 TUẦN TRIỂN KHAI
+         SLIDE 10: LỘ TRÌNH 4 TUẦN TRIỂN KHAI
          ========================================== -->
-    <div class="slide bg-villa" id="slide-8">
+    <div class="slide bg-villa" id="slide-9">
       <div>
         <div class="slide-kicker anim-target">KẾ HOẠCH HÀNH ĐỘNG</div>
         <h2 class="slide-title anim-target">Lộ Trình Triển Khai Thực Nghiệm Trong 04 Tuần</h2>
@@ -1007,7 +1087,7 @@
     <button class="nav-btn" onclick="prevSlide()">← Trang Trước</button>
     
     <div class="nav-center">
-      <div class="nav-counter" id="slideCounter">SLIDE 01 / 09</div>
+      <div class="nav-counter" id="slideCounter">SLIDE 01 / 10</div>
       <div class="nav-dots" id="dotsContainer"></div>
     </div>
 
@@ -1064,7 +1144,9 @@
     function updateProgress() {
       const pct = ((currentSlide + 1) / slides.length) * 100;
       progressBar.style.width = pct + '%';
-      slideCounter.innerText = `SLIDE 0${currentSlide + 1} / 0${slides.length}`;
+      const curNum = (currentSlide + 1).toString().padStart(2, '0');
+      const totalNum = slides.length.toString().padStart(2, '0');
+      slideCounter.innerText = `SLIDE ${curNum} / ${totalNum}`;
     }
 
     function goToSlide(idx) {
