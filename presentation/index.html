@@ -6,229 +6,266 @@
   <title>Khởi Minh Homestyling // Giải Pháp Quản Trị Dự Án & Điều Phối Đa Thầu Zalo-Native</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- GSAP Animation Library for Butter-Smooth Motion -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
   <style>
     /* ==========================================================================
-       DESIGN SYSTEM - ARCHITECTURAL LUXURY (BREATHABLE TYPOGRAPHY, FULLSCREEN NATIVE)
+       STRICT 3-COLOR SYSTEM (LUXURY ARCHITECTURAL MINIMALISM)
+       1. Màu Nền (Background):        #090D16 (Deep Obsidian Slate)
+       2. Màu Chủ Đạo (Primary Accent): #3B82F6 (Electric Tech Blue)
+       3. Màu Mờ Phụ Trợ (Auxiliary):   rgba(255, 255, 255, 0.08) / #94A3B8
        ========================================================================== */
     :root {
-      --bg-dark: #0A0F1D;
-      --bg-surface: #111928;
-      --bg-card: rgba(17, 25, 40, 0.94);
-      --bg-card-hover: rgba(23, 34, 53, 0.98);
-      
-      /* Solid Accents - Zero Gradients */
-      --primary: #2563EB;
+      /* 1. MÀU NỀN DUY NHẤT */
+      --bg-canvas: #090D16;
+      --bg-surface: #0E1424;
+      --bg-card: rgba(14, 20, 36, 0.88);
+      --bg-card-hover: rgba(20, 30, 52, 0.95);
+
+      /* 2. MÀU CHỦ ĐẠO DUY NHẤT (PRIMARY ACCENT) */
+      --primary: #3B82F6;
       --primary-light: #60A5FA;
-      --primary-subtle: rgba(37, 99, 235, 0.16);
+      --primary-dark: #1D4ED8;
+      --primary-subtle: rgba(59, 130, 246, 0.12);
+      --primary-border: rgba(59, 130, 246, 0.32);
+      --primary-glow: 0 10px 30px -8px rgba(59, 130, 246, 0.35);
 
-      --success: #10B981;
-      --success-light: #34D399;
-      --success-subtle: rgba(16, 185, 129, 0.16);
+      /* 3. MÀU MỜ PHỤ TRỢ (MUTED AUXILIARY) */
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(59, 130, 246, 0.45);
+      --aux-card: rgba(255, 255, 255, 0.03);
 
-      --warning: #F59E0B;
-      --warning-subtle: rgba(245, 158, 11, 0.16);
-
-      --danger: #EF4444;
-      --danger-subtle: rgba(239, 68, 68, 0.16);
-
-      --border: rgba(255, 255, 255, 0.14);
-      --border-focus: #3B82F6;
-
-      --text-white: #FFFFFF;
-      --text-main: #F1F5F9;
+      /* TYPOGRAPHY COLORS */
+      --text-pure: #FFFFFF;
+      --text-main: #E2E8F0;
       --text-muted: #94A3B8;
       --text-dim: #64748B;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
     html, body {
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background-color: var(--bg-dark);
+      background-color: var(--bg-canvas);
       color: var(--text-main);
       display: flex;
       flex-direction: column;
     }
 
-    /* FULLSCREEN-NATIVE PRESENTATION VIEWPORT */
+    /* TOP PROGRESS BAR */
+    .top-progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+      z-index: 999;
+      transition: width 0.35s ease;
+    }
+
+    /* AMBIENT RADIAL LIGHTING */
+    .ambient-glow {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 400px;
+      background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.12), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* PRESENTATION VIEWPORT */
     .deck-viewport {
       flex: 1;
       width: 100%;
-      height: 100%;
+      height: calc(100vh - 64px);
       position: relative;
       overflow: hidden;
-      display: flex;
     }
 
-    /* SLIDE CONTAINER */
+    /* SLIDE BASE STYLES */
     .slide {
-      display: none;
-      width: 100%;
-      height: 100%;
-      padding: clamp(28px, 4.5vh, 52px) clamp(36px, 6vw, 90px) 76px;
-      flex-direction: column;
-      justify-content: center;
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: clamp(24px, 4vh, 48px) clamp(32px, 5.5vw, 84px) 80px;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
       background-size: cover;
       background-position: center;
       overflow-y: auto;
+      z-index: 1;
     }
 
     .slide.active {
       display: flex;
-      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    /* SOLID DARK OVERLAY ON BACKGROUND IMAGES (NO GRADIENTS) */
+    /* UNIFORM SOLID OVERLAY FOR ARCHITECTURAL PHOTOS */
     .slide::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: rgba(10, 15, 29, 0.88);
-      backdrop-filter: blur(4px);
+      background: rgba(9, 13, 22, 0.92);
+      backdrop-filter: blur(8px);
       z-index: 0;
     }
 
     .slide > * {
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
-    /* BACKGROUND IMAGES */
+    /* BACKGROUND PHOTO SETTINGS */
     .bg-cover { background-image: url('screenshots/bg_luxury_living.jpg'); }
     .bg-arch { background-image: url('screenshots/bg_architecture.jpg'); }
     .bg-interior { background-image: url('screenshots/bg_interior_styling.jpg'); }
     .bg-villa { background-image: url('screenshots/bg_luxury_villa.jpg'); }
 
-    /* MOTION & ANIMATIONS */
-    @keyframes slideIn {
-      from { opacity: 0; transform: scale(0.98) translateY(12px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    .anim-up {
-      opacity: 0;
-      transform: translateY(18px);
-      animation: animUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .anim-left {
-      opacity: 0;
-      transform: translateX(-24px);
-      animation: animLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .anim-right {
-      opacity: 0;
-      transform: translateX(24px);
-      animation: animRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .d-1 { animation-delay: 0.06s; }
-    .d-2 { animation-delay: 0.14s; }
-    .d-3 { animation-delay: 0.22s; }
-    .d-4 { animation-delay: 0.30s; }
-
-    @keyframes animUp { to { opacity: 1; transform: translateY(0); } }
-    @keyframes animLeft { to { opacity: 1; transform: translateX(0); } }
-    @keyframes animRight { to { opacity: 1; transform: translateX(0); } }
-
-    /* TYPOGRAPHY - SPACIOUS, CRISP & BREATHABLE */
-    .badge-pill {
+    /* UNIFORM TYPOGRAPHY & HEADERS */
+    .slide-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       padding: 6px 14px;
       border-radius: 9999px;
       background: var(--primary-subtle);
-      border: 1px solid var(--primary);
+      border: 1px solid var(--primary-border);
       color: var(--primary-light);
       font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.08em;
       margin-bottom: 14px;
       width: fit-content;
     }
 
-    .badge-pill.warning {
-      background: var(--warning-subtle);
-      border-color: var(--warning);
-      color: #FBBF24;
-    }
-
-    .badge-pill.success {
-      background: var(--success-subtle);
-      border-color: var(--success);
-      color: var(--success-light);
+    .slide-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
     }
 
     .slide-title {
-      font-size: clamp(28px, 3.2vw, 42px);
+      font-size: clamp(26px, 2.7vw, 38px);
       font-weight: 800;
-      color: var(--text-white);
+      color: var(--text-pure);
       line-height: 1.25;
-      margin-bottom: 12px;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
     }
 
     .slide-desc {
-      font-size: clamp(14px, 1.25vw, 17px);
+      font-size: clamp(14.5px, 1.1vw, 16.5px);
       color: var(--text-muted);
       line-height: 1.7;
-      margin-bottom: 28px;
-      max-width: 1100px;
+      max-width: 960px;
+      margin-bottom: 26px;
+      letter-spacing: 0.005em;
     }
 
-    /* CARDS & CONTAINERS WITH GENEROUS BREATHING ROOM */
-    .content-box {
+    /* STANDARDIZED CONTENT CARDS (CLEAN & SPACIOUS) */
+    .content-card {
       background: var(--bg-card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-subtle);
       border-radius: 16px;
-      padding: 26px 26px;
+      padding: 26px 24px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      height: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.35s ease,
+                  box-shadow 0.35s ease,
+                  background 0.35s ease;
+      position: relative;
+      overflow: hidden;
     }
 
-    .content-box:hover {
+    .content-card:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(255, 255, 255, 0.28);
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      border-color: var(--border-hover);
+      transform: translateY(-5px);
+      box-shadow: var(--primary-glow);
     }
 
-    .content-box.border-danger { border-left: 5px solid var(--danger); }
-    .content-box.border-warning { border-left: 5px solid var(--warning); }
-    .content-box.border-primary { border-left: 5px solid var(--primary); }
-    .content-box.border-success { border-left: 5px solid var(--success); }
+    /* Subtle top accent line using the single primary color */
+    .content-card.accent-top::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary);
+      opacity: 0.85;
+    }
 
-    .box-title {
-      font-size: 19px;
+    .card-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary-subtle);
+      border: 1px solid var(--primary-border);
+      color: var(--primary-light);
+      font-size: 13px;
       font-weight: 700;
-      color: var(--text-white);
-      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-pure);
       line-height: 1.35;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .box-text {
+    .card-text {
       font-size: 14.5px;
-      color: #CBD5E1;
-      line-height: 1.75;
+      color: var(--text-main);
+      line-height: 1.8;
       letter-spacing: 0.01em;
+      text-wrap: pretty;
     }
 
-    /* GRID LAYOUTS (STRICT ALIGNMENT, NO AWKWARD GAPS) */
+    .card-text b {
+      color: var(--text-pure);
+      font-weight: 600;
+    }
+
+    /* GRID LAYOUTS (ROOMY & EQUAL-HEIGHT) */
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 26px;
+      gap: 22px;
       width: 100%;
       align-items: stretch;
     }
@@ -236,7 +273,7 @@
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+      gap: 18px;
       width: 100%;
       align-items: stretch;
     }
@@ -244,7 +281,7 @@
     .split-layout {
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
-      gap: 32px;
+      gap: 28px;
       width: 100%;
       align-items: stretch;
     }
@@ -253,29 +290,51 @@
       grid-template-columns: 0.85fr 1.15fr;
     }
 
-    /* SCREENSHOT PREVIEW BOX (NEAT PADDING & VISIBLE BORDERS) */
-    .preview-box {
+    /* PREVIEW CONTAINER FOR SCREENSHOTS */
+    .preview-card {
       background: var(--bg-card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-subtle);
       border-radius: 16px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
       height: 100%;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .preview-topbar {
-      background: #0B1120;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
+    .preview-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--primary-glow);
+    }
+
+    .preview-header {
+      background: #070B14;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border-subtle);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11.5px;
+      font-size: 12px;
       color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
       font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .preview-header .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary-light);
+    }
+
+    .preview-header .status-indicator::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
     }
 
     .preview-img {
@@ -287,14 +346,14 @@
       display: block;
     }
 
-    /* COMPARISON TABLE (PROPORTIONAL, ROOMY ROWS) */
-    .table-card {
+    /* REFINED COMPARISON TABLE (STRICT 3 COLORS, NO RAINBOW) */
+    .table-container {
       background: var(--bg-card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-subtle);
       border-radius: 16px;
       overflow: hidden;
       width: 100%;
-      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
 
     .comp-table {
@@ -304,131 +363,187 @@
     }
 
     .comp-table th {
-      background: #0A0F1D;
+      background: #070B14;
       color: var(--text-muted);
       padding: 14px 20px;
       text-align: left;
-      font-size: 11.5px;
-      font-weight: 800;
+      font-size: 12px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comp-table th.primary-col {
+      color: var(--primary-light);
+      background: rgba(59, 130, 246, 0.08);
+      border-bottom: 1px solid var(--primary-border);
     }
 
     .comp-table td {
-      padding: 15px 20px;
-      font-size: 13.5px;
-      line-height: 1.65;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 20px;
+      font-size: 14px;
+      line-height: 1.7;
+      border-bottom: 1px solid var(--border-subtle);
       vertical-align: middle;
+      color: var(--text-main);
     }
 
-    .comp-table tr:last-child td { border-bottom: none; }
-
-    .col-win {
-      background: rgba(16, 185, 129, 0.06);
-      color: #A7F3D0;
-      font-weight: 600;
+    .comp-table tr:last-child td {
+      border-bottom: none;
     }
 
-    .col-lose {
+    .comp-table td.primary-cell {
+      background: rgba(59, 130, 246, 0.04);
+      color: #F8FAFC;
+    }
+
+    .comp-table td.aux-cell {
       color: var(--text-muted);
     }
 
-    .tag-flag {
+    .badge-tag {
       display: inline-block;
       padding: 2px 8px;
       border-radius: 4px;
-      font-size: 10.5px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 700;
       margin-right: 8px;
+      font-family: 'JetBrains Mono', monospace;
     }
-    .tag-flag.win { background: #065F46; color: #6EE7B7; }
-    .tag-flag.lose { background: #7F1D1D; color: #FCA5A5; }
-    .tag-flag.warn { background: #78350F; color: #FCD34D; }
 
-    /* FOOTER TOOLBAR (FIXED BOTTOM AT ALL TIMES) */
+    .badge-tag.highlight {
+      background: var(--primary-subtle);
+      border: 1px solid var(--primary-border);
+      color: var(--primary-light);
+    }
+
+    .badge-tag.muted {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    /* FOOTER TOOLBAR */
     .deck-nav-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 60px;
-      background: rgba(10, 15, 29, 0.94);
-      backdrop-filter: blur(12px);
-      border-top: 1px solid var(--border);
+      height: 64px;
+      background: rgba(9, 13, 22, 0.95);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-subtle);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 40px;
+      padding: 0 36px;
       z-index: 100;
     }
 
     .btn-nav {
       background: var(--bg-surface);
-      border: 1px solid var(--border);
-      color: var(--text-white);
-      padding: 8px 20px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-pure);
+      padding: 9px 20px;
       border-radius: 10px;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 13.5px;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s;
+      transition: all 0.25s ease;
     }
 
     .btn-nav:hover {
       background: var(--primary);
       border-color: var(--primary);
-      color: white;
+      color: #FFFFFF;
+      box-shadow: var(--primary-glow);
+    }
+
+    .nav-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-counter {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
     }
 
     .nav-dots {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
     }
 
     .dot-node {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.2);
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  background 0.3s ease;
     }
 
     .dot-node.active {
-      width: 28px;
-      background: var(--primary-light);
+      width: 26px;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
     }
 
-    .action-links {
+    .action-group {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
     }
 
-    .link-pill {
-      font-size: 12px;
+    .btn-pill-subtle {
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--text-muted);
       text-decoration: none;
-      padding: 5px 12px;
+      padding: 7px 14px;
       border-radius: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
       transition: all 0.2s;
     }
-    .link-pill:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.12);
+
+    .btn-pill-subtle:hover {
+      color: var(--text-pure);
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* CALL TO ACTION BANNER (SLIDE 9) */
+    .cta-banner {
+      margin-top: 24px;
+      background: var(--primary-subtle);
+      border: 1px solid var(--primary-border);
+      border-radius: 16px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
   </style>
 </head>
 <body>
+
+  <!-- TOP PROGRESS BAR -->
+  <div class="top-progress-bar" id="progressBar"></div>
+
+  <!-- AMBIENT TOP LIGHTING -->
+  <div class="ambient-glow"></div>
 
   <!-- PRESENTATION VIEWPORT -->
   <div class="deck-viewport">
@@ -436,29 +551,38 @@
     <!-- ==========================================
          SLIDE 1: BÌA & ĐỊNH VỊ GIẢI PHÁP
          ========================================== -->
-    <div class="slide bg-cover active">
+    <div class="slide bg-cover active" id="slide-0">
       <div style="max-width: 1050px;">
-        <div class="badge-pill anim-up d-1">Kiến Trúc Quản Trị May Đo 2026</div>
-        <h1 class="slide-title anim-up d-2" style="font-size: clamp(34px, 3.8vw, 50px); line-height: 1.15; margin-bottom: 20px;">
+        <div class="slide-badge anim-target">Kiến Trúc Quản Trị May Đo 2026</div>
+        <h1 class="slide-title anim-target" style="font-size: clamp(32px, 3.6vw, 48px); line-height: 1.2; margin-bottom: 18px;">
           GIẢI PHÁP QUẢN TRỊ DỰ ÁN & ĐIỀU PHỐI ĐA THẦU ZALO-NATIVE
         </h1>
-        <p class="slide-desc anim-up d-3" style="font-size: clamp(16px, 1.35vw, 19px); line-height: 1.75; margin-bottom: 38px;">
-          Đo ni đóng giày cho bài toán của <b>Khởi Minh Homestyling</b>: Điều phối mạng lưới 30–50 nhà thầu phụ ngoại vi, quản lý dòng tiền 2–3 năm và tự động hóa toàn diện mà <u>tuyệt đối không bắt ép nhân sự phải rời Zalo</u>.
+        <p class="slide-desc anim-target" style="font-size: clamp(15px, 1.25vw, 18px); line-height: 1.8; margin-bottom: 34px;">
+          Hệ thống điều hành chuyên sâu thiết kế kiến trúc và thi công nội thất cao cấp dành riêng cho <b>Khởi Minh Homestyling</b>. Đồng bộ tiến độ, phân quyền thầu phụ và tự động nhắc việc trực tiếp trên nền tảng Zalo quen thuộc.
         </p>
 
-        <div style="display: flex; gap: 20px; align-items: center;" class="anim-up d-4">
-          <div style="background: var(--bg-card); padding: 12px 20px; border-radius: 14px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 24px;">🤖</span>
-            <div>
-              <div style="font-size: 14px; font-weight: 700; color: white;">Zalo Agent Studio</div>
-              <div style="font-size: 12px; color: var(--text-muted);">Trợ Lý Jay // Native Automation</div>
+        <div class="grid-3 anim-target">
+          <div class="content-card accent-top">
+            <div class="card-num">01</div>
+            <div class="card-title">0% Rào Cản Thầu Phụ</div>
+            <div class="card-text">
+              Thợ thi công và các tổ thầu phụ (ánh sáng, mộc, đá) tương tác và nhận thông báo 1-1 ngay trên Zalo cá nhân, không bắt buộc cài ứng dụng lạ.
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 12px 20px; border-radius: 14px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 24px;">🏛️</span>
-            <div>
-              <div style="font-size: 14px; font-weight: 700; color: white;">Khách hàng mục tiêu</div>
-              <div style="font-size: 12px; color: var(--text-muted);">Khởi Minh Homestyling & Interior</div>
+
+          <div class="content-card accent-top">
+            <div class="card-num">02</div>
+            <div class="card-title">Bảo Mật & Phân Quyền</div>
+            <div class="card-text">
+              Thầu phụ chỉ được xem hồ sơ kỹ thuật được chỉ định. Toàn bộ thông tin báo giá, chi phí và tài chính nội bộ được bảo mật tuyệt đối.
+            </div>
+          </div>
+
+          <div class="content-card accent-top">
+            <div class="card-num">03</div>
+            <div class="card-title">Lưu Trữ CAD Không Giới Hạn</div>
+            <div class="card-text">
+              Tải lên trực tiếp bản vẽ AutoCAD (.dwg), ảnh render 3D và hồ sơ thi công dung lượng lớn thông qua kết nối đám mây không bị bóp băng thông.
             </div>
           </div>
         </div>
@@ -466,90 +590,96 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 2: THẤU HIỂU NỖI ĐAU & VẾT XE ĐỔ 1OFFICE
+         SLIDE 2: VÌ SAO KHỞI MINH TỪNG THẤT BÀI VỚI 1OFFICE?
          ========================================== -->
-    <div class="slide bg-arch">
+    <div class="slide bg-arch" id="slide-1">
       <div>
-        <div class="badge-pill warning anim-up d-1">Phân Tích Hiện Trạng & Rào Cản</div>
-        <h2 class="slide-title anim-up d-2">Vì Sao Khởi Minh Từng Thất Bại Với 1Office?</h2>
-        <p class="slide-desc anim-up d-3">
-          Nghịch lý vận hành: Đội ngũ nòng cốt chỉ 5 người nhưng phải quản lý hơn 10 chuyên gia part-time và 30–50 nhà thầu phụ bên ngoài suốt vòng đời 2–3 năm.
+        <div class="slide-badge anim-target">Phân Tích Hiện Trạng & Rào Cản</div>
+        <h2 class="slide-title anim-target">Vì Sao Khởi Minh Từng Thất Bại Với 1Office?</h2>
+        <p class="slide-desc anim-target">
+          Nghịch lý vận hành thực tế: Đội ngũ nòng cốt chỉ 5 nhân sự nhưng phải điều phối hơn 10 chuyên gia tự do và 30–50 tổ thầu phụ bên ngoài suốt vòng đời dự án kéo dài 2–3 năm.
         </p>
       </div>
 
-      <div class="grid-3">
-        <div class="content-box border-danger anim-up d-1">
-          <div style="font-size: 32px; margin-bottom: 16px;">⚠️</div>
-          <div class="box-title" style="color: #FCA5A5;">Vết Xe Đổ Ép Cài App Lạ</div>
-          <div class="box-text">
-            Thợ thi công và các nhà thầu phụ (ánh sáng, mộc, cảnh quan) <b>không bao giờ chịu đăng nhập phần mềm riêng</b> để báo cáo mỗi ngày. Ép họ dùng app dẫn tới việc tẩy chay và quay lại nhắn tin Zalo tự phát.
+      <div class="grid-3 anim-target">
+        <div class="content-card accent-top">
+          <div class="card-num">01</div>
+          <div class="card-title">Vết Xe Đổ Ép Cài App Lạ</div>
+          <div class="card-text">
+            Thợ thi công và các tổ thầu ngoài không bao giờ chịu đăng nhập phần mềm quản trị riêng để báo cáo hàng ngày.
+            <br><br>
+            Việc ép cài ứng dụng dẫn tới sự bất hợp tác, báo cáo chống đối và sau cùng tất cả đều quay lại nhắn tin Zalo tự phát.
           </div>
         </div>
 
-        <div class="content-box border-warning anim-up d-2">
-          <div style="font-size: 32px; margin-bottom: 16px;">💬</div>
-          <div class="box-title" style="color: #FCD34D;">Bẫy Hàng Trăm Group Zalo</div>
-          <div class="box-text">
-            Zalo thuận tiện nhưng sinh ra <b>hàng trăm group chat phân mảnh</b>. Tin nhắn trôi nhanh, file bản vẽ CAD bị hết hạn sau vài ngày, deadline trôi vào quên lãng và Khởi Minh hoàn toàn mất dấu tiến độ.
+        <div class="content-card accent-top">
+          <div class="card-num">02</div>
+          <div class="card-title">Bẫy Hàng Trăm Group Zalo</div>
+          <div class="card-text">
+            Giao tiếp qua nhóm Zalo tiện lợi tức thời nhưng sinh ra hàng trăm nhóm chat phân mảnh, gây nhiễu loạn thông tin.
+            <br><br>
+            Tin nhắn trôi rất nhanh, file bản vẽ CAD bị hết hạn sau vài ngày, thời hạn công việc bị bỏ quên và quản lý hoàn toàn mất dấu tiến độ.
           </div>
         </div>
 
-        <div class="content-box border-primary anim-up d-3">
-          <div style="font-size: 32px; margin-bottom: 16px;">📁</div>
-          <div class="box-title" style="color: #93C5FD;">Tắc Nghẽn Phân Quyền Hồ Sơ</div>
-          <div class="box-text">
-            Lưu OneDrive hay Google Drive gặp khó khi phân chia thư mục: thầu ánh sáng không được xem bản vẽ kết cấu; thầu phụ tuyệt đối không được thấy báo giá hay dòng tiền nhạy cảm của Khởi Minh.
+        <div class="content-card accent-top">
+          <div class="card-num">03</div>
+          <div class="card-title">Tắc Nghẽn Phân Quyền Hồ Sơ</div>
+          <div class="card-text">
+            Lưu trữ trên OneDrive hay Google Drive gặp khó khăn khi phân chia quyền hạn truy cập theo từng gói thầu.
+            <br><br>
+            Thầu ánh sáng không được xem bản vẽ kết cấu; đặc biệt các tổ thầu phụ tuyệt đối không được thấy bảng dự toán chi phí hay dòng tiền nhạy cảm.
           </div>
         </div>
       </div>
     </div>
 
     <!-- ==========================================
-         SLIDE 3: MA TRẬN SO SÁNH ZALO AGENT VS ODOO
+         SLIDE 3: MA TRẬN ĐỐI ĐẦU SO VỚI ODOO ENTERPRISE
          ========================================== -->
-    <div class="slide bg-interior">
+    <div class="slide bg-interior" id="slide-2">
       <div>
-        <div class="badge-pill anim-up d-1">So Sánh Chiến Lược</div>
-        <h2 class="slide-title anim-up d-2">Ma Trận Đối Đầu: Zalo Agent Studio vs Odoo Enterprise</h2>
-        <p class="slide-desc anim-up d-3">
-          So sánh trực diện với phương án Odoo chào giá $2,820 USD (~72 triệu VNĐ) giai đoạn 1 trong tài liệu trao đổi.
+        <div class="slide-badge anim-target">So Sánh Chiến Lược</div>
+        <h2 class="slide-title anim-target">Ma Trận Đối Đầu: Zalo Agent Studio vs Odoo Enterprise</h2>
+        <p class="slide-desc anim-target">
+          So sánh trực diện với phương án Odoo chào giá $2,820 USD (~72 triệu VNĐ) giai đoạn 1 được nêu trong tài liệu trao đổi.
         </p>
       </div>
 
-      <div class="table-card anim-up d-2">
+      <div class="table-container anim-target">
         <table class="comp-table">
           <thead>
             <tr>
-              <th style="width: 22%;">Tiêu Chí Nghiệp Vụ</th>
-              <th style="width: 39%; color: var(--success-light);">Zalo Agent Studio (Hệ Thống Của Chúng Ta)</th>
-              <th style="width: 39%;">Odoo Enterprise (Đề Xuất Trong Báo Giá)</th>
+              <th style="width: 24%;">Tiêu Chí Nghiệp Vụ</th>
+              <th class="primary-col" style="width: 38%;">Zalo Agent Studio (Hệ Thống Của Chúng Ta)</th>
+              <th style="width: 38%;">Odoo Enterprise (Đề Xuất Trong Báo Giá)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><b>Tích Hợp Sẵn Zalo</b></td>
-              <td class="col-win"><span class="tag-flag win">NATIVE 100%</span> Tự động nhắc việc 1-1, nhận diện số Zalo đăng ký, gửi link duyệt file.</td>
-              <td class="col-lose"><span class="tag-flag lose">KHÔNG CÓ SẴN</span> Hoãn sang Phase 2. Bắt buộc viết custom API và trả tiền tin ZNS cho VNG.</td>
+              <td class="primary-cell"><span class="badge-tag highlight">NATIVE 100%</span> Tự động nhắc việc 1-1, nhận diện số Zalo đăng ký, gửi link duyệt file trực tiếp.</td>
+              <td class="aux-cell"><span class="badge-tag muted">CHƯA CÓ</span> Hoãn sang Phase 2; bắt buộc viết custom API và chịu thêm phí tin ZNS cho VNG.</td>
             </tr>
             <tr>
               <td><b>Thói Quen Sử Dụng</b></td>
-              <td class="col-win"><span class="tag-flag win">0% RÀO CẢN</span> Thầu phụ tương tác ngay trên Zalo cá nhân, không cần cài app hay học công cụ mới.</td>
-              <td class="col-lose"><span class="tag-flag lose">RỦI RO CAO</span> Ép 30–50 thầu phụ phải vào Portal Odoo máy tính, dễ lặp lại thất bại của 1Office.</td>
+              <td class="primary-cell"><span class="badge-tag highlight">0% RÀO CẢN</span> Thầu phụ tương tác ngay trên Zalo cá nhân, không cần cài app hay học công cụ mới.</td>
+              <td class="aux-cell"><span class="badge-tag muted">RỦI RO CAO</span> Ép 30–50 thầu phụ vào Portal Odoo máy tính, lặp lại nguy cơ thất bại như 1Office.</td>
             </tr>
             <tr>
               <td><b>Thời Gian Triển Khai</b></td>
-              <td class="col-win"><span class="tag-flag win">1–2 TUẦN</span> Hệ thống lõi đã chạy thực tế ngay hôm nay, đưa vào sử dụng ngay lập tức.</td>
-              <td class="col-lose"><span class="tag-flag warn">3–4 THÁNG</span> Khảo sát 3 tuần + 2-3 tháng dựng lõi gói 50h, đến tháng 3/2027 mới xong lõi.</td>
+              <td class="primary-cell"><span class="badge-tag highlight">1–2 TUẦN</span> Hệ thống lõi đã hoàn thiện và chạy thực tế, sẵn sàng đưa vào vận hành ngay.</td>
+              <td class="aux-cell"><span class="badge-tag muted">3–4 THÁNG</span> Khảo sát 3 tuần + dựng gói lõi 50 giờ, dự kiến đến tháng 3/2027 mới hoàn thiện.</td>
             </tr>
             <tr>
-              <td><b>Dung Lượng File CAD (.dwg)</b></td>
-              <td class="col-win"><span class="tag-flag win">KHÔNG GIỚI HẠN</span> Tải thả ga file .dwg, .dxf, ảnh render 3D 4K, video công trường qua Cloud Storage.</td>
-              <td class="col-lose"><span class="tag-flag lose">BỊ GIỚI HẠN</span> Odoo SaaS bóp 64MB/file và 100GB tổng; muốn lưu thêm phải trả thêm tiền.</td>
+              <td><b>Dung Lượng Bản Vẽ CAD</b></td>
+              <td class="primary-cell"><span class="badge-tag highlight">KHÔNG GIỚI HẠN</span> Tải lên không giới hạn file .dwg, .dxf, ảnh render 3D 4K qua Cloud Storage.</td>
+              <td class="aux-cell"><span class="badge-tag muted">GIỚI HẠN SAAS</span> Odoo giới hạn 64MB/file và 100GB tổng dung lượng; phát sinh phụ phí lưu trữ.</td>
             </tr>
             <tr>
-              <td><b>Chi Phí & Bản Quyền</b></td>
-              <td class="col-win"><span class="tag-flag win">TIẾT KIỆM 50–70%</span> Trọn gói may đo, không tính tiền theo đầu user, không phí license hàng năm.</td>
-              <td class="col-lose"><span class="tag-flag warn">72 TRIỆU / NĂM 1</span> Chưa có Zalo. Sang năm 2 tiếp tục đóng tiền license và phí Phase 2.</td>
+              <td><b>Chi Phí Bản Quyền</b></td>
+              <td class="primary-cell"><span class="badge-tag highlight">TIẾT KIỆM 50–70%</span> Trọn gói may đo, không tính phí theo đầu user, không phí duy trì license hàng năm.</td>
+              <td class="aux-cell"><span class="badge-tag muted">72 TRIỆU / NĂM 1</span> Chưa bao gồm kết nối Zalo; sang năm thứ 2 tiếp tục đóng phí license định kỳ.</td>
             </tr>
           </tbody>
         </table>
@@ -557,43 +687,43 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 4: MINH CHỨNG 1 - ROADMAP & KANBAN
+         SLIDE 4: MINH CHỨNG 1 - LỘ TRÌNH GIAI ĐOẠN & KANBAN
          ========================================== -->
-    <div class="slide bg-arch">
+    <div class="slide bg-arch" id="slide-3">
       <div>
-        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 01</div>
-        <h2 class="slide-title anim-up d-2">Lộ Trình Giai Đoạn (Milestones) & Kanban Ngang Chống Tràn</h2>
-        <p class="slide-desc anim-up d-3">
-          Giao diện thực tế đang chạy tại <code>http://127.0.0.1:3901/portal</code>: Quản lý xuyên suốt vòng đời dự án 2–3 năm của Khởi Minh.
+        <div class="slide-badge anim-target">Minh Chứng Thực Tế 01</div>
+        <h2 class="slide-title anim-target">Lộ Trình Giai Đoạn (Milestones) & Kanban Ngang Chống Tràn</h2>
+        <p class="slide-desc anim-target">
+          Giao diện thực tế đang vận hành tại <code>http://127.0.0.1:3901/portal</code>: Quản lý trực quan xuyên suốt vòng đời 2–3 năm của công trình.
         </p>
       </div>
 
-      <div class="split-layout">
-        <div class="preview-box anim-left d-2">
-          <div class="preview-topbar">
+      <div class="split-layout anim-target">
+        <div class="preview-card">
+          <div class="preview-header">
             <span>PORTAL // MILESTONES & KANBAN BOARD</span>
-            <span>LIVE DEMO</span>
+            <span class="status-indicator">LIVE DEMO</span>
           </div>
           <img src="screenshots/portal_kanban_stages.png" class="preview-img" alt="Lộ trình Milestones & Kanban">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-right d-3">
-          <div class="content-box border-primary">
-            <div class="box-title">📌 Phân Chia Bước Dự Án Rõ Ràng</div>
-            <div class="box-text">
-              Bước 1 (Khảo sát) ➔ Bước 2 (Thiết kế) ➔ Bước 3 (Thi công) ➔ Bước 4 (Bàn giao). Tiến độ % tự động tổng hợp từ các đầu việc con trực thuộc.
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card accent-top">
+            <div class="card-title">📌 Phân Chia Giai Đoạn Rõ Ràng</div>
+            <div class="card-text">
+              Khảo sát hiện trạng ➔ Thiết kế phương án ➔ Thi công hoàn thiện ➔ Nghiệm thu bàn giao. Tiến độ tổng thể tự động tính toán từ các đầu việc con trực thuộc.
             </div>
           </div>
-          <div class="content-box border-success">
-            <div class="box-title">👥 Thống Kê Số Người Phụ Trách Từng Bước</div>
-            <div class="box-text">
-              Tự động đếm có bao nhiêu thầu phụ đang chịu trách nhiệm tại giai đoạn đó (VD: <i>Bước 2 có 2 người: Nguyễn Văn Tuấn, Trần Thị Bích</i>).
+          <div class="content-card accent-top">
+            <div class="card-title">🛡️ Bố Cục Thẻ Ngang Chống Tràn</div>
+            <div class="card-text">
+              Khắc phục nhược điểm của Trello hay Odoo khi dự án có 50+ đầu việc. Mọi thẻ việc đều co giãn thông minh, cuộn mượt mà và không che khuất màn hình.
             </div>
           </div>
-          <div class="content-box border-warning">
-            <div class="box-title">📱 Giao Diện Không Tràn Màn Hình</div>
-            <div class="box-text">
-              Bảng Kanban bố trí ngang hiện đại, tối ưu hiển thị cho cả laptop, iPad và điện thoại khi giám sát đang đứng tại hiện trường công trình.
+          <div class="content-card accent-top">
+            <div class="card-title">📅 Đồng Bộ Lịch iCal Thông Minh</div>
+            <div class="card-text">
+              Chỉ 1 thao tác nhấn để tích hợp toàn bộ hạn chót vào Google Calendar hay Apple Calendar trên điện thoại cá nhân của từng kiến trúc sư.
             </div>
           </div>
         </div>
@@ -601,87 +731,87 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 5: MINH CHỨNG 2 - AUTO REMINDER & DEADLINE
+         SLIDE 5: MINH CHỨNG 2 - TỰ ĐỘNG NHẮC VIỆC ZALO 1-1
          ========================================== -->
-    <div class="slide bg-interior">
+    <div class="slide bg-interior" id="slide-4">
       <div>
-        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 02</div>
-        <h2 class="slide-title anim-up d-2">Tự Động Hóa Nhắc Việc Zalo 1-1 & Bám Sát Hạn Chót</h2>
-        <p class="slide-desc anim-up d-3">
-          Worker nền quét deadline mỗi 60 giây — Đôn đốc trực tiếp vào Zalo cá nhân từng thầu phụ mà không làm phiền nhóm.
+        <div class="slide-badge anim-target">Minh Chứng Thực Tế 02</div>
+        <h2 class="slide-title anim-target">Tự Động Hóa Nhắc Việc Zalo 1-1 & Bám Sát Hạn Chót</h2>
+        <p class="slide-desc anim-target">
+          Không cần quản lý dự án phải mở máy tính hối thúc từng người — Hệ thống tự động phân loại và gửi tin nhắn nhắc nhở riêng tư.
         </p>
       </div>
 
-      <div class="split-layout reversed">
-        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-left d-2">
-          <div class="content-box border-success">
-            <div class="box-title">🔔 Nút "Nhắc Zalo 1-1" Tức Thời</div>
-            <div class="box-text">
-              Chỉ huy trưởng chỉ cần bấm nút trên web, Bot Trợ Lý Jay sẽ bắn tin nhắn riêng vào Zalo của thầu phụ kèm tên việc, hạn chót và link cập nhật.
+      <div class="split-layout reversed anim-target">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card accent-top">
+            <div class="card-title">🤖 Bot Quét Tự Động Định Kỳ</div>
+            <div class="card-text">
+              Chạy nền tự động mỗi 60 giây, phát hiện ngay các nhiệm vụ cận hạn hoặc quá hạn và lập tức kích hoạt thông báo nhắc nhở chính xác đến người phụ trách.
             </div>
           </div>
-          <div class="content-box border-danger">
-            <div class="box-title">⏰ Cảnh Báo Quá Hạn Tự Động (Overdue Alert)</div>
-            <div class="box-text">
-              Các đầu việc trễ hạn deadline tự động đổi nhãn đỏ và gửi thông báo cảnh báo hàng ngày để đảm bảo công trình không bị chậm tiến độ.
+          <div class="content-card accent-top">
+            <div class="card-title">💬 Nhắn Tin Riêng 1-1 Kín Đáo</div>
+            <div class="card-text">
+              Gửi tin nhắn riêng tư đến đúng số Zalo của thầu phụ thay vì nhắn vào nhóm chung 100 người làm loãng nội dung và trôi mất thông tin quan trọng.
             </div>
           </div>
-          <div class="content-box border-primary">
-            <div class="box-title">📅 Đồng Bộ Lịch Google Calendar & iCal</div>
-            <div class="box-text">
-              Cung cấp đường link đồng bộ Google Calendar và file <code>calendar.ics</code> để nhân viên theo dõi lịch hẹn ngay trên ứng dụng điện thoại.
+          <div class="content-card accent-top">
+            <div class="card-title">⚡ Cập Nhật Trạng Thái 1 Chạm</div>
+            <div class="card-text">
+              Người thi công chỉ cần phản hồi tin nhắn hoặc nhấn nút xác nhận trên Zalo, tiến độ trên bảng Kanban trung tâm sẽ tự động chuyển trạng thái ngay lập tức.
             </div>
           </div>
         </div>
 
-        <div class="preview-box anim-right d-3">
-          <div class="preview-topbar">
-            <span>PORTAL // TASK LIST & ZALO 1-1 REMINDER</span>
-            <span>ACTIVE WORKER</span>
+        <div class="preview-card">
+          <div class="preview-header">
+            <span>PORTAL // TASK AUTOMATION & DUE DATES</span>
+            <span class="status-indicator">AUTO REMINDER</span>
           </div>
-          <img src="screenshots/portal_tasks_list.png" class="preview-img" alt="Danh Sách Công Việc & Nhắc Zalo">
+          <img src="screenshots/portal_tasks_list.png" class="preview-img" alt="Danh sách Công Việc & Nhắc Hạn">
         </div>
       </div>
     </div>
 
     <!-- ==========================================
-         SLIDE 6: MINH CHỨNG 3 - ONBOARDING & PHÂN QUYỀN
+         SLIDE 6: MINH CHỨNG 3 - PHÂN QUYỀN BẢO MẬT & SĐT
          ========================================== -->
-    <div class="slide bg-arch">
+    <div class="slide bg-arch" id="slide-5">
       <div>
-        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 03</div>
-        <h2 class="slide-title anim-up d-2">Onboarding Siêu Tốc & Phân Quyền Bảo Mật Tuyệt Đối</h2>
-        <p class="slide-desc anim-up d-3">
-          Thầu phụ tự kích hoạt tài khoản chỉ bằng 1 tin nhắn Zalo — Phân quyền chặt chẽ 4 cấp độ (Admin, Manager, Member, Viewer).
+        <div class="slide-badge anim-target">Minh Chứng Thực Tế 03</div>
+        <h2 class="slide-title anim-target">Onboarding Siêu Tốc & Phân Quyền Bảo Mật Tuyệt Đối</h2>
+        <p class="slide-desc anim-target">
+          Giải quyết bài toán 30–50 thầu phụ ra vào liên tục: Xác thực trực tiếp qua Số điện thoại, không cần thủ tục cấp tài khoản rườm rà.
         </p>
       </div>
 
-      <div class="split-layout">
-        <div class="preview-box anim-left d-2">
-          <div class="preview-topbar">
+      <div class="split-layout anim-target">
+        <div class="preview-card">
+          <div class="preview-header">
             <span>PORTAL // MEMBERS & RBAC SECURITY</span>
-            <span>PHONE AUTH</span>
+            <span class="status-indicator">PHONE AUTH</span>
           </div>
           <img src="screenshots/portal_members_rbac.png" class="preview-img" alt="Phân Quyền Thành Viên">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-right d-3">
-          <div class="content-box border-primary">
-            <div class="box-title">⚡ Tự Đăng Ký Qua Tin Nhắn Zalo</div>
-            <div class="box-text">
-              Bảo thầu phụ nhắn cho Bot: <code>Đăng ký [SĐT] [Họ tên]</code> trong nhóm hoặc riêng. Hệ thống tự ghi nhận và liên kết kênh 1-1, Admin không cần thao tác gán user.
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card accent-top">
+            <div class="card-title">⚡ Tự Đăng Ký Qua Tin Nhắn Zalo</div>
+            <div class="card-text">
+              Thầu phụ chỉ cần nhắn tin cho Bot: <code>Đăng ký [SĐT] [Họ tên]</code>. Hệ thống tự động ghi nhận và liên kết kênh 1-1 mà người quản trị không cần thao tác thủ công.
             </div>
           </div>
-          <div class="content-box border-success">
-            <div class="box-title">🔒 Bảo Vệ Thông Tin Chi Phí & Giá Thầu</div>
-            <div class="box-text">
-              Thành viên (Member) đăng nhập bằng SĐT chỉ thấy công việc của mình. Hoàn toàn <b>không thể thấy bảng chi phí</b>, giá thầu của bên khác hay dòng tiền dự án.
+          <div class="content-card accent-top">
+            <div class="card-title">🔒 Bảo Vệ Thông Tin Chi Phí & Giá Thầu</div>
+            <div class="card-text">
+              Thành viên đội thầu chỉ xem được các đầu việc được bàn giao. Toàn bộ thông tin báo giá của thầu khác, chi phí dự án và dòng tiền được khóa bảo mật.
             </div>
           </div>
-          <div class="content-box border-warning">
-            <div class="box-title">👑 Nâng / Hạ Quyền Quản Trị Tức Thì</div>
-            <div class="box-text">
-              Admin có thể trao quyền Chỉ huy trưởng (Manager) cho đối tác thầu chính để quản lý nhóm con, hoặc thu hồi quyền chỉ bằng 1 thao tác.
+          <div class="content-card accent-top">
+            <div class="card-title">👑 Linh Hoạt Phân Cấp Quản Trị</div>
+            <div class="card-text">
+              Dễ dàng phân quyền Chỉ huy trưởng cho đối tác thầu chính để quản lý nhóm thợ con, đồng thời có thể thu hồi quyền nhanh chóng khi kết thúc gói thầu.
             </div>
           </div>
         </div>
@@ -691,41 +821,41 @@
     <!-- ==========================================
          SLIDE 7: MINH CHỨNG 4 - KHO FILE BẢN VẼ KHÔNG GIỚI HẠN
          ========================================== -->
-    <div class="slide bg-interior">
+    <div class="slide bg-interior" id="slide-6">
       <div>
-        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 04</div>
-        <h2 class="slide-title anim-up d-2">Kho Lưu Trữ Bản Vẽ Kỹ Thuật & CAD Không Bị Bóp Giới Hạn</h2>
-        <p class="slide-desc anim-up d-3">
-          Chấm dứt hoàn toàn tình trạng file CAD (.dwg, .dxf) hết hạn trên Zalo hoặc bị chặn trần 64MB của Odoo SaaS.
+        <div class="slide-badge anim-target">Minh Chứng Thực Tế 04</div>
+        <h2 class="slide-title anim-target">Kho Lưu Trữ Bản Vẽ Kỹ Thuật & CAD Không Bị Bóp Giới Hạn</h2>
+        <p class="slide-desc anim-target">
+          Chấm dứt hoàn toàn tình trạng file CAD (.dwg, .dxf) hết hạn trên Zalo hoặc bị chặn trần dung lượng 64MB của Odoo SaaS.
         </p>
       </div>
 
-      <div class="split-layout reversed">
-        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-left d-2">
-          <div class="content-box border-primary">
-            <div class="box-title">📐 Chấp Nhận 100% Định Dạng Kiến Trúc</div>
-            <div class="box-text">
-              Kéo thả tải lên bản vẽ AutoCAD (<code>.dwg</code>, <code>.dxf</code>), SketchUp, Photoshop, PDF, ảnh render 3D độ phân giải cao và video hiện trường công trình.
+      <div class="split-layout reversed anim-target">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="content-card accent-top">
+            <div class="card-title">📐 Chấp Nhận 100% Định Dạng Kiến Trúc</div>
+            <div class="card-text">
+              Kéo thả trực tiếp bản vẽ AutoCAD (<code>.dwg</code>, <code>.dxf</code>), SketchUp, Photoshop, PDF và ảnh render 3D độ phân giải cao mà không lo lỗi định dạng.
             </div>
           </div>
-          <div class="content-box border-success">
-            <div class="box-title">☁️ Đẩy Thẳng Lên Cloud Storage</div>
-            <div class="box-text">
-              Tích hợp Google Drive / Cloud Storage: 0% tốn bộ nhớ server, file lưu trữ vĩnh viễn, không bao giờ lo bị xóa link như Zalo thông thường.
+          <div class="content-card accent-top">
+            <div class="card-title">☁️ Lưu Trữ Đám Mây Vĩnh Viễn</div>
+            <div class="card-text">
+              Tích hợp Google Drive và Cloud Storage: Không tiêu tốn tài nguyên máy chủ cục bộ, lưu trữ dữ liệu vĩnh viễn và không bao giờ gặp sự cố hỏng link tải.
             </div>
           </div>
-          <div class="content-box border-warning">
-            <div class="box-title">🔔 Bắn Tin Zalo Khi Có Bản Vẽ Mới</div>
-            <div class="box-text">
-              Khi KTS tải lên bản vẽ mới, Bot Trợ Lý Jay sẽ lập tức nhắn tin báo cho Quản lý dự án để xem xét và duyệt kịp thời.
+          <div class="content-card accent-top">
+            <div class="card-title">🔔 Thông Báo Zalo Khi Có Bản Vẽ Mới</div>
+            <div class="card-text">
+              Ngay khi bản vẽ kỹ thuật mới được tải lên, Bot Trợ Lý sẽ tự động gửi thông báo kèm đường dẫn xem nhanh tới Quản lý dự án để phê duyệt kịp thời.
             </div>
           </div>
         </div>
 
-        <div class="preview-box anim-right d-3">
-          <div class="preview-topbar">
+        <div class="preview-card">
+          <div class="preview-header">
             <span>PORTAL // UPLOAD STORAGE PORTAL</span>
-            <span>UNLIMITED CLOUD</span>
+            <span class="status-indicator">UNLIMITED CLOUD</span>
           </div>
           <img src="screenshots/portal_upload_storage.png" class="preview-img" alt="Kho Tải Lên Bản Vẽ">
         </div>
@@ -733,96 +863,98 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 8: ĐIỂM MẠNH & ĐIỂM YẾU MINH BẠCH
+         SLIDE 8: ĐIỂM MẠNH & HẠN CHẾ SO VỚI ODOO
          ========================================== -->
-    <div class="slide bg-villa">
+    <div class="slide bg-villa" id="slide-7">
       <div>
-        <div class="badge-pill warning anim-up d-1">Báo Cáo Minh Bạch</div>
-        <h2 class="slide-title anim-up d-2">Đánh Giá Khách Quan: Điểm Mạnh Vượt Trội & Hạn Chế So Với Odoo</h2>
-        <p class="slide-desc anim-up d-3">
-          Cái nhìn thẳng thắn, thực tế để Khởi Minh đưa ra quyết định chuyển đổi số đúng đắn nhất.
+        <div class="slide-badge anim-target">Báo Cáo Minh Bạch</div>
+        <h2 class="slide-title anim-target">Đánh Giá Khách Quan: Điểm Mạnh Vượt Trội & Hạn Chế So Với Odoo</h2>
+        <p class="slide-desc anim-target">
+          Góc nhìn khách quan và thực tế giúp Khởi Minh đưa ra quyết định đầu tư công nghệ hiệu quả và an toàn nhất.
         </p>
       </div>
 
-      <div class="split-layout">
-        <div class="content-box border-success anim-left d-2">
-          <div class="box-title" style="color: var(--success-light); font-size: 18px; margin-bottom: 14px;">
-            <span>🏆</span> ĐIỂM MẠNH CỦA ZALO AGENT
+      <div class="split-layout anim-target">
+        <div class="content-card accent-top">
+          <div class="card-title" style="margin-bottom: 16px;">
+            <span class="card-num" style="margin-bottom: 0;">01</span>
+            ĐIỂM MẠNH CỦA ZALO AGENT
           </div>
-          <ul style="font-size: 14px; line-height: 1.85; color: #E2E8F0; padding-left: 20px;">
-            <li><b>DNA Zalo người Việt:</b> 100% thầu phụ quen dùng, không ai phản đối như thời 1Office.</li>
-            <li><b>Triển khai ngay:</b> Bàn giao chạy thật trong tuần, không phải chờ 3-4 tháng.</li>
-            <li><b>Tiết kiệm chi phí:</b> Không thu tiền theo user license, không phát sinh tiền tin ZNS.</li>
-            <li><b>Lưu trữ không giới hạn:</b> Không bị chặn ở 64MB/file hay 100GB như Odoo SaaS.</li>
-            <li><b>Trợ lý AI Gemini:</b> Tóm tắt tiến độ, phân tích công việc tự nhiên bằng tiếng Việt.</li>
-          </ul>
+          <div class="card-text" style="display: flex; flex-direction: column; gap: 14px;">
+            <div>• <b>Phù hợp 100% thói quen thầu phụ:</b> Hoạt động ngay trên Zalo, loại bỏ hoàn toàn nguy cơ bị tẩy chay phần mềm như thời 1Office.</div>
+            <div>• <b>Đưa vào vận hành ngay:</b> Hệ thống đã hoàn thiện lõi thực tế, chuyển giao và sử dụng ngay trong tuần đầu tiên.</div>
+            <div>• <b>Tiết kiệm ngân sách vượt trội:</b> Không thu phí bản quyền theo đầu tài khoản, không phát sinh chi phí duy trì hàng năm.</div>
+            <div>• <b>Lưu trữ file lớn không giới hạn:</b> Không bị bóp nghẽn ở mức 64MB/file hay 100GB như các gói phần mềm đám mây đóng gói.</div>
+            <div>• <b>Trợ lý AI tiếng Việt:</b> Tự động tóm tắt tiến độ công việc và phản hồi ngôn ngữ tự nhiên, chính xác.</div>
+          </div>
         </div>
 
-        <div class="content-box border-danger anim-right d-3">
-          <div class="box-title" style="color: #FCA5A5; font-size: 18px; margin-bottom: 14px;">
-            <span>⚠️</span> ĐIỂM YẾU SO VỚI ODOO & GIẢI PHÁP
+        <div class="content-card accent-top">
+          <div class="card-title" style="margin-bottom: 16px;">
+            <span class="card-num" style="margin-bottom: 0;">02</span>
+            HẠN CHẾ SO VỚI ODOO & GIẢI PHÁP
           </div>
-          <ul style="font-size: 14px; line-height: 1.85; color: #E2E8F0; padding-left: 20px;">
-            <li><b>Chưa có Kế toán thuế chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br><i>👉 Giải pháp:</i> Hệ thống tập trung kiểm soát chi phí công trình, xuất file Excel chuẩn cho kế toán nội bộ.</li>
-            <li><b>Chưa có Quản lý kho nguyên vật liệu lớn:</b> Odoo có kiểm kê mã vạch.<br><i>👉 Giải pháp:</i> Phù hợp cho giai đoạn sau khi Khởi Minh mở xưởng sản xuất quy mô lớn.</li>
-            <li><b>Không có kéo thả No-Code Studio:</b> Thay đổi trường thông tin cần qua dev.<br><i>👉 Giải pháp:</i> Đội ngũ kỹ thuật hỗ trợ tùy biến theo yêu cầu trong 24 giờ.</li>
-          </ul>
+          <div class="card-text" style="display: flex; flex-direction: column; gap: 14px;">
+            <div>• <b>Chưa tích hợp kế toán thuế chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br><span style="color: var(--primary-light);">👉 Giải pháp:</span> Tập trung kiểm soát chi phí thực tế công trình và xuất file Excel chuẩn cho kế toán nội bộ.</div>
+            <div>• <b>Chưa có phân hệ quản lý kho nguyên vật liệu lớn:</b> Odoo hỗ trợ quét mã vạch.<br><span style="color: var(--primary-light);">👉 Giải pháp:</span> Phù hợp bổ sung ở giai đoạn tiếp theo khi Khởi Minh mở rộng nhà máy sản xuất quy mô lớn.</div>
+            <div>• <b>Không có giao diện kéo thả No-Code:</b> Tùy biến bảng biểu cần qua lập trình viên.<br><span style="color: var(--primary-light);">👉 Giải pháp:</span> Đội ngũ kỹ thuật đồng hành hỗ trợ điều chỉnh theo yêu cầu trong vòng 24 giờ.</div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ==========================================
-         SLIDE 9: LỘ TRÌNH 4 TUẦN CHO KHỞI MINH
+         SLIDE 9: LỘ TRÌNH 4 TUẦN TRIỂN KHAI
          ========================================== -->
-    <div class="slide bg-villa">
+    <div class="slide bg-villa" id="slide-8">
       <div>
-        <div class="badge-pill anim-up d-1">Kế Hoạch Hành Động</div>
-        <h2 class="slide-title anim-up d-2">Lộ Trình Triển Khai 4 Tuần & Bắt Đầu Vận Hành Thực Tế</h2>
-        <p class="slide-desc anim-up d-3">
-          Thay vì chờ 3–4 tháng của Odoo, Khởi Minh có thể đưa công trình thực tế vào vận hành ngay trong tháng tới.
+        <div class="slide-badge anim-target">Kế Hoạch Hành Động</div>
+        <h2 class="slide-title anim-target">Lộ Trình Triển Khai 4 Tuần & Bắt Đầu Vận Hành Thực Tế</h2>
+        <p class="slide-desc anim-target">
+          Thay vì chờ đợi 3–4 tháng như đề xuất Odoo, Khởi Minh có thể đưa dự án thực tế vào vận hành ngay trong tháng đầu tiên.
         </p>
       </div>
 
-      <div class="grid-4 anim-up d-2">
-        <div class="content-box border-primary">
-          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 1</div>
-          <div class="box-title" style="font-size: 16px;">Luồng Duyệt Bản Vẽ 3 Lớp</div>
-          <div class="box-text">
-            Thiết lập luồng phê duyệt: <i>Thầu phụ nộp ➔ Homestyling duyệt chuyên môn ➔ Chủ nhà chốt</i> kèm nút duyệt 1-click qua Zalo.
+      <div class="grid-4 anim-target">
+        <div class="content-card accent-top">
+          <div class="card-num">W1</div>
+          <div class="card-title" style="font-size: 16.5px;">Luồng Duyệt Bản Vẽ 3 Lớp</div>
+          <div class="card-text">
+            Thiết lập luồng phê duyệt: <i>Thầu phụ nộp ➔ KTS duyệt chuyên môn ➔ Chủ nhà chốt</i> kèm nút duyệt 1-chạm qua Zalo.
           </div>
         </div>
 
-        <div class="content-box border-primary">
-          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 2</div>
-          <div class="box-title" style="font-size: 16px;">Cổng Nhật Ký Cho Chủ Nhà</div>
-          <div class="box-text">
-            Giao diện B2C sang trọng cho chủ nhà xem ảnh chụp hiện trường hàng tuần, duyệt mẫu vật liệu mà không bị ngợp trong task kỹ thuật.
+        <div class="content-card accent-top">
+          <div class="card-num">W2</div>
+          <div class="card-title" style="font-size: 16.5px;">Cổng Nhật Ký Cho Chủ Nhà</div>
+          <div class="card-text">
+            Giao diện B2C sang trọng cho chủ nhà theo dõi tiến độ thi công qua hình ảnh chụp hiện trường mà không bị rối mắt bởi task kỹ thuật.
           </div>
         </div>
 
-        <div class="content-box border-primary">
-          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 3</div>
-          <div class="box-title" style="font-size: 16px;">Phân Quyền Thư Mục Thầu</div>
-          <div class="box-text">
-            Thầu Lighting chỉ thấy phần điện/đèn; Thầu Gỗ chỉ thấy nội thất gỗ; tuyệt đối bảo mật giá thầu giữa các bên.
+        <div class="content-card accent-top">
+          <div class="card-num">W3</div>
+          <div class="card-title" style="font-size: 16.5px;">Phân Quyền Thư Mục Thầu</div>
+          <div class="card-text">
+            Tách biệt hồ sơ từng nhà thầu: Thầu điện nước chỉ thấy bản vẽ M&E; thầu gỗ chỉ thấy hạng mục nội thất; bảo mật tuyệt đối giá dự toán.
           </div>
         </div>
 
-        <div class="content-box border-success">
-          <div style="font-size: 19px; font-weight: 800; color: var(--success-light); margin-bottom: 6px;">TUẦN 4</div>
-          <div class="box-title" style="font-size: 16px;">Chạy Thử Trên 01 Dự Án</div>
-          <div class="box-text">
-            Áp dụng thử nghiệm trên 1 công trình thực tế của Khởi Minh, tinh chỉnh phản hồi từ thầu phụ và bàn giao toàn diện.
+        <div class="content-card accent-top">
+          <div class="card-num">W4</div>
+          <div class="card-title" style="font-size: 16.5px;">Vận Hành Thử Trên 01 Dự Án</div>
+          <div class="card-text">
+            Áp dụng thử nghiệm trên 1 công trình thực tế của Khởi Minh, tinh chỉnh phản hồi từ thầu phụ và bàn giao toàn diện hệ thống.
           </div>
         </div>
       </div>
 
-      <div class="anim-up d-3" style="margin-top: 26px; background: rgba(37, 99, 235, 0.14); border: 1px solid rgba(96, 165, 250, 0.35); border-radius: 16px; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;">
+      <div class="cta-banner anim-target">
         <div>
-          <div style="font-size: 16px; font-weight: 700; color: white;">🎯 Tuyên ngôn giải pháp:</div>
-          <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Không bắt 30–50 thầu phụ thay đổi thói quen — Đưa hệ thống quản trị chuyên nghiệp vào ngay Zalo của họ.</div>
+          <div style="font-size: 16px; font-weight: 700; color: #FFFFFF;">🎯 Tuyên ngôn giải pháp:</div>
+          <div style="font-size: 14.5px; color: var(--text-muted); margin-top: 4px;">Không bắt 30–50 thầu phụ thay đổi thói quen — Đưa hệ thống quản trị chuyên nghiệp vào ngay Zalo của họ.</div>
         </div>
-        <a href="http://127.0.0.1:3901/portal" target="_blank" class="btn-nav" style="background: var(--primary); border-color: var(--primary); text-decoration: none; padding: 10px 22px;">Trải Nghiệm Live Demo ➔</a>
+        <a href="http://127.0.0.1:3901/portal" target="_blank" class="btn-nav" style="background: var(--primary); border-color: var(--primary); text-decoration: none; padding: 10px 24px;">Trải Nghiệm Live Demo ➔</a>
       </div>
     </div>
 
@@ -831,58 +963,124 @@
   <!-- FIXED BOTTOM NAVIGATION BAR -->
   <footer class="deck-nav-bar">
     <button class="btn-nav" onclick="prevSlide()">◀ Slide Trước (⬅️)</button>
-    <div class="nav-dots" id="dotsContainer"></div>
-    <div class="action-links">
-      <button class="link-pill" onclick="toggleFullScreen()">⛶ Toàn Màn Hình (F)</button>
-      <button class="link-pill" onclick="window.print()">🖨️ Xuất PDF</button>
-      <button class="btn-nav" onclick="nextSlide()">Slide Tiếp Theo (➡️) ▶</button>
+    
+    <div class="nav-center">
+      <div class="nav-counter" id="slideCounter">SLIDE 01 / 09</div>
+      <div class="nav-dots" id="dotsContainer"></div>
+    </div>
+
+    <div class="action-group">
+      <button class="btn-pill-subtle" onclick="toggleFullScreen()">⛶ Toàn Màn Hình (F)</button>
+      <button class="btn-pill-subtle" onclick="window.print()">🖨️ In / PDF</button>
+      <button class="btn-nav" onclick="nextSlide()">Slide Tiếp (➡️) ▶</button>
     </div>
   </footer>
 
+  <!-- SCRIPT WITH GSAP BUTTER-SMOOTH ANIMATIONS -->
   <script>
     let currentSlide = 0;
     const slides = document.querySelectorAll('.slide');
     const dotsContainer = document.getElementById('dotsContainer');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    let isAnimating = false;
 
     // Create navigation dots
     slides.forEach((_, idx) => {
       const dot = document.createElement('div');
       dot.className = 'dot-node' + (idx === 0 ? ' active' : '');
+      dot.title = `Chuyển đến Slide ${idx + 1}`;
       dot.onclick = () => goToSlide(idx);
       dotsContainer.appendChild(dot);
     });
 
     const dots = document.querySelectorAll('.dot-node');
 
-    function updateSlide() {
-      slides.forEach((s, idx) => {
-        s.classList.toggle('active', idx === currentSlide);
-      });
-      dots.forEach((d, idx) => {
-        d.classList.toggle('active', idx === currentSlide);
-      });
+    // Trigger GSAP entrance animation on slide elements
+    function animateSlideIn(slideElement) {
+      const targets = slideElement.querySelectorAll('.anim-target');
+      if (targets.length === 0) return;
+
+      gsap.fromTo(targets, 
+        { 
+          y: 28, 
+          opacity: 0,
+          scale: 0.98
+        }, 
+        { 
+          y: 0, 
+          opacity: 1, 
+          scale: 1,
+          duration: 0.55, 
+          stagger: 0.08, 
+          ease: "power2.out",
+          clearProps: "transform,opacity"
+        }
+      );
+    }
+
+    function updateProgress() {
+      const pct = ((currentSlide + 1) / slides.length) * 100;
+      progressBar.style.width = pct + '%';
+      slideCounter.innerText = `SLIDE 0${currentSlide + 1} / 0${slides.length}`;
     }
 
     function goToSlide(idx) {
+      if (idx === currentSlide || isAnimating) return;
+      isAnimating = true;
+
+      const oldSlide = slides[currentSlide];
+      const newSlide = slides[idx];
+
+      // Update dots state
+      dots[currentSlide].classList.remove('active');
+      dots[idx].classList.add('active');
+
+      // GSAP smooth crossfade
+      gsap.to(oldSlide, {
+        opacity: 0,
+        scale: 0.98,
+        duration: 0.28,
+        ease: "power2.inOut",
+        onComplete: () => {
+          oldSlide.classList.remove('active');
+          oldSlide.style.display = 'none';
+
+          newSlide.style.display = 'flex';
+          newSlide.classList.add('active');
+          gsap.fromTo(newSlide, 
+            { opacity: 0, scale: 1.01 }, 
+            { 
+              opacity: 1, 
+              scale: 1, 
+              duration: 0.35, 
+              ease: "power2.out",
+              onComplete: () => {
+                isAnimating = false;
+              }
+            }
+          );
+          animateSlideIn(newSlide);
+        }
+      });
+
       currentSlide = idx;
-      updateSlide();
+      updateProgress();
     }
 
     function nextSlide() {
       if (currentSlide < slides.length - 1) {
-        currentSlide++;
-        updateSlide();
+        goToSlide(currentSlide + 1);
       }
     }
 
     function prevSlide() {
       if (currentSlide > 0) {
-        currentSlide--;
-        updateSlide();
+        goToSlide(currentSlide - 1);
       }
     }
 
-    // Keyboard controls
+    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         e.preventDefault();
@@ -898,12 +1096,18 @@
     function toggleFullScreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
-          alert('Không thể mở toàn màn hình: ' + err.message);
+          console.warn('Fullscreen request declined:', err);
         });
       } else {
         document.exitFullscreen();
       }
     }
+
+    // Initial setup on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateProgress();
+      animateSlideIn(slides[0]);
+    });
   </script>
 </body>
 </html>
