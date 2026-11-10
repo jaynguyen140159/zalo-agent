@@ -12,20 +12,19 @@
 
   <style>
     /* ==========================================================================
-       EXECUTIVE ARCHITECTURAL DESIGN SYSTEM (HUMAN DESIGNED, ZERO AI CLICHÉS)
-       Strict 3-Color Hierarchy:
-       1. Nền:       #0A0E17 (Obsidian Dark Canvas)
-       2. Chủ đạo:   #3B82F6 (Tech Blue Accent)
-       3. Phụ trợ:   rgba(255, 255, 255, 0.08) / #94A3B8
+       EXECUTIVE ARCHITECTURAL DESIGN SYSTEM (STRICT 3-COLOR SYSTEM)
+       1. Nền (Canvas):       #0A0E17 (Obsidian Slate)
+       2. Chủ đạo (Accent):   #3B82F6 (Tech Blue)
+       3. Phụ trợ (Auxiliary): rgba(255, 255, 255, 0.08) / #94A3B8
        ========================================================================== */
     :root {
-      /* 1. MÀU NỀN DUY NHẤT */
+      /* 1. MÀU NỀN */
       --bg-canvas: #0A0E17;
       --bg-surface: #0F1626;
-      --bg-card: rgba(15, 22, 38, 0.85);
-      --bg-card-hover: rgba(20, 30, 52, 0.95);
+      --bg-card: rgba(15, 22, 38, 0.88);
+      --bg-card-hover: rgba(20, 30, 52, 0.96);
 
-      /* 2. MÀU CHỦ ĐẠO DUY NHẤT */
+      /* 2. MÀU CHỦ ĐẠO */
       --primary: #3B82F6;
       --primary-light: #60A5FA;
       --primary-subtle: rgba(59, 130, 246, 0.12);
@@ -133,7 +132,7 @@
     .bg-interior { background-image: url('screenshots/bg_interior_styling.jpg'); }
     .bg-villa { background-image: url('screenshots/bg_luxury_villa.jpg'); }
 
-    /* EDITORIAL SECTION KICKER (REPLACES CLICHÉ GLOWING PILL BADGE) */
+    /* EDITORIAL SECTION KICKER */
     .slide-kicker {
       display: inline-flex;
       align-items: center;
@@ -172,12 +171,12 @@
       letter-spacing: 0.005em;
     }
 
-    /* CONTENT CARDS WITH CLEAN MINIMAL ACCENT */
+    /* CONTENT CARDS */
     .content-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: 14px;
-      padding: 26px 24px;
+      padding: 24px 22px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -197,34 +196,48 @@
       box-shadow: 0 14px 32px -8px rgba(59, 130, 246, 0.25);
     }
 
-    /* CLEAN EDITORIAL NUMBERING (REPLACES MONOSPACE CAPSULE BOXES) */
+    /* CARD INDEX & HEADERS */
     .card-index {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--primary-light);
       letter-spacing: 0.08em;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: inline-block;
+      text-transform: uppercase;
     }
 
-    /* CARD TITLE - NO EMOJIS, CLEAN ARCHITECTURAL WEIGHT */
     .card-title {
-      font-size: 18px;
+      font-size: 17.5px;
       font-weight: 700;
       color: var(--text-pure);
       line-height: 1.35;
       margin-bottom: 12px;
     }
 
-    .card-text {
-      font-size: 14.5px;
+    .card-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 14px;
       color: var(--text-main);
-      line-height: 1.8;
-      letter-spacing: 0.01em;
-      text-wrap: pretty;
+      line-height: 1.65;
     }
 
-    .card-text b {
+    .card-bullets .bullet-item {
+      position: relative;
+      padding-left: 16px;
+    }
+
+    .card-bullets .bullet-item::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+      font-weight: bold;
+    }
+
+    .card-bullets b {
       color: var(--text-pure);
       font-weight: 600;
     }
@@ -251,14 +264,14 @@
       grid-template-columns: 1.15fr 0.85fr;
       gap: 28px;
       width: 100%;
-      align-items: stretch;
+      align-items: center;
     }
 
     .split-layout.reversed {
       grid-template-columns: 0.85fr 1.15fr;
     }
 
-    /* BROWSER MOCKUP FRAME (REPLACES CYBERPUNK TERMINAL BAR) */
+    /* BROWSER MOCKUP FRAME (FIT TIGHT, ZERO GAP) */
     .browser-frame {
       background: #0B101C;
       border: 1px solid var(--border-subtle);
@@ -323,7 +336,7 @@
       object-fit: contain;
     }
 
-    /* REFINED COMPARISON TABLE (EDITORIAL & CLEAN) */
+    /* REFINED COMPARISON TABLE */
     .table-container {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -360,7 +373,7 @@
     .comp-table td {
       padding: 15px 22px;
       font-size: 14px;
-      line-height: 1.7;
+      line-height: 1.65;
       border-bottom: 1px solid var(--border-subtle);
       vertical-align: middle;
       color: var(--text-main);
@@ -379,7 +392,6 @@
       color: var(--text-muted);
     }
 
-    /* NATURAL TEXT EMPHASIS (REPLACES CODE-LIKE CAPSULE BADGES) */
     .lead-highlight {
       font-weight: 700;
       color: var(--primary-light);
@@ -392,7 +404,7 @@
       margin-right: 6px;
     }
 
-    /* FOOTER TOOLBAR (CLEAN, NO REDUNDANT EMOJIS) */
+    /* FOOTER TOOLBAR */
     .deck-nav-bar {
       position: fixed;
       bottom: 0;
@@ -502,7 +514,7 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
-    /* ACTION CALLOUT (SLIDE 9) */
+    /* ACTION CALLOUT */
     .action-callout {
       margin-top: 24px;
       background: rgba(59, 130, 246, 0.08);
@@ -531,36 +543,39 @@
          ========================================== -->
     <div class="slide bg-cover active" id="slide-0">
       <div style="max-width: 1050px;">
-        <div class="slide-kicker anim-target">KIẾN TRÚC QUẢN TRỊ MAY ĐO 2026</div>
+        <div class="slide-kicker anim-target">GIẢI PHÁP QUẢN TRỊ DỰ ÁN KIẾN TRÚC & NỘI THẤT</div>
         <h1 class="slide-title anim-target" style="font-size: clamp(32px, 3.6vw, 48px); line-height: 1.2; margin-bottom: 18px;">
-          GIẢI PHÁP QUẢN TRỊ DỰ ÁN & ĐIỀU PHỐI ĐA THẦU ZALO-NATIVE
+          HỆ THỐNG ĐIỀU HÀNH ĐA THẦU ZALO-NATIVE
         </h1>
         <p class="slide-desc anim-target" style="font-size: clamp(15px, 1.25vw, 18px); line-height: 1.8; margin-bottom: 34px;">
-          Hệ thống điều hành chuyên sâu thiết kế kiến trúc và thi công nội thất cao cấp dành riêng cho <b>Khởi Minh Homestyling</b>. Đồng bộ tiến độ, phân quyền thầu phụ và tự động nhắc việc trực tiếp trên nền tảng Zalo quen thuộc.
+          Giải pháp quản trị tiến độ, tự động hóa nhắc việc và bảo mật hồ sơ công trình may đo riêng cho <b>Khởi Minh Homestyling</b>. Giữ trọn thói quen trao đổi Zalo quen thuộc nhưng nâng cấp toàn diện năng lực quản lý chuyên nghiệp.
         </p>
 
         <div class="grid-3 anim-target">
           <div class="content-card">
-            <span class="card-index">01 / TRẢI NGHIỆM THỰC TẾ</span>
-            <div class="card-title">Không Rào Cản Thói Quen Thầu Phụ</div>
-            <div class="card-text">
-              Thợ thi công và các tổ thầu phụ (ánh sáng, mộc, đá) tương tác và nhận thông báo 1-1 ngay trên Zalo cá nhân, không bắt buộc cài ứng dụng lạ.
+            <span class="card-index">ƯU THẾ 01</span>
+            <div class="card-title">Tận Dụng Thói Quen Zalo</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thợ thi công và các tổ thầu phụ tương tác ngay trên Zalo cá nhân.</div>
+              <div class="bullet-item">Không phát sinh rào cản đào tạo hay thay đổi thói quen làm việc.</div>
             </div>
           </div>
 
           <div class="content-card">
-            <span class="card-index">02 / AN TOÀN DỮ LIỆU</span>
-            <div class="card-title">Phân Quyền & Bảo Mật Tuyệt Đối</div>
-            <div class="card-text">
-              Thầu phụ chỉ được xem hồ sơ kỹ thuật được chỉ định. Toàn bộ thông tin báo giá, chi phí và tài chính nội bộ được bảo mật tuyệt đối.
+            <span class="card-index">ƯU THẾ 02</span>
+            <div class="card-title">Kiểm Soát & Bảo Mật Tuyệt Đối</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Phân tách dữ liệu kỹ thuật theo từng gói thầu độc lập.</div>
+              <div class="bullet-item">Bảo mật tuyệt đối hồ sơ dự toán, đơn giá và dòng tiền nội bộ.</div>
             </div>
           </div>
 
           <div class="content-card">
-            <span class="card-index">03 / NĂNG LỰC LƯU TRỮ</span>
-            <div class="card-title">Kho Bản Vẽ CAD Không Giới Hạn</div>
-            <div class="card-text">
-              Tải lên trực tiếp bản vẽ AutoCAD (.dwg), ảnh render 3D và hồ sơ thi công dung lượng lớn thông qua kết nối đám mây không bị bóp băng thông.
+            <span class="card-index">ƯU THẾ 03</span>
+            <div class="card-title">Lưu Trữ Bản Vẽ Kỹ Thuật</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg), phối cảnh 3D và hồ sơ hiện trường.</div>
+              <div class="bullet-item">Kết nối hạ tầng đám mây mở rộng, không lo giới hạn dung lượng.</div>
             </div>
           </div>
         </div>
@@ -568,59 +583,59 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 2: VÌ SAO KHỞI MINH TỪNG THẤT BÀI VỚI 1OFFICE?
+         SLIDE 2: PHÂN TÍCH HIỆN TRẠNG & BÀI HỌC VẬN HÀNH
          ========================================== -->
     <div class="slide bg-arch" id="slide-1">
       <div>
-        <div class="slide-kicker anim-target">PHÂN TÍCH HIỆN TRẠNG & RÀO CẢN</div>
-        <h2 class="slide-title anim-target">Vì Sao Khởi Minh Từng Thất Bại Với 1Office?</h2>
+        <div class="slide-kicker anim-target">PHÂN TÍCH HIỆN TRẠNG & BÀI HỌC VẬN HÀNH</div>
+        <h2 class="slide-title anim-target">Vì Sao Khởi Minh Cần Phương Thức Tiếp Cận Mới?</h2>
         <p class="slide-desc anim-target">
-          Nghịch lý vận hành thực tế: Đội ngũ nòng cốt chỉ 5 nhân sự nhưng phải điều phối hơn 10 chuyên gia tự do và 30–50 tổ thầu phụ bên ngoài suốt vòng đời dự án kéo dài 2–3 năm.
+          Đặc thù mô hình vận hành: Đội ngũ nòng cốt 5 nhân sự phải điều phối hơn 10 chuyên gia tự do và 30–50 nhà thầu phụ trong suốt vòng đời công trình kéo dài 2–3 năm.
         </p>
       </div>
 
       <div class="grid-3 anim-target">
         <div class="content-card">
-          <span class="card-index">RÀO CẢN 01</span>
-          <div class="card-title">Vết Xe Đổ Ép Cài Ứng Dụng Mới</div>
-          <div class="card-text">
-            Thợ thi công và các tổ thầu ngoài không bao giờ chịu đăng nhập phần mềm quản trị riêng để báo cáo hàng ngày.
-            <br><br>
-            Việc ép cài ứng dụng dẫn tới sự bất hợp tác, báo cáo đối phó và sau cùng tất cả đều quay lại nhắn tin Zalo tự phát.
+          <span class="card-index">VẤN ĐỀ 01</span>
+          <div class="card-title">Rào Cản Tiếp Nhận Ứng Dụng Mới</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Đội ngũ thầu thi công từ chối sử dụng phần mềm quản lý độc lập (như bài học từ 1Office).</div>
+            <div class="bullet-item">Báo cáo mang tính đối phó và nhanh chóng quay lại nhắn tin Zalo tự phát.</div>
+            <div class="bullet-item">Việc ép buộc công cụ mới gây đứt gãy luồng thông tin giám sát hiện trường.</div>
           </div>
         </div>
 
         <div class="content-card">
-          <span class="card-index">RÀO CẢN 02</span>
-          <div class="card-title">Bẫy Hàng Trăm Nhóm Chat Zalo</div>
-          <div class="card-text">
-            Giao tiếp qua nhóm Zalo tiện lợi tức thời nhưng sinh ra hàng trăm nhóm chat phân mảnh, gây nhiễu loạn thông tin.
-            <br><br>
-            Tin nhắn trôi rất nhanh, file bản vẽ CAD bị hết hạn sau vài ngày, thời hạn công việc bị bỏ quên và quản lý hoàn toàn mất dấu tiến độ.
+          <span class="card-index">VẤN ĐỀ 02</span>
+          <div class="card-title">Phân Mảnh & Thất Thoát Dữ Liệu Zalo</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Quá nhiều nhóm chat khiến thông tin bị phân tán và trôi mất hạn chót công việc.</div>
+            <div class="bullet-item">File bản vẽ CAD và hình ảnh tiến độ tự động hết hạn tải về sau vài ngày.</div>
+            <div class="bullet-item">Người quản lý mất nhiều thời gian tổng hợp thủ công để nắm bắt tiến độ chung.</div>
           </div>
         </div>
 
         <div class="content-card">
-          <span class="card-index">RÀO CẢN 03</span>
-          <div class="card-title">Tắc Nghẽn Phân Quyền Hồ Sơ</div>
-          <div class="card-text">
-            Lưu trữ trên OneDrive hay Google Drive gặp khó khăn khi phân chia quyền hạn truy cập theo từng gói thầu.
-            <br><br>
-            Thầu ánh sáng không được xem bản vẽ kết cấu; đặc biệt các tổ thầu phụ tuyệt đối không được thấy bảng dự toán chi phí hay dòng tiền nhạy cảm.
+          <span class="card-index">VẤN ĐỀ 03</span>
+          <div class="card-title">Bất Cập Trong Phân Quyền Hồ Sơ</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Khó phân chia quyền truy cập tài liệu kỹ thuật giữa các tổ thầu riêng biệt.</div>
+            <div class="bullet-item">Nguy cơ rò rỉ đơn giá, dự toán chi phí và thông tin tài chính nhạy cảm giữa các bên.</div>
+            <div class="bullet-item">Các giải pháp lưu trữ thông thường (Drive, OneDrive) chưa đáp ứng nhu cầu bảo mật theo gói thầu.</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- ==========================================
-         SLIDE 3: MA TRẬN ĐỐI ĐẦU SO VỚI ODOO ENTERPRISE
+         SLIDE 3: ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ
          ========================================== -->
     <div class="slide bg-interior" id="slide-2">
       <div>
-        <div class="slide-kicker anim-target">SO SÁNH CHIẾN LƯỢC</div>
-        <h2 class="slide-title anim-target">Ma Trận Đối Đầu: Zalo Agent Studio vs Odoo Enterprise</h2>
+        <div class="slide-kicker anim-target">ĐÁNH GIÁ PHƯƠNG ÁN ĐẦU TƯ</div>
+        <h2 class="slide-title anim-target">So Sánh Phương Án: Zalo Agent vs Odoo Enterprise</h2>
         <p class="slide-desc anim-target">
-          So sánh trực diện với phương án Odoo chào giá $2,820 USD (~72 triệu VNĐ) giai đoạn 1 được nêu trong tài liệu trao đổi.
+          Phân tích tính khả thi dựa trên nhu cầu thực tế và đề xuất ngân sách $2,820 USD (~72 triệu VNĐ) giai đoạn 1 của Odoo.
         </p>
       </div>
 
@@ -628,36 +643,36 @@
         <table class="comp-table">
           <thead>
             <tr>
-              <th style="width: 24%;">Tiêu Chí Nghiệp Vụ</th>
+              <th style="width: 24%;">Tiêu Chí Đánh Giá</th>
               <th class="primary-col" style="width: 38%;">Zalo Agent Studio (Hệ Thống Đề Xuất)</th>
               <th style="width: 38%;">Odoo Enterprise (Phương Án Chào Giá)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><b>Tích Hợp Sẵn Zalo</b></td>
-              <td class="primary-cell"><span class="lead-highlight">Tích hợp sẵn 100% —</span> Tự động nhắc việc 1-1, nhận diện số Zalo đăng ký, gửi link duyệt file trực tiếp.</td>
-              <td class="aux-cell"><span class="lead-muted">Chưa hỗ trợ —</span> Hoãn sang Phase 2; bắt buộc viết custom API và chịu thêm phí tin ZNS cho VNG.</td>
+              <td><b>Khả Năng Tương Thích Zalo</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Có sẵn 100% —</span> Tự động nhắc việc 1-1, nhận diện số điện thoại, gửi link duyệt hồ sơ trực tiếp.</td>
+              <td class="aux-cell"><span class="lead-muted">Chưa hỗ trợ —</span> Hoãn sang Phase 2; cần viết API riêng và phát sinh chi phí tin nhắn ZNS.</td>
             </tr>
             <tr>
-              <td><b>Thói Quen Sử Dụng</b></td>
-              <td class="primary-cell"><span class="lead-highlight">0% Rào cản —</span> Thầu phụ tương tác ngay trên Zalo cá nhân, không cần cài app hay học công cụ mới.</td>
-              <td class="aux-cell"><span class="lead-muted">Rủi ro cao —</span> Ép 30–50 thầu phụ vào Portal Odoo máy tính, lặp lại nguy cơ thất bại như 1Office.</td>
+              <td><b>Mức Độ Tiếp Nhận Của Thầu Phụ</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Dễ dàng tiếp nhận —</span> Tương tác ngay trên Zalo cá nhân, không phát sinh chi phí đào tạo.</td>
+              <td class="aux-cell"><span class="lead-muted">Khó triển khai —</span> Bắt buộc thầu phụ đăng nhập hệ thống web, nguy cơ thất bại cao như 1Office.</td>
             </tr>
             <tr>
-              <td><b>Thời Gian Triển Khai</b></td>
-              <td class="primary-cell"><span class="lead-highlight">1 – 2 Tuần —</span> Hệ thống lõi đã hoàn thiện và chạy thực tế, sẵn sàng đưa vào vận hành ngay.</td>
-              <td class="aux-cell"><span class="lead-muted">3 – 4 Tháng —</span> Khảo sát 3 tuần + dựng gói lõi 50 giờ, dự kiến đến tháng 3/2027 mới hoàn thiện.</td>
+              <td><b>Thời Gian Đưa Vào Vận Hành</b></td>
+              <td class="primary-cell"><span class="lead-highlight">1 – 2 Tuần —</span> Hệ thống lõi đã hoàn thiện và chạy thực tế, sẵn sàng vận hành ngay.</td>
+              <td class="aux-cell"><span class="lead-muted">3 – 4 Tháng —</span> Khảo sát 3 tuần + dựng gói lõi 50 giờ, dự kiến tháng 3/2027 mới hoàn tất.</td>
             </tr>
             <tr>
-              <td><b>Dung Lượng Bản Vẽ CAD</b></td>
-              <td class="primary-cell"><span class="lead-highlight">Không giới hạn —</span> Tải lên không giới hạn file .dwg, .dxf, ảnh render 3D 4K qua Cloud Storage.</td>
-              <td class="aux-cell"><span class="lead-muted">Giới hạn SaaS —</span> Odoo giới hạn 64MB/file và 100GB tổng dung lượng; phát sinh phụ phí lưu trữ.</td>
+              <td><b>Quản Lý File Thiết Kế Lớn</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Không giới hạn —</span> Kết nối Cloud Storage lưu trữ bản vẽ .dwg, ảnh render 3D độ phân giải cao.</td>
+              <td class="aux-cell"><span class="lead-muted">Giới hạn hệ thống —</span> Dung lượng SaaS bị giới hạn 64MB/file và 100GB tổng kho lưu trữ.</td>
             </tr>
             <tr>
-              <td><b>Chi Phí Bản Quyền</b></td>
-              <td class="primary-cell"><span class="lead-highlight">Tiết kiệm 50–70% —</span> Trọn gói may đo, không tính phí theo đầu user, không phí duy trì license hàng năm.</td>
-              <td class="aux-cell"><span class="lead-muted">72 Triệu / năm 1 —</span> Chưa bao gồm kết nối Zalo; sang năm thứ 2 tiếp tục đóng phí license định kỳ.</td>
+              <td><b>Hiệu Quả Chi Phí</b></td>
+              <td class="primary-cell"><span class="lead-highlight">Tối ưu ngân sách —</span> Trọn gói giải pháp, không tính phí theo tài khoản, không phí duy trì hàng năm.</td>
+              <td class="aux-cell"><span class="lead-muted">Chi phí định kỳ cao —</span> ~72 triệu VNĐ năm đầu; tiếp tục đóng phí duy trì bản quyền các năm sau.</td>
             </tr>
           </tbody>
         </table>
@@ -669,10 +684,10 @@
          ========================================== -->
     <div class="slide bg-arch" id="slide-3">
       <div>
-        <div class="slide-kicker anim-target">MINH CHỨNG THỰC TẾ 01</div>
-        <h2 class="slide-title anim-target">Lộ Trình Giai Đoạn (Milestones) & Kanban Ngang Chống Tràn</h2>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 01</div>
+        <h2 class="slide-title anim-target">Quản Lý Vòng Đời Dự Án & Tiến Độ Theo Giai Đoạn</h2>
         <p class="slide-desc anim-target">
-          Giao diện thực tế đang vận hành tại <code>http://127.0.0.1:3901/portal</code>: Quản lý trực quan xuyên suốt vòng đời 2–3 năm của công trình.
+          Giao diện điều phối trực quan: Theo dõi xuyên suốt từ khảo sát, thiết kế đến hoàn thiện thi công (Live tại <code>http://127.0.0.1:3901/portal</code>).
         </p>
       </div>
 
@@ -692,24 +707,27 @@
 
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <div class="content-card">
-            <span class="card-index">TÍNH NĂNG 01</span>
-            <div class="card-title">Phân Chia Giai Đoạn Dự Án Rõ Ràng</div>
-            <div class="card-text">
-              Khảo sát hiện trạng ➔ Thiết kế phương án ➔ Thi công hoàn thiện ➔ Nghiệm thu bàn giao. Tiến độ tổng thể tự động tính toán từ các đầu việc con trực thuộc.
+            <span class="card-index">TIÊU CHÍ 01</span>
+            <div class="card-title">Chuẩn Hóa Tiến Độ Theo Giai Đoạn</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Phân tách rõ ràng: Khảo sát ➔ Thiết kế ➔ Thi công ➔ Bàn giao.</div>
+              <div class="bullet-item">Tiến độ % tự động tổng hợp từ các đầu mục công việc thành phần.</div>
             </div>
           </div>
           <div class="content-card">
-            <span class="card-index">TÍNH NĂNG 02</span>
-            <div class="card-title">Bố Cục Thẻ Ngang Chống Tràn Màn Hình</div>
-            <div class="card-text">
-              Khắc phục nhược điểm của Trello hay Odoo khi dự án có 50+ đầu việc. Mọi thẻ việc đều co giãn thông minh, cuộn mượt mà và không che khuất màn hình.
+            <span class="card-index">TIÊU CHÍ 02</span>
+            <div class="card-title">Bố Cục Thẻ Ngang Tối Ưu Màn Hình</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thiết kế cuộn ngang mượt mà, phù hợp với dự án lớn có 50+ đầu việc.</div>
+              <div class="bullet-item">Không xảy ra tình trạng tràn màn hình hay che khuất danh mục theo dõi.</div>
             </div>
           </div>
           <div class="content-card">
-            <span class="card-index">TÍNH NĂNG 03</span>
-            <div class="card-title">Đồng Bộ Lịch Cá Nhân iCal Tự Động</div>
-            <div class="card-text">
-              Chỉ 1 thao tác nhấn để tích hợp toàn bộ hạn chót vào Google Calendar hay Apple Calendar trên điện thoại cá nhân của từng kiến trúc sư.
+            <span class="card-index">TIÊU CHÍ 03</span>
+            <div class="card-title">Đồng Bộ Lịch Cá Nhân (iCal) Tự Động</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Đồng bộ 1 chạm vào Google Calendar hoặc Apple Calendar của từng KTS.</div>
+              <div class="bullet-item">Theo dõi lịch họp công trường và hạn chót bàn giao ngay trên điện thoại.</div>
             </div>
           </div>
         </div>
@@ -721,10 +739,10 @@
          ========================================== -->
     <div class="slide bg-interior" id="slide-4">
       <div>
-        <div class="slide-kicker anim-target">MINH CHỨNG THỰC TẾ 02</div>
-        <h2 class="slide-title anim-target">Tự Động Hóa Nhắc Việc Zalo 1-1 & Bám Sát Hạn Chót</h2>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 02</div>
+        <h2 class="slide-title anim-target">Cơ Chế Nhắc Việc Tự Động 1-1 Qua Zalo</h2>
         <p class="slide-desc anim-target">
-          Không cần quản lý dự án phải mở máy tính hối thúc từng người — Hệ thống tự động phân loại và gửi tin nhắn nhắc nhở riêng tư.
+          Hệ thống tự động theo dõi hạn chót và gửi thông báo trực tiếp, giải phóng hoàn toàn thời gian giám sát thủ công của quản lý dự án.
         </p>
       </div>
 
@@ -732,23 +750,26 @@
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <div class="content-card">
             <span class="card-index">CƠ CHẾ 01</span>
-            <div class="card-title">Quét Tiến Độ Tự Động Theo Chu Kỳ 60 Giây</div>
-            <div class="card-text">
-              Chương trình chạy nền định kỳ mỗi 60 giây, phát hiện ngay các nhiệm vụ cận hạn hoặc quá hạn và lập tức kích hoạt thông báo nhắc nhở chính xác đến người phụ trách.
+            <div class="card-title">Rà Soát Tiến Độ Tự Động Chu Kỳ 60s</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Chương trình nền tự động quét các nhiệm vụ sắp đến hạn hoặc quá hạn.</div>
+              <div class="bullet-item">Kích hoạt thông báo tức thời tới đúng nhân sự đang phụ trách đầu việc.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">CƠ CHẾ 02</span>
-            <div class="card-title">Kênh Trao Đổi Riêng Tư 1-1 Tránh Loãng Nhóm</div>
-            <div class="card-text">
-              Gửi tin nhắn riêng tư đến đúng số Zalo của thầu phụ thay vì nhắn vào nhóm chung 100 người làm loãng nội dung và trôi mất thông tin quan trọng.
+            <div class="card-title">Thông Báo Riêng Biệt 1-1 Qua Zalo</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Gửi tin nhắn riêng tư tới đúng số Zalo cá nhân của đại diện thầu phụ.</div>
+              <div class="bullet-item">Tránh làm loãng thông tin và trôi tin nhắn trong các nhóm chat chung đông người.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">CƠ CHẾ 03</span>
-            <div class="card-title">Cập Nhật Trạng Thái Tiến Độ Tức Thì</div>
-            <div class="card-text">
-              Người thi công chỉ cần phản hồi tin nhắn hoặc xác nhận trên Zalo, tiến độ trên bảng Kanban trung tâm sẽ tự động cập nhật ngay lập tức.
+            <div class="card-title">Cập Nhật Trạng Thái Tức Thì</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thầu phụ xác nhận hoàn thành công việc trực tiếp trên tin nhắn Zalo.</div>
+              <div class="bullet-item">Bảng Kanban trung tâm tự động cập nhật tiến độ ngay sau khi xác nhận.</div>
             </div>
           </div>
         </div>
@@ -773,10 +794,10 @@
          ========================================== -->
     <div class="slide bg-arch" id="slide-5">
       <div>
-        <div class="slide-kicker anim-target">MINH CHỨNG THỰC TẾ 03</div>
-        <h2 class="slide-title anim-target">Onboarding Siêu Tốc & Phân Quyền Bảo Mật Tuyệt Đối</h2>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 03</div>
+        <h2 class="slide-title anim-target">Đơn Giản Hóa Tiếp Nhận & Phân Quyền Bảo Mật</h2>
         <p class="slide-desc anim-target">
-          Giải quyết bài toán 30–50 thầu phụ ra vào liên tục: Xác thực trực tiếp qua Số điện thoại, không cần thủ tục cấp tài khoản rườm rà.
+          Giải quyết bài toán 30–50 thầu phụ luân chuyển liên tục: Xác thực trực tiếp qua Số điện thoại, loại bỏ hoàn toàn quy trình cấp tài khoản phức tạp.
         </p>
       </div>
 
@@ -797,23 +818,26 @@
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <div class="content-card">
             <span class="card-index">QUY TRÌNH 01</span>
-            <div class="card-title">Nhận Diện Thành Viên Qua Số Điện Thoại</div>
-            <div class="card-text">
-              Thầu phụ chỉ cần nhắn tin cho Bot: <code>Đăng ký [SĐT] [Họ tên]</code>. Hệ thống tự động ghi nhận và liên kết kênh 1-1 mà người quản trị không cần thao tác thủ công.
+            <div class="card-title">Xác Thực Nhanh Qua Số Điện Thoại</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thầu phụ đăng ký trực tiếp bằng số điện thoại qua tin nhắn Zalo.</div>
+              <div class="bullet-item">Hệ thống tự động ghi nhận và phân luồng thông tin, không cần admin thao tác thủ công.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">QUY TRÌNH 02</span>
-            <div class="card-title">Bảo Vệ Dữ Liệu Tài Chính & Giá Thầu</div>
-            <div class="card-text">
-              Thành viên đội thầu chỉ xem được các đầu việc được bàn giao. Toàn bộ thông tin báo giá của thầu khác, chi phí dự án và dòng tiền được khóa bảo mật.
+            <div class="card-title">Bảo Vệ Dữ Liệu Báo Giá & Tài Chính</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Thành viên đội thầu chỉ được xem các công việc và hồ sơ kỹ thuật được phân công.</div>
+              <div class="bullet-item">Khóa hoàn toàn quyền truy cập vào bảng dự toán chi phí và dòng tiền dự án.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">QUY TRÌNH 03</span>
-            <div class="card-title">Phân Cấp Quản Trị Theo Vai Trò Thực Tế</div>
-            <div class="card-text">
-              Dễ dàng phân quyền Chỉ huy trưởng cho đối tác thầu chính để quản lý nhóm thợ con, đồng thời có thể thu hồi quyền nhanh chóng khi kết thúc gói thầu.
+            <div class="card-title">Phân Cấp Quyền Quản Trị Linh Hoạt</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Dễ dàng phân quyền Chỉ huy trưởng cho đối tác thầu chính để quản lý nhóm thợ phụ.</div>
+              <div class="bullet-item">Thu hồi quyền truy cập nhanh chóng ngay sau khi hoàn thành gói thầu.</div>
             </div>
           </div>
         </div>
@@ -825,10 +849,10 @@
          ========================================== -->
     <div class="slide bg-interior" id="slide-6">
       <div>
-        <div class="slide-kicker anim-target">MINH CHỨNG THỰC TẾ 04</div>
-        <h2 class="slide-title anim-target">Kho Lưu Trữ Bản Vẽ Kỹ Thuật & CAD Không Bị Bóp Giới Hạn</h2>
+        <div class="slide-kicker anim-target">MINH CHỨNG NĂNG LỰC 04</div>
+        <h2 class="slide-title anim-target">Lưu Trữ Hồ Sơ Kỹ Thuật & Bản Vẽ Không Giới Hạn</h2>
         <p class="slide-desc anim-target">
-          Chấm dứt hoàn toàn tình trạng file CAD (.dwg, .dxf) hết hạn trên Zalo hoặc bị chặn trần dung lượng 64MB của Odoo SaaS.
+          Khắc phục triệt để sự cố file bản vẽ hết hạn trên Zalo hoặc rào cản giới hạn dung lượng 64MB của các giải pháp SaaS đóng gói.
         </p>
       </div>
 
@@ -836,23 +860,26 @@
         <div style="display: flex; flex-direction: column; gap: 16px;">
           <div class="content-card">
             <span class="card-index">LƯU TRỮ 01</span>
-            <div class="card-title">Hỗ Trợ Toàn Diện Các Định Dạng Kỹ Thuật</div>
-            <div class="card-text">
-              Kéo thả trực tiếp bản vẽ AutoCAD (<code>.dwg</code>, <code>.dxf</code>), SketchUp, Photoshop, PDF và ảnh render 3D độ phân giải cao mà không lo lỗi định dạng.
+            <div class="card-title">Hỗ Trợ Toàn Diện Định Dạng Kỹ Thuật</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Quản lý tập trung bản vẽ AutoCAD (.dwg, .dxf), SketchUp, PDF và hình ảnh 3D.</div>
+              <div class="bullet-item">Cho phép tải lên và truy xuất dữ liệu với đầy đủ thông số kỹ thuật gốc.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">LƯU TRỮ 02</span>
-            <div class="card-title">Lưu Trữ Đám Mây Dung Lượng Lớn</div>
-            <div class="card-text">
-              Tích hợp Google Drive và Cloud Storage: Không tiêu tốn tài nguyên máy chủ cục bộ, lưu trữ dữ liệu vĩnh viễn và không bao giờ gặp sự cố hỏng liên kết tải.
+            <div class="card-title">Hạ Tầng Lưu Trữ Đám Mây Mở Rộng</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Tích hợp Google Drive và Cloud Storage: Bảo mật dữ liệu và tối ưu hiệu năng.</div>
+              <div class="bullet-item">Lưu trữ hồ sơ vĩnh viễn theo từng công trình, không lo rủi ro hỏng liên kết tải.</div>
             </div>
           </div>
           <div class="content-card">
             <span class="card-index">LƯU TRỮ 03</span>
-            <div class="card-title">Thông Báo Kiểm Duyệt Tức Thời</div>
-            <div class="card-text">
-              Ngay khi bản vẽ kỹ thuật mới được tải lên, hệ thống sẽ tự động gửi thông báo kèm đường dẫn xem nhanh tới Quản lý dự án để phê duyệt kịp thời.
+            <div class="card-title">Thông Báo Cập Nhật Hồ Sơ Tức Thời</div>
+            <div class="card-bullets">
+              <div class="bullet-item">Tự động gửi thông báo qua Zalo khi có phiên bản bản vẽ thiết kế mới được duyệt.</div>
+              <div class="bullet-item">Đảm bảo toàn bộ các bên thi công luôn bám sát bản vẽ hiện hành mới nhất.</div>
             </div>
           </div>
         </div>
@@ -877,33 +904,42 @@
          ========================================== -->
     <div class="slide bg-villa" id="slide-7">
       <div>
-        <div class="slide-kicker anim-target">BÁO CÁO MINH BẠCH</div>
-        <h2 class="slide-title anim-target">Đánh Giá Khách Quan: Điểm Mạnh Vượt Trội & Hạn Chế So Với Odoo</h2>
+        <div class="slide-kicker anim-target">ĐÁNH GIÁ KHÁCH QUAN</div>
+        <h2 class="slide-title anim-target">So Sánh Thực Tế: Điểm Mạnh Cốt Lõi & Phạm Vi Ứng Dụng</h2>
         <p class="slide-desc anim-target">
-          Góc nhìn khách quan và thực tế giúp Khởi Minh đưa ra quyết định đầu tư công nghệ hiệu quả và an toàn nhất.
+          Cơ sở đánh giá minh bạch giúp Khởi Minh tối ưu hóa nguồn lực và lựa chọn lộ trình chuyển đổi số phù hợp nhất.
         </p>
       </div>
 
       <div class="split-layout anim-target">
         <div class="content-card">
           <span class="card-index">PHÂN TÍCH 01</span>
-          <div class="card-title" style="margin-bottom: 16px;">Lợi Thế Vận Hành Cốt Lõi</div>
-          <div class="card-text" style="display: flex; flex-direction: column; gap: 14px;">
-            <div>• <b>Phù hợp 100% thói quen thầu phụ:</b> Hoạt động ngay trên Zalo, loại bỏ hoàn toàn nguy cơ bị tẩy chay phần mềm như thời 1Office.</div>
-            <div>• <b>Đưa vào vận hành ngay:</b> Hệ thống đã hoàn thiện lõi thực tế, chuyển giao và sử dụng ngay trong tuần đầu tiên.</div>
-            <div>• <b>Tiết kiệm ngân sách vượt trội:</b> Không thu phí bản quyền theo đầu tài khoản, không phát sinh chi phí duy trì hàng năm.</div>
-            <div>• <b>Lưu trữ file lớn không giới hạn:</b> Không bị bóp nghẽn ở mức 64MB/file hay 100GB như các gói phần mềm đám mây đóng gói.</div>
-            <div>• <b>Trợ lý AI tiếng Việt:</b> Tự động tóm tắt tiến độ công việc và phản hồi ngôn ngữ tự nhiên, chính xác.</div>
+          <div class="card-title" style="margin-bottom: 16px;">Lợi Thế Cốt Lõi Của Hệ Thống Zalo-Native</div>
+          <div class="card-bullets" style="gap: 12px;">
+            <div class="bullet-item"><b>Thân thiện với thói quen thầu phụ:</b> Tương tác 100% trên Zalo, loại bỏ rủi ro bị từ chối như thời 1Office.</div>
+            <div class="bullet-item"><b>Thời gian đưa vào sử dụng ngắn:</b> Hệ thống sẵn sàng vận hành thử nghiệm ngay trong tuần đầu tiên.</div>
+            <div class="bullet-item"><b>Chi phí đầu tư tối ưu:</b> Không thu phí bản quyền theo đầu tài khoản, không phí duy trì hàng năm.</div>
+            <div class="bullet-item"><b>Không giới hạn dung lượng:</b> Lưu trữ không hạn chế bản vẽ kỹ thuật lớn và hình ảnh công trường.</div>
+            <div class="bullet-item"><b>Trợ lý AI hỗ trợ:</b> Tự động tóm tắt tiến độ công việc và phản hồi thông tin nhanh chóng.</div>
           </div>
         </div>
 
         <div class="content-card">
           <span class="card-index">PHÂN TÍCH 02</span>
-          <div class="card-title" style="margin-bottom: 16px;">Các Điểm Cần Lưu Ý & Phương Án Xử Lý</div>
-          <div class="card-text" style="display: flex; flex-direction: column; gap: 14px;">
-            <div>• <b>Chưa tích hợp kế toán thuế chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br><span style="color: var(--primary-light); font-weight: 600;">Phương án:</span> Tập trung kiểm soát chi phí thực tế công trình và xuất file Excel chuẩn cho kế toán nội bộ.</div>
-            <div>• <b>Chưa có phân hệ quản lý kho nguyên vật liệu lớn:</b> Odoo hỗ trợ quét mã vạch.<br><span style="color: var(--primary-light); font-weight: 600;">Phương án:</span> Phù hợp bổ sung ở giai đoạn tiếp theo khi Khởi Minh mở rộng nhà máy sản xuất quy mô lớn.</div>
-            <div>• <b>Không có giao diện kéo thả No-Code:</b> Tùy biến bảng biểu cần qua lập trình viên.<br><span style="color: var(--primary-light); font-weight: 600;">Phương án:</span> Đội ngũ kỹ thuật đồng hành hỗ trợ điều chỉnh theo yêu cầu trong vòng 24 giờ.</div>
+          <div class="card-title" style="margin-bottom: 16px;">Phạm Vi Cần Lưu Ý & Giải Pháp Thực Tế</div>
+          <div class="card-bullets" style="gap: 12px;">
+            <div class="bullet-item">
+              <b>Nghiệp vụ kế toán tài chính chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Tập trung quản trị chi phí thực tế tại công trình; xuất file dữ liệu chuẩn cho kế toán nội bộ.
+            </div>
+            <div class="bullet-item">
+              <b>Quản trị kho vận quy mô lớn:</b> Odoo hỗ trợ quét mã vạch và kiểm kê kho nguyên vật liệu phức tạp.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Phù hợp tích hợp ở giai đoạn tiếp theo khi Khởi Minh mở rộng nhà máy sản xuất.
+            </div>
+            <div class="bullet-item">
+              <b>Tùy biến kéo thả No-Code:</b> Không có công cụ kéo thả trực quan như các nền tảng ERP quốc tế.<br>
+              <span style="color: var(--primary-light); font-weight: 600;">Giải pháp:</span> Đội ngũ kỹ thuật hỗ trợ điều chỉnh các trường thông tin theo yêu cầu trong vòng 24 giờ.
+            </div>
           </div>
         </div>
       </div>
@@ -915,52 +951,52 @@
     <div class="slide bg-villa" id="slide-8">
       <div>
         <div class="slide-kicker anim-target">KẾ HOẠCH HÀNH ĐỘNG</div>
-        <h2 class="slide-title anim-target">Lộ Trình Triển Khai 4 Tuần & Bắt Đầu Vận Hành Thực Tế</h2>
+        <h2 class="slide-title anim-target">Lộ Trình Triển Khai Thực Nghiệm Trong 04 Tuần</h2>
         <p class="slide-desc anim-target">
-          Thay vì chờ đợi 3–4 tháng như đề xuất Odoo, Khởi Minh có thể đưa dự án thực tế vào vận hành ngay trong tháng đầu tiên.
+          Đưa hệ thống vào vận hành thực tế trên 01 công trình đang thi công, tối ưu hóa quy trình trước khi mở rộng toàn diện.
         </p>
       </div>
 
       <div class="grid-4 anim-target">
         <div class="content-card">
           <span class="card-index">TUẦN 01</span>
-          <div class="card-title" style="font-size: 16.5px;">Luồng Duyệt Bản Vẽ 3 Lớp</div>
-          <div class="card-text">
-            Thiết lập luồng phê duyệt: <i>Thầu phụ nộp ➔ KTS duyệt chuyên môn ➔ Chủ nhà chốt</i> kèm nút duyệt trực tiếp qua Zalo.
+          <div class="card-title" style="font-size: 16px;">Quy Trình Duyệt 3 Cấp</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Thiết lập luồng duyệt: Thầu nộp ➔ KTS thẩm định ➔ Khách hàng chốt qua Zalo.</div>
           </div>
         </div>
 
         <div class="content-card">
           <span class="card-index">TUẦN 02</span>
-          <div class="card-title" style="font-size: 16.5px;">Cổng Nhật Ký Cho Chủ Nhà</div>
-          <div class="card-text">
-            Giao diện B2C sang trọng cho chủ nhà theo dõi tiến độ thi công qua hình ảnh chụp hiện trường mà không bị rối mắt bởi task kỹ thuật.
+          <div class="card-title" style="font-size: 16px;">Cổng Thông Tin Chủ Nhà</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Giao diện B2C tinh gọn cho khách hàng theo dõi hình ảnh tiến độ và duyệt mẫu vật liệu.</div>
           </div>
         </div>
 
         <div class="content-card">
           <span class="card-index">TUẦN 03</span>
-          <div class="card-title" style="font-size: 16.5px;">Phân Quyền Thư Mục Thầu</div>
-          <div class="card-text">
-            Tách biệt hồ sơ từng nhà thầu: Thầu điện nước chỉ thấy bản vẽ M&E; thầu gỗ chỉ thấy hạng mục nội thất; bảo mật tuyệt đối giá dự toán.
+          <div class="card-title" style="font-size: 16px;">Phân Quyền Hồ Sơ Thầu</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Phân tách bản vẽ theo từng nhà thầu: Điện nước (M&E), nội thất, đá; bảo mật giá dự toán.</div>
           </div>
         </div>
 
         <div class="content-card">
           <span class="card-index">TUẦN 04</span>
-          <div class="card-title" style="font-size: 16.5px;">Vận Hành Thử Trên 01 Dự Án</div>
-          <div class="card-text">
-            Áp dụng thử nghiệm trên 1 công trình thực tế của Khởi Minh, tinh chỉnh phản hồi từ thầu phụ và bàn giao toàn diện hệ thống.
+          <div class="card-title" style="font-size: 16px;">Vận Hành Thực Nghiệm</div>
+          <div class="card-bullets">
+            <div class="bullet-item">Chạy thử nghiệm trên 01 dự án thực tế, tiếp thu phản hồi và hoàn thiện bàn giao.</div>
           </div>
         </div>
       </div>
 
       <div class="action-callout anim-target">
         <div>
-          <div style="font-size: 16px; font-weight: 700; color: #FFFFFF;">Tuyên ngôn định vị giải pháp:</div>
-          <div style="font-size: 14.5px; color: var(--text-muted); margin-top: 4px;">Không bắt 30–50 thầu phụ thay đổi thói quen — Đưa hệ thống quản trị chuyên nghiệp vào ngay Zalo của họ.</div>
+          <div style="font-size: 15.5px; font-weight: 700; color: #FFFFFF;">Định hướng giải pháp:</div>
+          <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Không thay đổi thói quen của nhà thầu — Đưa năng lực quản trị chuyên nghiệp vào ngay Zalo họ sử dụng mỗi ngày.</div>
         </div>
-        <a href="http://127.0.0.1:3901/portal" target="_blank" class="nav-btn primary-action" style="text-decoration: none; padding: 10px 24px;">Trải Nghiệm Thực Tế →</a>
+        <a href="http://127.0.0.1:3901/portal" target="_blank" class="nav-btn primary-action" style="text-decoration: none; padding: 10px 24px;">Xem Bản Trình Diễn Live →</a>
       </div>
     </div>
 
@@ -1009,7 +1045,7 @@
 
       gsap.fromTo(targets, 
         { 
-          y: 24, 
+          y: 22, 
           opacity: 0,
           scale: 0.99
         }, 
@@ -1017,7 +1053,7 @@
           y: 0, 
           opacity: 1, 
           scale: 1,
-          duration: 0.5, 
+          duration: 0.45, 
           stagger: 0.08, 
           ease: "power2.out",
           clearProps: "transform,opacity"
@@ -1046,7 +1082,7 @@
       gsap.to(oldSlide, {
         opacity: 0,
         scale: 0.98,
-        duration: 0.25,
+        duration: 0.22,
         ease: "power2.inOut",
         onComplete: () => {
           oldSlide.classList.remove('active');
@@ -1059,7 +1095,7 @@
             { 
               opacity: 1, 
               scale: 1, 
-              duration: 0.32, 
+              duration: 0.3, 
               ease: "power2.out",
               onComplete: () => {
                 isAnimating = false;
