@@ -9,30 +9,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     /* ==========================================================================
-       DESIGN SYSTEM - LUXURY SOLID ARCHITECTURAL THEME (NO GRADIENTS)
+       DESIGN SYSTEM - ARCHITECTURAL LUXURY (BREATHABLE TYPOGRAPHY, FULLSCREEN NATIVE)
        ========================================================================== */
     :root {
       --bg-dark: #0A0F1D;
       --bg-surface: #111928;
-      --bg-card: rgba(17, 25, 40, 0.95);
-      --bg-card-hover: rgba(26, 38, 59, 0.98);
+      --bg-card: rgba(17, 25, 40, 0.94);
+      --bg-card-hover: rgba(23, 34, 53, 0.98);
       
-      /* Solid Accents - Pure Flat Luxury */
+      /* Solid Accents - Zero Gradients */
       --primary: #2563EB;
       --primary-light: #60A5FA;
-      --primary-subtle: rgba(37, 99, 235, 0.15);
+      --primary-subtle: rgba(37, 99, 235, 0.16);
 
       --success: #10B981;
       --success-light: #34D399;
-      --success-subtle: rgba(16, 185, 129, 0.15);
+      --success-subtle: rgba(16, 185, 129, 0.16);
 
       --warning: #F59E0B;
-      --warning-subtle: rgba(245, 158, 11, 0.15);
+      --warning-subtle: rgba(245, 158, 11, 0.16);
 
       --danger: #EF4444;
-      --danger-subtle: rgba(239, 68, 68, 0.15);
+      --danger-subtle: rgba(239, 68, 68, 0.16);
 
-      --border: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.14);
       --border-focus: #3B82F6;
 
       --text-white: #FFFFFF;
@@ -43,179 +43,113 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 
-    body {
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
       background-color: var(--bg-dark);
       color: var(--text-main);
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow-x: hidden;
-      padding: 16px;
     }
 
-    /* TOP CONTROLS */
-    .top-toolbar {
+    /* FULLSCREEN-NATIVE PRESENTATION VIEWPORT */
+    .deck-viewport {
+      flex: 1;
       width: 100%;
-      max-width: 1400px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .brand-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-white);
-    }
-    .brand-tag {
-      background: var(--primary);
-      color: white;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
-    .toolbar-actions {
-      display: flex;
-      gap: 8px;
-    }
-    .tool-btn {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-    .tool-btn:hover {
-      color: var(--text-white);
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    /* STAGE CANVAS (FIXED 16:9 RATIO) */
-    .deck-frame {
-      width: 100%;
-      max-width: 1400px;
-      aspect-ratio: 16 / 9;
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      height: 100%;
       position: relative;
       overflow: hidden;
       display: flex;
-      flex-direction: column;
     }
 
-    /* SLIDE ITEM */
+    /* SLIDE CONTAINER */
     .slide {
       display: none;
       width: 100%;
       height: 100%;
-      padding: 44px 56px 64px;
+      padding: clamp(28px, 4.5vh, 52px) clamp(36px, 6vw, 90px) 76px;
       flex-direction: column;
-      position: relative;
-      z-index: 2;
+      justify-content: center;
+      position: absolute;
+      inset: 0;
       background-size: cover;
       background-position: center;
+      overflow-y: auto;
     }
 
     .slide.active {
       display: flex;
+      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    /* BACKGROUND IMAGE OVERLAY (SOLID DARKENED CINEMATIC SCRIM) */
+    /* SOLID DARK OVERLAY ON BACKGROUND IMAGES (NO GRADIENTS) */
     .slide::before {
       content: "";
       position: absolute;
       inset: 0;
       background: rgba(10, 15, 29, 0.88);
       backdrop-filter: blur(4px);
-      z-index: -1;
+      z-index: 0;
     }
 
-    /* INDIVIDUAL SLIDE BACKGROUND IMAGES */
-    .slide-bg-cover { background-image: url('screenshots/bg_luxury_living.jpg'); }
-    .slide-bg-arch { background-image: url('screenshots/bg_architecture.jpg'); }
-    .slide-bg-interior { background-image: url('screenshots/bg_interior_styling.jpg'); }
-    .slide-bg-villa { background-image: url('screenshots/bg_luxury_villa.jpg'); }
+    .slide > * {
+      position: relative;
+      z-index: 1;
+    }
 
-    /* ANIMATIONS */
-    .anim-fade-up {
+    /* BACKGROUND IMAGES */
+    .bg-cover { background-image: url('screenshots/bg_luxury_living.jpg'); }
+    .bg-arch { background-image: url('screenshots/bg_architecture.jpg'); }
+    .bg-interior { background-image: url('screenshots/bg_interior_styling.jpg'); }
+    .bg-villa { background-image: url('screenshots/bg_luxury_villa.jpg'); }
+
+    /* MOTION & ANIMATIONS */
+    @keyframes slideIn {
+      from { opacity: 0; transform: scale(0.98) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .anim-up {
       opacity: 0;
-      transform: translateY(20px);
-      animation: animFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transform: translateY(18px);
+      animation: animUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .anim-fade-left {
+    .anim-left {
       opacity: 0;
       transform: translateX(-24px);
-      animation: animFadeLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: animLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .anim-fade-right {
+    .anim-right {
       opacity: 0;
       transform: translateX(24px);
-      animation: animFadeRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: animRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    .anim-zoom {
-      opacity: 0;
-      transform: scale(0.96);
-      animation: animZoom 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
+    .d-1 { animation-delay: 0.06s; }
+    .d-2 { animation-delay: 0.14s; }
+    .d-3 { animation-delay: 0.22s; }
+    .d-4 { animation-delay: 0.30s; }
 
-    .delay-1 { animation-delay: 0.08s; }
-    .delay-2 { animation-delay: 0.16s; }
-    .delay-3 { animation-delay: 0.24s; }
-    .delay-4 { animation-delay: 0.32s; }
+    @keyframes animUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes animLeft { to { opacity: 1; transform: translateX(0); } }
+    @keyframes animRight { to { opacity: 1; transform: translateX(0); } }
 
-    @keyframes animFadeUp {
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes animFadeLeft {
-      to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes animFadeRight {
-      to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes animZoom {
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    /* TYPOGRAPHY - SOLID, CRISP, NO GRADIENTS */
+    /* TYPOGRAPHY - SPACIOUS, CRISP & BREATHABLE */
     .badge-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 9999px;
       background: var(--primary-subtle);
       border: 1px solid var(--primary);
       color: var(--primary-light);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 12px;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
       width: fit-content;
-    }
-
-    .badge-pill.success {
-      background: var(--success-subtle);
-      border-color: var(--success);
-      color: var(--success-light);
     }
 
     .badge-pill.warning {
@@ -224,217 +158,217 @@
       color: #FBBF24;
     }
 
-    .slide-headline {
-      font-size: 26px;
+    .badge-pill.success {
+      background: var(--success-subtle);
+      border-color: var(--success);
+      color: var(--success-light);
+    }
+
+    .slide-title {
+      font-size: clamp(28px, 3.2vw, 42px);
       font-weight: 800;
       color: var(--text-white);
       line-height: 1.25;
-      margin-bottom: 8px;
-      text-wrap: balance;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
     }
 
-    .slide-subhead {
-      font-size: 14px;
+    .slide-desc {
+      font-size: clamp(14px, 1.25vw, 17px);
       color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 22px;
-      max-width: 1050px;
+      line-height: 1.7;
+      margin-bottom: 28px;
+      max-width: 1100px;
     }
 
-    /* GRID & FLEXBOX STRICT ALIGNMENT */
-    .layout-split {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 24px;
-      flex: 1;
-      min-height: 0;
-      align-items: stretch;
-    }
-
-    .layout-split.reversed {
-      grid-template-columns: 0.85fr 1.15fr;
-    }
-
-    .layout-3cols {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      flex: 1;
-      min-height: 0;
-      align-items: stretch;
-    }
-
-    .layout-4cols {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      flex: 1;
-      min-height: 0;
-      align-items: stretch;
-    }
-
-    /* CARD COMPONENTS */
+    /* CARDS & CONTAINERS WITH GENEROUS BREATHING ROOM */
     .content-box {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 22px;
+      border-radius: 16px;
+      padding: 26px 26px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      transition: all 0.25s ease;
-      height: 100%;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     }
 
     .content-box:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.28);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
     }
 
-    .content-box.border-primary {
-      border-left: 4px solid var(--primary);
-    }
-
-    .content-box.border-success {
-      border-left: 4px solid var(--success);
-    }
-
-    .content-box.border-warning {
-      border-left: 4px solid var(--warning);
-    }
-
-    .content-box.border-danger {
-      border-left: 4px solid var(--danger);
-    }
+    .content-box.border-danger { border-left: 5px solid var(--danger); }
+    .content-box.border-warning { border-left: 5px solid var(--warning); }
+    .content-box.border-primary { border-left: 5px solid var(--primary); }
+    .content-box.border-success { border-left: 5px solid var(--success); }
 
     .box-title {
-      font-size: 15px;
+      font-size: 19px;
       font-weight: 700;
       color: var(--text-white);
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+      line-height: 1.35;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .box-text {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.5;
+      font-size: 14.5px;
+      color: #CBD5E1;
+      line-height: 1.75;
+      letter-spacing: 0.01em;
     }
 
-    /* SCREENSHOT PREVIEWS (EQUAL HEIGHT, CRISP SHADOW) */
-    .preview-card-wrap {
-      height: 100%;
+    /* GRID LAYOUTS (STRICT ALIGNMENT, NO AWKWARD GAPS) */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 26px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 32px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .split-layout.reversed {
+      grid-template-columns: 0.85fr 1.15fr;
+    }
+
+    /* SCREENSHOT PREVIEW BOX (NEAT PADDING & VISIBLE BORDERS) */
+    .preview-box {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+      height: 100%;
     }
 
-    .preview-header {
+    .preview-topbar {
       background: #0B1120;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      font-size: 11px;
+      align-items: center;
+      font-size: 11.5px;
       color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
     }
 
     .preview-img {
       width: 100%;
       height: 100%;
-      max-height: 380px;
+      max-height: 48vh;
       object-fit: cover;
       object-position: top;
       display: block;
     }
 
-    /* COMPARISON TABLES */
-    .table-container {
+    /* COMPARISON TABLE (PROPORTIONAL, ROOMY ROWS) */
+    .table-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       overflow: hidden;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+      width: 100%;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
     }
 
-    .table-spec {
+    .comp-table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-      font-size: 13px;
     }
 
-    .table-spec th {
+    .comp-table th {
       background: #0A0F1D;
       color: var(--text-muted);
-      padding: 11px 16px;
+      padding: 14px 20px;
       text-align: left;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
       border-bottom: 1px solid var(--border);
     }
 
-    .table-spec td {
-      padding: 12px 16px;
+    .comp-table td {
+      padding: 15px 20px;
+      font-size: 13.5px;
+      line-height: 1.65;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       vertical-align: middle;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-      line-height: 1.45;
     }
 
-    .table-spec tr:last-child td { border-bottom: none; }
+    .comp-table tr:last-child td { border-bottom: none; }
 
-    .col-highlight {
-      background: rgba(16, 185, 129, 0.05);
+    .col-win {
+      background: rgba(16, 185, 129, 0.06);
       color: #A7F3D0;
       font-weight: 600;
     }
 
-    .col-neutral {
+    .col-lose {
       color: var(--text-muted);
     }
 
-    .tag-status {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 7px;
+    .tag-flag {
+      display: inline-block;
+      padding: 2px 8px;
       border-radius: 4px;
-      font-size: 10px;
+      font-size: 10.5px;
       font-weight: 800;
-      margin-right: 6px;
+      margin-right: 8px;
     }
-    .tag-status.yes { background: #065F46; color: #6EE7B7; }
-    .tag-status.no { background: #7F1D1D; color: #FCA5A5; }
-    .tag-status.wait { background: #78350F; color: #FCD34D; }
+    .tag-flag.win { background: #065F46; color: #6EE7B7; }
+    .tag-flag.lose { background: #7F1D1D; color: #FCA5A5; }
+    .tag-flag.warn { background: #78350F; color: #FCD34D; }
 
-    /* FOOTER BAR NAVIGATION */
-    .deck-footer {
-      width: 100%;
-      max-width: 1400px;
+    /* FOOTER TOOLBAR (FIXED BOTTOM AT ALL TIMES) */
+    .deck-nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(10, 15, 29, 0.94);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 12px;
-      padding: 0 4px;
+      padding: 0 40px;
+      z-index: 100;
     }
 
-    .nav-arrow {
+    .btn-nav {
       background: var(--bg-surface);
       border: 1px solid var(--border);
       color: var(--text-white);
-      padding: 8px 18px;
+      padding: 8px 20px;
       border-radius: 10px;
       font-size: 13px;
       font-weight: 700;
@@ -442,21 +376,22 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s ease;
+      transition: all 0.2s;
     }
 
-    .nav-arrow:hover {
+    .btn-nav:hover {
       background: var(--primary);
       border-color: var(--primary);
+      color: white;
     }
 
-    .progress-dots {
+    .nav-dots {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
     }
 
-    .dot {
+    .dot-node {
       width: 10px;
       height: 10px;
       border-radius: 9999px;
@@ -465,56 +400,65 @@
       transition: all 0.25s ease;
     }
 
-    .dot.active {
-      width: 26px;
+    .dot-node.active {
+      width: 28px;
       background: var(--primary-light);
+    }
+
+    .action-links {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .link-pill {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      transition: all 0.2s;
+    }
+    .link-pill:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.12);
     }
   </style>
 </head>
 <body>
 
-  <!-- TOP TOOLBAR -->
-  <div class="top-toolbar">
-    <div class="brand-meta">
-      <span class="brand-tag">ZALO AGENT</span>
-      <span>Hồ Sơ Đề Xuất Giải Pháp // Khởi Minh Homestyling</span>
-    </div>
-    <div class="toolbar-actions">
-      <button class="tool-btn" onclick="toggleFullScreen()">⛶ Toàn màn hình (F)</button>
-      <button class="tool-btn" onclick="window.print()">🖨️ In / Xuất PDF</button>
-      <a href="http://127.0.0.1:3901/portal" target="_blank" class="tool-btn" style="color:var(--primary-light);">🚀 Mở Portal Đang Chạy</a>
-    </div>
-  </div>
-
-  <!-- DECK FRAME (16:9) -->
-  <div class="deck-frame" id="deckFrame">
+  <!-- PRESENTATION VIEWPORT -->
+  <div class="deck-viewport">
 
     <!-- ==========================================
-         SLIDE 1: COVER
+         SLIDE 1: BÌA & ĐỊNH VỊ GIẢI PHÁP
          ========================================== -->
-    <div class="slide slide-bg-cover active">
-      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 960px;">
-        <div class="badge-pill anim-fade-up delay-1">Kiến Trúc Quản Trị May Đo 2026</div>
-        <h1 class="slide-headline anim-fade-up delay-2" style="font-size: 42px; line-height: 1.15; margin-bottom: 16px;">
+    <div class="slide bg-cover active">
+      <div style="max-width: 1050px;">
+        <div class="badge-pill anim-up d-1">Kiến Trúc Quản Trị May Đo 2026</div>
+        <h1 class="slide-title anim-up d-2" style="font-size: clamp(34px, 3.8vw, 50px); line-height: 1.15; margin-bottom: 20px;">
           GIẢI PHÁP QUẢN TRỊ DỰ ÁN & ĐIỀU PHỐI ĐA THẦU ZALO-NATIVE
         </h1>
-        <p class="slide-subhead anim-fade-up delay-3" style="font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
-          Thiết kế chuyên biệt cho mô hình của <b>Khởi Minh Homestyling</b>: Điều phối 30–50 nhà thầu phụ ngoại vi, quản lý dòng tiền 2–3 năm và tự động hóa toàn diện mà <u>không bắt ép nhân sự phải rời Zalo</u>.
+        <p class="slide-desc anim-up d-3" style="font-size: clamp(16px, 1.35vw, 19px); line-height: 1.75; margin-bottom: 38px;">
+          Đo ni đóng giày cho bài toán của <b>Khởi Minh Homestyling</b>: Điều phối mạng lưới 30–50 nhà thầu phụ ngoại vi, quản lý dòng tiền 2–3 năm và tự động hóa toàn diện mà <u>tuyệt đối không bắt ép nhân sự phải rời Zalo</u>.
         </p>
 
-        <div style="display: flex; gap: 16px; align-items: center;" class="anim-fade-up delay-4">
-          <div style="background: var(--bg-card); padding: 10px 18px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 22px;">🤖</span>
+        <div style="display: flex; gap: 20px; align-items: center;" class="anim-up d-4">
+          <div style="background: var(--bg-card); padding: 12px 20px; border-radius: 14px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">🤖</span>
             <div>
-              <div style="font-size: 13px; font-weight: 700; color: white;">Zalo Agent Studio</div>
-              <div style="font-size: 11px; color: var(--text-muted);">Trợ Lý Jay // Native Automation</div>
+              <div style="font-size: 14px; font-weight: 700; color: white;">Zalo Agent Studio</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Trợ Lý Jay // Native Automation</div>
             </div>
           </div>
-          <div style="background: var(--bg-card); padding: 10px 18px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 22px;">🏛️</span>
+          <div style="background: var(--bg-card); padding: 12px 20px; border-radius: 14px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">🏛️</span>
             <div>
-              <div style="font-size: 13px; font-weight: 700; color: white;">Khách hàng mục tiêu</div>
-              <div style="font-size: 11px; color: var(--text-muted);">Khởi Minh Homestyling & Interior</div>
+              <div style="font-size: 14px; font-weight: 700; color: white;">Khách hàng mục tiêu</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Khởi Minh Homestyling & Interior</div>
             </div>
           </div>
         </div>
@@ -522,32 +466,36 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 2: THẤU HIỂU NỖI ĐAU KHỞI MINH
+         SLIDE 2: THẤU HIỂU NỖI ĐAU & VẾT XE ĐỔ 1OFFICE
          ========================================== -->
-    <div class="slide slide-bg-arch">
-      <div class="badge-pill warning anim-fade-up delay-1">Phân Tích Hiện Trạng & Rào Cản</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Vì Sao Khởi Minh Từng Thất Bại Với 1Office?</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Nghịch lý vận hành: Đội ngũ nòng cốt chỉ 5 người nhưng phải quản lý hơn 10 chuyên gia part-time và 30–50 nhà thầu phụ bên ngoài suốt vòng đời 2–3 năm.</p>
+    <div class="slide bg-arch">
+      <div>
+        <div class="badge-pill warning anim-up d-1">Phân Tích Hiện Trạng & Rào Cản</div>
+        <h2 class="slide-title anim-up d-2">Vì Sao Khởi Minh Từng Thất Bại Với 1Office?</h2>
+        <p class="slide-desc anim-up d-3">
+          Nghịch lý vận hành: Đội ngũ nòng cốt chỉ 5 người nhưng phải quản lý hơn 10 chuyên gia part-time và 30–50 nhà thầu phụ bên ngoài suốt vòng đời 2–3 năm.
+        </p>
+      </div>
 
-      <div class="layout-3cols">
-        <div class="content-box border-danger anim-fade-up delay-1">
-          <div style="font-size: 28px; margin-bottom: 12px;">⚠️</div>
+      <div class="grid-3">
+        <div class="content-box border-danger anim-up d-1">
+          <div style="font-size: 32px; margin-bottom: 16px;">⚠️</div>
           <div class="box-title" style="color: #FCA5A5;">Vết Xe Đổ Ép Cài App Lạ</div>
           <div class="box-text">
-            Thợ thi công và các bên thầu phụ (ánh sáng, mộc, cảnh quan) <b>không bao giờ chịu đăng nhập phần mềm riêng</b> để báo cáo mỗi ngày. Ép họ dùng app dẫn tới việc tẩy chay và quay lại nhắn tin Zalo tự phát.
+            Thợ thi công và các nhà thầu phụ (ánh sáng, mộc, cảnh quan) <b>không bao giờ chịu đăng nhập phần mềm riêng</b> để báo cáo mỗi ngày. Ép họ dùng app dẫn tới việc tẩy chay và quay lại nhắn tin Zalo tự phát.
           </div>
         </div>
 
-        <div class="content-box border-warning anim-fade-up delay-2">
-          <div style="font-size: 28px; margin-bottom: 12px;">💬</div>
+        <div class="content-box border-warning anim-up d-2">
+          <div style="font-size: 32px; margin-bottom: 16px;">💬</div>
           <div class="box-title" style="color: #FCD34D;">Bẫy Hàng Trăm Group Zalo</div>
           <div class="box-text">
-            Zalo thuận tiện nhưng sinh ra <b>hàng trăm group chat phân mảnh</b>. Tin nhắn trôi nhanh, file bản vẽ CAD bị hết hạn sau vài ngày, deadline trôi vào quên lãng và Khởi Minh không có bức tranh tổng thể.
+            Zalo thuận tiện nhưng sinh ra <b>hàng trăm group chat phân mảnh</b>. Tin nhắn trôi nhanh, file bản vẽ CAD bị hết hạn sau vài ngày, deadline trôi vào quên lãng và Khởi Minh hoàn toàn mất dấu tiến độ.
           </div>
         </div>
 
-        <div class="content-box border-primary anim-fade-up delay-3">
-          <div style="font-size: 28px; margin-bottom: 12px;">📁</div>
+        <div class="content-box border-primary anim-up d-3">
+          <div style="font-size: 32px; margin-bottom: 16px;">📁</div>
           <div class="box-title" style="color: #93C5FD;">Tắc Nghẽn Phân Quyền Hồ Sơ</div>
           <div class="box-text">
             Lưu OneDrive hay Google Drive gặp khó khi phân chia thư mục: thầu ánh sáng không được xem bản vẽ kết cấu; thầu phụ tuyệt đối không được thấy báo giá hay dòng tiền nhạy cảm của Khởi Minh.
@@ -559,45 +507,49 @@
     <!-- ==========================================
          SLIDE 3: MA TRẬN SO SÁNH ZALO AGENT VS ODOO
          ========================================== -->
-    <div class="slide slide-bg-interior">
-      <div class="badge-pill anim-fade-up delay-1">Đối Đầu Chiến Lược</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Ma Trận So Sánh: Zalo Agent Studio vs Odoo Enterprise</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Đặt cạnh phương án Odoo chào giá $2,820 USD (~72 triệu VNĐ) giai đoạn 1 trong tài liệu trao đổi.</p>
+    <div class="slide bg-interior">
+      <div>
+        <div class="badge-pill anim-up d-1">So Sánh Chiến Lược</div>
+        <h2 class="slide-title anim-up d-2">Ma Trận Đối Đầu: Zalo Agent Studio vs Odoo Enterprise</h2>
+        <p class="slide-desc anim-up d-3">
+          So sánh trực diện với phương án Odoo chào giá $2,820 USD (~72 triệu VNĐ) giai đoạn 1 trong tài liệu trao đổi.
+        </p>
+      </div>
 
-      <div class="table-container anim-zoom delay-2">
-        <table class="table-spec">
+      <div class="table-card anim-up d-2">
+        <table class="comp-table">
           <thead>
             <tr>
-              <th style="width: 20%;">Tiêu Chí Nghiệp Vụ</th>
-              <th style="width: 40%; color: var(--success-light);">Zalo Agent Studio (Hệ Thống Của Chúng Ta)</th>
-              <th style="width: 40%;">Odoo Enterprise (Đề Xuất Trong Báo Giá)</th>
+              <th style="width: 22%;">Tiêu Chí Nghiệp Vụ</th>
+              <th style="width: 39%; color: var(--success-light);">Zalo Agent Studio (Hệ Thống Của Chúng Ta)</th>
+              <th style="width: 39%;">Odoo Enterprise (Đề Xuất Trong Báo Giá)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><b>Tích Hợp Sẵn Zalo</b></td>
-              <td class="col-highlight"><span class="tag-status yes">NATIVE 100%</span> Tự động nhắc việc 1-1, nhận diện số Zalo đăng ký, gửi link duyệt file.</td>
-              <td class="col-neutral"><span class="tag-status no">KHÔNG CÓ SẴN</span> Hoãn sang Phase 2. Bắt buộc viết custom API và trả tiền tin ZNS cho VNG.</td>
+              <td class="col-win"><span class="tag-flag win">NATIVE 100%</span> Tự động nhắc việc 1-1, nhận diện số Zalo đăng ký, gửi link duyệt file.</td>
+              <td class="col-lose"><span class="tag-flag lose">KHÔNG CÓ SẴN</span> Hoãn sang Phase 2. Bắt buộc viết custom API và trả tiền tin ZNS cho VNG.</td>
             </tr>
             <tr>
               <td><b>Thói Quen Sử Dụng</b></td>
-              <td class="col-highlight"><span class="tag-status yes">0% RÀO CẢN</span> Thầu phụ tương tác ngay trên Zalo cá nhân, không cần cài app hay học công cụ mới.</td>
-              <td class="col-neutral"><span class="tag-status no">RỦI RO CAO</span> Ép 30–50 thầu phụ phải vào Portal Odoo máy tính, dễ lặp lại thất bại của 1Office.</td>
+              <td class="col-win"><span class="tag-flag win">0% RÀO CẢN</span> Thầu phụ tương tác ngay trên Zalo cá nhân, không cần cài app hay học công cụ mới.</td>
+              <td class="col-lose"><span class="tag-flag lose">RỦI RO CAO</span> Ép 30–50 thầu phụ phải vào Portal Odoo máy tính, dễ lặp lại thất bại của 1Office.</td>
             </tr>
             <tr>
               <td><b>Thời Gian Triển Khai</b></td>
-              <td class="col-highlight"><span class="tag-status yes">1–2 TUẦN</span> Hệ thống lõi đã chạy thực tế ngay hôm nay, đưa vào sử dụng ngay lập tức.</td>
-              <td class="col-neutral"><span class="tag-status wait">3–4 THÁNG</span> Khảo sát 3 tuần + 2-3 tháng dựng lõi gói 50h, đến tháng 3/2027 mới xong lõi.</td>
+              <td class="col-win"><span class="tag-flag win">1–2 TUẦN</span> Hệ thống lõi đã chạy thực tế ngay hôm nay, đưa vào sử dụng ngay lập tức.</td>
+              <td class="col-lose"><span class="tag-flag warn">3–4 THÁNG</span> Khảo sát 3 tuần + 2-3 tháng dựng lõi gói 50h, đến tháng 3/2027 mới xong lõi.</td>
             </tr>
             <tr>
-              <td><b>Dung Lượng File Bản Vẽ CAD</b></td>
-              <td class="col-highlight"><span class="tag-status yes">KHÔNG GIỚI HẠN</span> Tải thả ga file .dwg, .dxf, ảnh render 3D 4K, video công trường qua Cloud Storage.</td>
-              <td class="col-neutral"><span class="tag-status no">BỊ GIỚI HẠN</span> Odoo SaaS bóp 64MB/file và 100GB tổng; muốn lưu thêm phải trả thêm tiền.</td>
+              <td><b>Dung Lượng File CAD (.dwg)</b></td>
+              <td class="col-win"><span class="tag-flag win">KHÔNG GIỚI HẠN</span> Tải thả ga file .dwg, .dxf, ảnh render 3D 4K, video công trường qua Cloud Storage.</td>
+              <td class="col-lose"><span class="tag-flag lose">BỊ GIỚI HẠN</span> Odoo SaaS bóp 64MB/file và 100GB tổng; muốn lưu thêm phải trả thêm tiền.</td>
             </tr>
             <tr>
-              <td><b>Chi Phí Đầu Tư Ban Đầu</b></td>
-              <td class="col-highlight"><span class="tag-status yes">TIẾT KIỆM 50–70%</span> Trọn gói may đo, không tính tiền theo đầu user, không phí license hàng năm.</td>
-              <td class="col-neutral"><span class="tag-status wait">72 TRIỆU / NĂM 1</span> Chưa có Zalo. Sang năm 2 tiếp tục đóng tiền license và phí Phase 2.</td>
+              <td><b>Chi Phí & Bản Quyền</b></td>
+              <td class="col-win"><span class="tag-flag win">TIẾT KIỆM 50–70%</span> Trọn gói may đo, không tính tiền theo đầu user, không phí license hàng năm.</td>
+              <td class="col-lose"><span class="tag-flag warn">72 TRIỆU / NĂM 1</span> Chưa có Zalo. Sang năm 2 tiếp tục đóng tiền license và phí Phase 2.</td>
             </tr>
           </tbody>
         </table>
@@ -607,21 +559,25 @@
     <!-- ==========================================
          SLIDE 4: MINH CHỨNG 1 - ROADMAP & KANBAN
          ========================================== -->
-    <div class="slide slide-bg-arch">
-      <div class="badge-pill success anim-fade-up delay-1">Minh Chứng Thực Tế 01</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Lộ Trình Giai Đoạn (Milestones) & Kanban Ngang Chống Tràn</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Giao diện thực tế đang chạy tại <code>http://127.0.0.1:3901/portal</code>: Phù hợp hoàn hảo cho dự án 2–3 năm của Khởi Minh.</p>
+    <div class="slide bg-arch">
+      <div>
+        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 01</div>
+        <h2 class="slide-title anim-up d-2">Lộ Trình Giai Đoạn (Milestones) & Kanban Ngang Chống Tràn</h2>
+        <p class="slide-desc anim-up d-3">
+          Giao diện thực tế đang chạy tại <code>http://127.0.0.1:3901/portal</code>: Quản lý xuyên suốt vòng đời dự án 2–3 năm của Khởi Minh.
+        </p>
+      </div>
 
-      <div class="layout-split">
-        <div class="preview-card-wrap anim-fade-left delay-2">
-          <div class="preview-header">
+      <div class="split-layout">
+        <div class="preview-box anim-left d-2">
+          <div class="preview-topbar">
             <span>PORTAL // MILESTONES & KANBAN BOARD</span>
             <span>LIVE DEMO</span>
           </div>
           <img src="screenshots/portal_kanban_stages.png" class="preview-img" alt="Lộ trình Milestones & Kanban">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 14px;" class="anim-fade-right delay-3">
+        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-right d-3">
           <div class="content-box border-primary">
             <div class="box-title">📌 Phân Chia Bước Dự Án Rõ Ràng</div>
             <div class="box-text">
@@ -647,13 +603,17 @@
     <!-- ==========================================
          SLIDE 5: MINH CHỨNG 2 - AUTO REMINDER & DEADLINE
          ========================================== -->
-    <div class="slide slide-bg-interior">
-      <div class="badge-pill success anim-fade-up delay-1">Minh Chứng Thực Tế 02</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Tự Động Hóa Nhắc Việc Zalo 1-1 & Bám Sát Hạn Chót</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Worker nền quét deadline mỗi 60 giây — Đôn đốc trực tiếp vào Zalo cá nhân từng thầu phụ mà không làm phiền nhóm.</p>
+    <div class="slide bg-interior">
+      <div>
+        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 02</div>
+        <h2 class="slide-title anim-up d-2">Tự Động Hóa Nhắc Việc Zalo 1-1 & Bám Sát Hạn Chót</h2>
+        <p class="slide-desc anim-up d-3">
+          Worker nền quét deadline mỗi 60 giây — Đôn đốc trực tiếp vào Zalo cá nhân từng thầu phụ mà không làm phiền nhóm.
+        </p>
+      </div>
 
-      <div class="layout-split reversed">
-        <div style="display: flex; flex-direction: column; gap: 14px;" class="anim-fade-left delay-2">
+      <div class="split-layout reversed">
+        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-left d-2">
           <div class="content-box border-success">
             <div class="box-title">🔔 Nút "Nhắc Zalo 1-1" Tức Thời</div>
             <div class="box-text">
@@ -674,8 +634,8 @@
           </div>
         </div>
 
-        <div class="preview-card-wrap anim-fade-right delay-3">
-          <div class="preview-header">
+        <div class="preview-box anim-right d-3">
+          <div class="preview-topbar">
             <span>PORTAL // TASK LIST & ZALO 1-1 REMINDER</span>
             <span>ACTIVE WORKER</span>
           </div>
@@ -687,21 +647,25 @@
     <!-- ==========================================
          SLIDE 6: MINH CHỨNG 3 - ONBOARDING & PHÂN QUYỀN
          ========================================== -->
-    <div class="slide slide-bg-arch">
-      <div class="badge-pill success anim-fade-up delay-1">Minh Chứng Thực Tế 03</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Onboarding Siêu Tốc & Phân Quyền Bảo Mật Tuyệt Đối</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Thầu phụ tự kích hoạt tài khoản chỉ bằng 1 tin nhắn Zalo — Phân quyền chặt chẽ 4 cấp độ (Admin, Manager, Member, Viewer).</p>
+    <div class="slide bg-arch">
+      <div>
+        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 03</div>
+        <h2 class="slide-title anim-up d-2">Onboarding Siêu Tốc & Phân Quyền Bảo Mật Tuyệt Đối</h2>
+        <p class="slide-desc anim-up d-3">
+          Thầu phụ tự kích hoạt tài khoản chỉ bằng 1 tin nhắn Zalo — Phân quyền chặt chẽ 4 cấp độ (Admin, Manager, Member, Viewer).
+        </p>
+      </div>
 
-      <div class="layout-split">
-        <div class="preview-card-wrap anim-fade-left delay-2">
-          <div class="preview-header">
+      <div class="split-layout">
+        <div class="preview-box anim-left d-2">
+          <div class="preview-topbar">
             <span>PORTAL // MEMBERS & RBAC SECURITY</span>
             <span>PHONE AUTH</span>
           </div>
           <img src="screenshots/portal_members_rbac.png" class="preview-img" alt="Phân Quyền Thành Viên">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 14px;" class="anim-fade-right delay-3">
+        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-right d-3">
           <div class="content-box border-primary">
             <div class="box-title">⚡ Tự Đăng Ký Qua Tin Nhắn Zalo</div>
             <div class="box-text">
@@ -727,13 +691,17 @@
     <!-- ==========================================
          SLIDE 7: MINH CHỨNG 4 - KHO FILE BẢN VẼ KHÔNG GIỚI HẠN
          ========================================== -->
-    <div class="slide slide-bg-interior">
-      <div class="badge-pill success anim-fade-up delay-1">Minh Chứng Thực Tế 04</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Kho Lưu Trữ Bản Vẽ Kỹ Thuật & CAD Không Bị Bóp Giới Hạn</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Chấm dứt hoàn toàn tình trạng file CAD (.dwg, .dxf) hết hạn trên Zalo hoặc bị chặn trần 64MB của Odoo SaaS.</p>
+    <div class="slide bg-interior">
+      <div>
+        <div class="badge-pill success anim-up d-1">Minh Chứng Thực Tế 04</div>
+        <h2 class="slide-title anim-up d-2">Kho Lưu Trữ Bản Vẽ Kỹ Thuật & CAD Không Bị Bóp Giới Hạn</h2>
+        <p class="slide-desc anim-up d-3">
+          Chấm dứt hoàn toàn tình trạng file CAD (.dwg, .dxf) hết hạn trên Zalo hoặc bị chặn trần 64MB của Odoo SaaS.
+        </p>
+      </div>
 
-      <div class="layout-split reversed">
-        <div style="display: flex; flex-direction: column; gap: 14px;" class="anim-fade-left delay-2">
+      <div class="split-layout reversed">
+        <div style="display: flex; flex-direction: column; gap: 18px;" class="anim-left d-2">
           <div class="content-box border-primary">
             <div class="box-title">📐 Chấp Nhận 100% Định Dạng Kiến Trúc</div>
             <div class="box-text">
@@ -754,8 +722,8 @@
           </div>
         </div>
 
-        <div class="preview-card-wrap anim-fade-right delay-3">
-          <div class="preview-header">
+        <div class="preview-box anim-right d-3">
+          <div class="preview-topbar">
             <span>PORTAL // UPLOAD STORAGE PORTAL</span>
             <span>UNLIMITED CLOUD</span>
           </div>
@@ -767,17 +735,21 @@
     <!-- ==========================================
          SLIDE 8: ĐIỂM MẠNH & ĐIỂM YẾU MINH BẠCH
          ========================================== -->
-    <div class="slide slide-bg-villa">
-      <div class="badge-pill warning anim-fade-up delay-1">Báo Cáo Minh Bạch</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Đánh Giá Khách Quan: Điểm Mạnh Vượt Trội & Hạn Chế So Với Odoo</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Cái nhìn thẳng thắn, thực tế để Khởi Minh đưa ra quyết định chuyển đổi số đúng đắn nhất.</p>
+    <div class="slide bg-villa">
+      <div>
+        <div class="badge-pill warning anim-up d-1">Báo Cáo Minh Bạch</div>
+        <h2 class="slide-title anim-up d-2">Đánh Giá Khách Quan: Điểm Mạnh Vượt Trội & Hạn Chế So Với Odoo</h2>
+        <p class="slide-desc anim-up d-3">
+          Cái nhìn thẳng thắn, thực tế để Khởi Minh đưa ra quyết định chuyển đổi số đúng đắn nhất.
+        </p>
+      </div>
 
-      <div class="layout-split">
-        <div class="content-box border-success anim-fade-left delay-2">
-          <div class="box-title" style="color: var(--success-light); font-size: 16px; margin-bottom: 12px;">
+      <div class="split-layout">
+        <div class="content-box border-success anim-left d-2">
+          <div class="box-title" style="color: var(--success-light); font-size: 18px; margin-bottom: 14px;">
             <span>🏆</span> ĐIỂM MẠNH CỦA ZALO AGENT
           </div>
-          <ul style="font-size: 13px; line-height: 1.8; color: #E2E8F0; padding-left: 18px;">
+          <ul style="font-size: 14px; line-height: 1.85; color: #E2E8F0; padding-left: 20px;">
             <li><b>DNA Zalo người Việt:</b> 100% thầu phụ quen dùng, không ai phản đối như thời 1Office.</li>
             <li><b>Triển khai ngay:</b> Bàn giao chạy thật trong tuần, không phải chờ 3-4 tháng.</li>
             <li><b>Tiết kiệm chi phí:</b> Không thu tiền theo user license, không phát sinh tiền tin ZNS.</li>
@@ -786,11 +758,11 @@
           </ul>
         </div>
 
-        <div class="content-box border-danger anim-fade-right delay-3">
-          <div class="box-title" style="color: #FCA5A5; font-size: 16px; margin-bottom: 12px;">
+        <div class="content-box border-danger anim-right d-3">
+          <div class="box-title" style="color: #FCA5A5; font-size: 18px; margin-bottom: 14px;">
             <span>⚠️</span> ĐIỂM YẾU SO VỚI ODOO & GIẢI PHÁP
           </div>
-          <ul style="font-size: 13px; line-height: 1.8; color: #E2E8F0; padding-left: 18px;">
+          <ul style="font-size: 14px; line-height: 1.85; color: #E2E8F0; padding-left: 20px;">
             <li><b>Chưa có Kế toán thuế chuyên sâu:</b> Odoo có sẵn module kế toán VAS/IFRS.<br><i>👉 Giải pháp:</i> Hệ thống tập trung kiểm soát chi phí công trình, xuất file Excel chuẩn cho kế toán nội bộ.</li>
             <li><b>Chưa có Quản lý kho nguyên vật liệu lớn:</b> Odoo có kiểm kê mã vạch.<br><i>👉 Giải pháp:</i> Phù hợp cho giai đoạn sau khi Khởi Minh mở xưởng sản xuất quy mô lớn.</li>
             <li><b>Không có kéo thả No-Code Studio:</b> Thay đổi trường thông tin cần qua dev.<br><i>👉 Giải pháp:</i> Đội ngũ kỹ thuật hỗ trợ tùy biến theo yêu cầu trong 24 giờ.</li>
@@ -800,148 +772,91 @@
     </div>
 
     <!-- ==========================================
-         SLIDE 9: BẢNG GIÁ CHIẾN LƯỢC SO SÁNH ODOO
+         SLIDE 9: LỘ TRÌNH 4 TUẦN CHO KHỞI MINH
          ========================================== -->
-    <div class="slide slide-bg-villa">
-      <div class="badge-pill success anim-fade-up delay-1">Đề Xuất Thương Mại</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Bảng Giá Đề Xuất Chiến Lược Dành Riêng Cho Khởi Minh</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Tiết kiệm 50% – 70% ngân sách so với Odoo nhưng sở hữu ngay giải pháp Zalo trọn vẹn từ ngày đầu tiên.</p>
-
-      <div class="layout-3cols anim-zoom delay-2">
-        <!-- GÓI 1 -->
-        <div class="content-box border-primary">
-          <div style="font-size: 12px; font-weight: 800; color: var(--primary-light); text-transform: uppercase; margin-bottom: 4px;">GÓI TIÊU CHUẨN</div>
-          <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 12px;">39.000.000 đ</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
-            Phù hợp vận hành ngay hệ thống dự án & Zalo Bot chuẩn.
-          </div>
-          <ul style="font-size: 12px; line-height: 1.8; color: #CBD5E1; padding-left: 16px; flex: 1;">
-            <li>Cổng Portal Milestones & Kanban</li>
-            <li>Bot Zalo Trợ Lý Jay nhắc việc 1-1</li>
-            <li>Kho tải file CAD & 3D không giới hạn</li>
-            <li><b>Không giới hạn số lượng Users</b></li>
-            <li>Triển khai bàn giao trong <b>01 tuần</b></li>
-            <li>Bảo hành kỹ thuật 12 tháng</li>
-          </ul>
-        </div>
-
-        <!-- GÓI 2 -->
-        <div class="content-box border-success" style="background: rgba(16, 185, 129, 0.08); border-width: 2px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-            <span style="font-size: 12px; font-weight: 800; color: var(--success-light); text-transform: uppercase;">GÓI PRO MAY ĐO</span>
-            <span style="background:var(--success); color:black; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">KHUYÊN DÙNG</span>
-          </div>
-          <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 12px;">59.000.000 đ</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
-            Giải quyết triệt để 100% bài toán Homestyling của Khởi Minh.
-          </div>
-          <ul style="font-size: 12px; line-height: 1.8; color: #E2E8F0; padding-left: 16px; flex: 1;">
-            <li><b>Toàn bộ tính năng của Gói Tiêu Chuẩn</b></li>
-            <li><b>Module Duyệt Bản Vẽ 3 Lớp</b> (Thầu phụ ➔ Homestyling ➔ Chủ nhà qua Zalo)</li>
-            <li><b>Cổng Nhật Ký Công Trình Riêng Cho Chủ Nhà</b></li>
-            <li><b>Phân quyền thư mục file theo nhà thầu</b></li>
-            <li>Trợ lý AI Gemini phân tích tiến độ</li>
-            <li>Triển khai hoàn thiện trong <b>3–4 tuần</b></li>
-          </ul>
-        </div>
-
-        <!-- ODOO BENCHMARK -->
-        <div class="content-box border-warning" style="opacity: 0.85;">
-          <div style="font-size: 12px; font-weight: 800; color: #FCD34D; text-transform: uppercase; margin-bottom: 4px;">THAM CHIẾU ODOO</div>
-          <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 12px;">72.000.000 đ+</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
-            Mức giá Odoo báo cho Năm đầu (Chưa có tính năng Zalo).
-          </div>
-          <ul style="font-size: 12px; line-height: 1.8; color: var(--text-muted); padding-left: 16px; flex: 1;">
-            <li>Chỉ cho 5 users nội bộ (thêm người tốn phí)</li>
-            <li>Gói Success Pack 50H giới hạn giờ hỗ trợ</li>
-            <li><b>Chưa có tính năng Zalo</b> (Chờ Phase 2)</li>
-            <li>Tốn thêm $2,000–$4,000 để làm Zalo ở Phase 2</li>
-            <li>Phí duy trì license hàng năm bắt buộc (~21 triệu/năm)</li>
-          </ul>
-        </div>
+    <div class="slide bg-villa">
+      <div>
+        <div class="badge-pill anim-up d-1">Kế Hoạch Hành Động</div>
+        <h2 class="slide-title anim-up d-2">Lộ Trình Triển Khai 4 Tuần & Bắt Đầu Vận Hành Thực Tế</h2>
+        <p class="slide-desc anim-up d-3">
+          Thay vì chờ 3–4 tháng của Odoo, Khởi Minh có thể đưa công trình thực tế vào vận hành ngay trong tháng tới.
+        </p>
       </div>
-    </div>
 
-    <!-- ==========================================
-         SLIDE 10: LỘ TRÌNH 4 TUẦN & ĐỀ XUẤT HỢP TÁC
-         ========================================== -->
-    <div class="slide slide-bg-villa">
-      <div class="badge-pill anim-fade-up delay-1">Kế Hoạch Hành Động</div>
-      <h2 class="slide-headline anim-fade-up delay-2">Lộ Trình Triển Khai 4 Tuần & Bắt Đầu Vận Hành Thực Tế</h2>
-      <p class="slide-subhead anim-fade-up delay-3">Thay vì chờ 3–4 tháng của Odoo, Khởi Minh có thể đưa công trình thực tế vào vận hành ngay trong tháng tới.</p>
-
-      <div class="layout-4cols anim-fade-up delay-2">
+      <div class="grid-4 anim-up d-2">
         <div class="content-box border-primary">
-          <div style="font-size: 18px; font-weight: 800; color: var(--primary-light); margin-bottom: 4px;">TUẦN 1</div>
-          <div class="box-title">Luồng Duyệt Bản Vẽ 3 Lớp</div>
+          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 1</div>
+          <div class="box-title" style="font-size: 16px;">Luồng Duyệt Bản Vẽ 3 Lớp</div>
           <div class="box-text">
             Thiết lập luồng phê duyệt: <i>Thầu phụ nộp ➔ Homestyling duyệt chuyên môn ➔ Chủ nhà chốt</i> kèm nút duyệt 1-click qua Zalo.
           </div>
         </div>
 
         <div class="content-box border-primary">
-          <div style="font-size: 18px; font-weight: 800; color: var(--primary-light); margin-bottom: 4px;">TUẦN 2</div>
-          <div class="box-title">Cổng Nhật Ký Cho Chủ Nhà</div>
+          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 2</div>
+          <div class="box-title" style="font-size: 16px;">Cổng Nhật Ký Cho Chủ Nhà</div>
           <div class="box-text">
             Giao diện B2C sang trọng cho chủ nhà xem ảnh chụp hiện trường hàng tuần, duyệt mẫu vật liệu mà không bị ngợp trong task kỹ thuật.
           </div>
         </div>
 
         <div class="content-box border-primary">
-          <div style="font-size: 18px; font-weight: 800; color: var(--primary-light); margin-bottom: 4px;">TUẦN 3</div>
-          <div class="box-title">Phân Quyền Thư Mục Thầu</div>
+          <div style="font-size: 19px; font-weight: 800; color: var(--primary-light); margin-bottom: 6px;">TUẦN 3</div>
+          <div class="box-title" style="font-size: 16px;">Phân Quyền Thư Mục Thầu</div>
           <div class="box-text">
             Thầu Lighting chỉ thấy phần điện/đèn; Thầu Gỗ chỉ thấy nội thất gỗ; tuyệt đối bảo mật giá thầu giữa các bên.
           </div>
         </div>
 
         <div class="content-box border-success">
-          <div style="font-size: 18px; font-weight: 800; color: var(--success-light); margin-bottom: 4px;">TUẦN 4</div>
-          <div class="box-title">Chạy Thử Trên 01 Dự Án</div>
+          <div style="font-size: 19px; font-weight: 800; color: var(--success-light); margin-bottom: 6px;">TUẦN 4</div>
+          <div class="box-title" style="font-size: 16px;">Chạy Thử Trên 01 Dự Án</div>
           <div class="box-text">
             Áp dụng thử nghiệm trên 1 công trình thực tế của Khởi Minh, tinh chỉnh phản hồi từ thầu phụ và bàn giao toàn diện.
           </div>
         </div>
       </div>
 
-      <div class="anim-fade-up delay-3" style="margin-top: 24px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 14px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div class="anim-up d-3" style="margin-top: 26px; background: rgba(37, 99, 235, 0.14); border: 1px solid rgba(96, 165, 250, 0.35); border-radius: 16px; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;">
         <div>
-          <div style="font-size: 15px; font-weight: 700; color: white;">🎯 Tuyên ngôn giải pháp:</div>
-          <div style="font-size: 13px; color: var(--text-muted);">Không bắt 30–50 thầu phụ thay đổi thói quen — Đưa hệ thống quản trị chuyên nghiệp vào ngay Zalo của họ.</div>
+          <div style="font-size: 16px; font-weight: 700; color: white;">🎯 Tuyên ngôn giải pháp:</div>
+          <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Không bắt 30–50 thầu phụ thay đổi thói quen — Đưa hệ thống quản trị chuyên nghiệp vào ngay Zalo của họ.</div>
         </div>
-        <a href="http://127.0.0.1:3901/portal" target="_blank" class="nav-arrow" style="background: var(--primary); border-color: var(--primary); text-decoration: none;">Trải Nghiệm Live Demo ➔</a>
+        <a href="http://127.0.0.1:3901/portal" target="_blank" class="btn-nav" style="background: var(--primary); border-color: var(--primary); text-decoration: none; padding: 10px 22px;">Trải Nghiệm Live Demo ➔</a>
       </div>
     </div>
 
   </div>
 
-  <!-- BOTTOM FOOTER -->
-  <div class="deck-footer">
-    <button class="nav-arrow" onclick="prevSlide()">◀ Slide Trước (⬅️)</button>
-    <div class="progress-dots" id="dotsContainer"></div>
-    <button class="nav-arrow" onclick="nextSlide()">Slide Tiếp Theo (➡️) ▶</button>
-  </div>
+  <!-- FIXED BOTTOM NAVIGATION BAR -->
+  <footer class="deck-nav-bar">
+    <button class="btn-nav" onclick="prevSlide()">◀ Slide Trước (⬅️)</button>
+    <div class="nav-dots" id="dotsContainer"></div>
+    <div class="action-links">
+      <button class="link-pill" onclick="toggleFullScreen()">⛶ Toàn Màn Hình (F)</button>
+      <button class="link-pill" onclick="window.print()">🖨️ Xuất PDF</button>
+      <button class="btn-nav" onclick="nextSlide()">Slide Tiếp Theo (➡️) ▶</button>
+    </div>
+  </footer>
 
   <script>
     let currentSlide = 0;
     const slides = document.querySelectorAll('.slide');
     const dotsContainer = document.getElementById('dotsContainer');
 
-    // Create dots
+    // Create navigation dots
     slides.forEach((_, idx) => {
       const dot = document.createElement('div');
-      dot.className = 'dot' + (idx === 0 ? ' active' : '');
+      dot.className = 'dot-node' + (idx === 0 ? ' active' : '');
       dot.onclick = () => goToSlide(idx);
       dotsContainer.appendChild(dot);
     });
 
-    const dots = document.querySelectorAll('.dot');
+    const dots = document.querySelectorAll('.dot-node');
 
     function updateSlide() {
       slides.forEach((s, idx) => {
-        const isActive = (idx === currentSlide);
-        s.classList.toggle('active', isActive);
+        s.classList.toggle('active', idx === currentSlide);
       });
       dots.forEach((d, idx) => {
         d.classList.toggle('active', idx === currentSlide);
@@ -981,9 +896,8 @@
     });
 
     function toggleFullScreen() {
-      const elem = document.getElementById('deckFrame');
       if (!document.fullscreenElement) {
-        elem.requestFullscreen().catch(err => {
+        document.documentElement.requestFullscreen().catch(err => {
           alert('Không thể mở toàn màn hình: ' + err.message);
         });
       } else {
