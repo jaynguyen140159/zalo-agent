@@ -328,6 +328,7 @@ function runMigrations(): void {
   // model, mà model đặt được theo từng agent.
   // Bảng Quản lý Dự án & Tiến độ (Cổng Portal)
   taoBangProjectManagement(db);
+  taoBangWorkTracker(db);
 
   addColumnIfMissing("agents", "context_window", "INTEGER");
 
@@ -422,6 +423,77 @@ function addColumnIfMissing(table: string, column: string, definition: string): 
   }[];
   if (!cols.some((c) => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+function taoBangWorkTracker(database: DatabaseSync): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_work_tracker_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      project_start_date TEXT DEFAULT '2026-11-09',
+      today_date TEXT DEFAULT '2026-11-10',
+      title TEXT DEFAULT 'THEO DÕI TIẾN ĐỘ CÔNG VIỆC',
+      weeks_count INTEGER DEFAULT 7
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_work_tracker_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_order INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      color_name TEXT DEFAULT '',
+      color_hex TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_work_tracker_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_order INTEGER NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      assigned_member_id INTEGER DEFAULT NULL,
+      start_date TEXT DEFAULT '',
+      end_date TEXT DEFAULT '',
+      duration_days INTEGER DEFAULT 0,
+      progress REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      notes TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  const hasSettings = database.prepare("SELECT count(*) as c FROM pm_work_tracker_settings").get() as { c: number };
+  if (!hasSettings || hasSettings.c === 0) {
+    database.exec(`
+      INSERT INTO pm_work_tracker_settings (id, project_start_date, today_date, title, weeks_count)
+      VALUES (1, '2026-11-09', '2026-11-10', 'THEO DÕI TIẾN ĐỘ CÔNG VIỆC', 7);
+    `);
+  }
+
+  const hasMembers = database.prepare("SELECT count(*) as c FROM pm_work_tracker_members").get() as { c: number };
+  if (!hasMembers || hasMembers.c === 0) {
+    database.exec(`
+      INSERT INTO pm_work_tracker_members (member_order, name, color_name, color_hex) VALUES
+      (1, 'SA', 'Hồng', '#F472B6'),
+      (2, 'HUY', 'Cam đào', '#FB923C'),
+      (3, 'CHỊ THANH', 'Vàng', '#FBBF24'),
+      (4, 'ANH VĂN', 'Bạc hà', '#34D399'),
+      (5, 'CHỊ CHÂU', 'Xanh trời', '#38BDF8'),
+      (6, 'CHỊ BÊ', 'Tím lavender', '#A78BFA');
+    `);
+  }
+
+  const hasTasks = database.prepare("SELECT count(*) as c FROM pm_work_tracker_tasks").get() as { c: number };
+  if (!hasTasks || hasTasks.c === 0) {
+    database.exec(`
+      INSERT INTO pm_work_tracker_tasks (task_order, title, assigned_member_id, start_date, end_date, duration_days, progress, status, notes) VALUES
+      (1, 'Khảo sát hiện trạng & Chốt concept thiết kế', 1, '2026-11-09', '2026-11-13', 5, 1.0, 'completed', 'Đã chốt với khách'),
+      (2, 'Thiết kế bản vẽ kỹ thuật 2D & Sơ đồ M&E', 2, '2026-11-12', '2026-11-16', 5, 0.1, 'in_progress', ''),
+      (3, 'Dựng phối cảnh 3D Render không gian chính', 3, '2026-11-16', '2026-11-25', 10, 0.4, 'in_progress', ''),
+      (4, 'Bóc tách khối lượng vật tư & Lập báo giá thầu', 4, '2026-11-18', '2026-12-04', 17, 0.2, 'in_progress', ''),
+      (5, 'Gia công sản xuất nội thất mộc tại xưởng', 5, '2026-11-26', '2026-12-08', 13, 0.0, 'pending', ''),
+      (6, 'Thi công cải tạo thô & Lắp đặt điện nước hiện trường', 6, '2026-12-07', '2026-12-14', 8, 0.0, 'pending', ''),
+      (7, 'Lắp đặt hoàn thiện đồ gỗ, phụ kiện & rèm đèn', 2, '2026-12-11', '2026-12-17', 7, 0.0, 'pending', ''),
+      (8, 'Vệ sinh công nghiệp, Nghiệm thu & Bàn giao nhà', 1, '2026-12-21', '2026-12-23', 3, 0.0, 'pending', '');
+    `);
   }
 }
 

@@ -646,6 +646,134 @@ export const portalRoutes = new Hono()
     }
 
     /* ==========================================================================
+       WORK TRACKER & GANTT STYLES (MATCHING EXCEL SCHEMA)
+       ========================================================================== */
+    .gantt-scroll-wrapper {
+      overflow-x: auto;
+      max-width: 100%;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+    .gantt-scroll-wrapper::-webkit-scrollbar {
+      height: 9px;
+    }
+    .gantt-scroll-wrapper::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    .gantt-scroll-wrapper::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    .gantt-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--brand-primary);
+    }
+
+    .gantt-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+
+    .gantt-table th, .gantt-table td {
+      border-right: 1px solid #E2E8F0;
+      border-bottom: 1px solid #E2E8F0;
+      padding: 0;
+      text-align: center;
+      vertical-align: middle;
+      height: 38px;
+    }
+
+    .gantt-th-sticky {
+      position: sticky;
+      left: 0;
+      z-index: 20;
+      background: #F8FAFC !important;
+      text-align: left !important;
+      padding: 8px 14px !important;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+    }
+
+    .gantt-td-sticky {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      background: white;
+      text-align: left !important;
+      padding: 6px 14px !important;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .gantt-week-header {
+      background: #F1F5F9;
+      color: #334155;
+      font-weight: 700;
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      border-bottom: 2px solid #CBD5E1 !important;
+      height: 30px !important;
+    }
+
+    .gantt-date-header {
+      background: #F8FAFC;
+      color: #64748B;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      height: 26px !important;
+    }
+
+    .gantt-day-header {
+      background: #F8FAFC;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      height: 26px !important;
+    }
+
+    .gantt-col-weekend {
+      background: #F8FAFC;
+    }
+
+    .gantt-col-today {
+      background: rgba(254, 240, 138, 0.45) !important;
+      border-left: 2px dashed #EAB308 !important;
+      border-right: 2px dashed #EAB308 !important;
+    }
+
+    .gantt-bar-cell {
+      position: relative;
+      cursor: pointer;
+      transition: filter 0.15s ease;
+    }
+    .gantt-bar-cell:hover {
+      filter: brightness(0.92);
+    }
+
+    .tracker-filter-pill {
+      border: 1px solid var(--border-subtle);
+      background: white;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tracker-filter-pill:hover, .tracker-filter-pill.active {
+      background: var(--brand-primary);
+      color: white;
+      border-color: var(--brand-primary);
+    }
+
+    /* ==========================================================================
        HORIZONTAL KANBAN BOARD (SINGLE ROW, HORIZONTAL SCROLL TO THE RIGHT)
        ========================================================================== */
     .kanban-board-scrollable {
@@ -1073,6 +1201,9 @@ export const portalRoutes = new Hono()
         <button class="nav-pill" data-tab="tasks" onclick="switchTab('tasks')">
           <span>📋</span><span>Danh Sách</span>
         </button>
+        <button class="nav-pill" data-tab="tracker" onclick="switchTab('tracker')">
+          <span>🌸</span><span>Theo Dõi Tiến Độ</span>
+        </button>
         <button class="nav-pill" data-tab="budget" onclick="switchTab('budget')">
           <span>💰</span><span>Chi Phí</span>
         </button>
@@ -1261,6 +1392,114 @@ export const portalRoutes = new Hono()
               <!-- Rendered via JS -->
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- TAB TRACKER: TIẾN ĐỘ THEO DÕI CÔNG VIỆC (GANTT & INDEPENDENT MASTER TASK LIST) -->
+      <section id="tab-tracker" class="tab-panel">
+        <!-- Tracker Header Card -->
+        <div class="crextio-table-card" style="margin-bottom: 20px; padding: 22px 26px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:18px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:24px;">🌸</span>
+                <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin:0;">THEO DÕI TIẾN ĐỘ CÔNG VIỆC</h2>
+                <span class="badge-pill" style="background:#FDF2F8; border:1px solid #FBCFE8; color:#DB2777; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">BẢNG ĐỘC LẬP</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">Theo dõi tiến độ vận hành tách riêng với các dự án, trực quan hóa biểu đồ Gantt 7 tuần theo thành viên</p>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <!-- Start Date & Today controls -->
+              <div style="display:flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid var(--border-subtle); padding:6px 14px; border-radius:10px;">
+                <span style="font-size:13px;">📅</span>
+                <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Bắt đầu:</span>
+                <input type="date" id="trackerStartDateInput" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px;" onchange="saveTrackerDates()">
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px; background:#FEFCE8; border:1px solid #FEF08A; padding:6px 14px; border-radius:10px;">
+                <span style="font-size:13px;">☀️</span>
+                <span style="font-size:12px; font-weight:700; color:#854D0E;">Hôm nay:</span>
+                <input type="date" id="trackerTodayDateInput" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px; background:white; color:#854D0E;" onchange="saveTrackerDates()">
+              </div>
+
+              <button class="crextio-btn secondary" onclick="openTrackerMemberModal()" title="Chỉnh sửa tên và màu của 6 thành viên">
+                <span>👥</span><span>Quản Lý 6 Thành Viên</span>
+              </button>
+
+              <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">
+                <span>+</span><span>Thêm Công Việc</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Color Palette Legend & Member Filter -->
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">🎨 Màu theo người làm:</span>
+              <div id="trackerMemberLegend" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+              <div style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; background:#FEF08A; border:1px solid #FDE047; color:#713F12; font-size:11.5px; font-weight:700;">
+                <span>🟨</span> Hôm nay
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; color:var(--text-muted);">Lọc theo người làm:</span>
+              <button class="tracker-filter-pill active" id="trackerFilterAllBtn" onclick="filterTrackerMember('all', this)">Tất cả</button>
+              <div id="trackerFilterButtons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Biểu Đồ Gantt (Interactive Horizontal Scrollable Timeline) -->
+        <div class="crextio-table-card" style="margin-bottom: 24px; padding: 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">✨</span>
+              <h3 style="font-size:16.5px; font-weight:800; color:var(--text-main); margin:0;">Biểu Đồ Gantt Tiến Độ (7 Tuần)</h3>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted);">
+              Cuộn ngang ➡️ để xem toàn bộ 49 ngày thi công
+            </div>
+          </div>
+
+          <div class="gantt-scroll-wrapper" id="ganttScrollWrapper">
+            <div id="ganttChartContainer">Đang tải biểu đồ Gantt...</div>
+          </div>
+        </div>
+
+        <!-- Bảng Danh Sách Công Việc (Data Table) -->
+        <div class="crextio-table-card" style="padding: 22px 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:18px;">📝</span>
+              <h3 style="font-size:17px; font-weight:800; color:var(--text-main); margin:0;">Danh Sách Chi Tiết Công Việc</h3>
+              <span id="trackerTaskCountBadge" class="badge-pill" style="background:var(--brand-primary-light); color:var(--brand-primary); font-size:11px; padding:2px 8px; border-radius:999px;">0 công việc</span>
+            </div>
+            <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">+ Thêm Dòng Công Việc</button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="crextio-table">
+              <thead>
+                <tr>
+                  <th style="width:48px; text-align:center;">STT</th>
+                  <th style="min-width:240px;">Tên Task</th>
+                  <th style="width:140px;">Người Làm</th>
+                  <th style="width:110px;">Bắt Đầu</th>
+                  <th style="width:110px;">Kết Thúc</th>
+                  <th style="width:85px; text-align:center;">Số Ngày</th>
+                  <th style="width:150px;">% Hoàn Thành</th>
+                  <th style="width:130px;">Trạng Thái</th>
+                  <th>Ghi Chú</th>
+                  <th style="width:100px; text-align:center;">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="trackerTasksTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -1537,6 +1776,88 @@ export const portalRoutes = new Hono()
     </div>
   </div>
 
+  <!-- MODAL: ADD / EDIT WORK TRACKER TASK -->
+  <div class="crextio-modal-overlay" id="trackerTaskModal">
+    <div class="crextio-modal" style="max-width:560px;">
+      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);" id="trackerTaskModalTitle">Thêm Công Việc Tiến Độ</h3>
+      <input type="hidden" id="trackerTaskId" value="">
+
+      <div class="crextio-form-group">
+        <label class="crextio-label">Tên công việc / Task *</label>
+        <input type="text" class="crextio-input" id="trackerTaskTitle" placeholder="Ví dụ: Dựng phối cảnh 3D Render...">
+      </div>
+
+      <div class="crextio-form-row">
+        <div class="crextio-form-group">
+          <label class="crextio-label">Người làm (Trong 6 thành viên) *</label>
+          <select class="crextio-select" id="trackerTaskMember">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div class="crextio-form-group">
+          <label class="crextio-label">Trạng thái</label>
+          <select class="crextio-select" id="trackerTaskStatus">
+            <option value="pending">Chưa làm (Pending)</option>
+            <option value="in_progress">Đang làm (In Progress)</option>
+            <option value="completed">Đã xong (Completed)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="crextio-form-row">
+        <div class="crextio-form-group">
+          <label class="crextio-label">Ngày bắt đầu *</label>
+          <input type="date" class="crextio-input" id="trackerTaskStartDate" onchange="calculateTrackerDuration()">
+        </div>
+        <div class="crextio-form-group">
+          <label class="crextio-label">Ngày kết thúc *</label>
+          <input type="date" class="crextio-input" id="trackerTaskEndDate" onchange="calculateTrackerDuration()">
+        </div>
+      </div>
+
+      <div class="crextio-form-row">
+        <div class="crextio-form-group">
+          <label class="crextio-label">Số ngày thi công</label>
+          <input type="number" class="crextio-input" id="trackerTaskDuration" readonly style="background:#F8FAFC; cursor:not-allowed;">
+        </div>
+        <div class="crextio-form-group">
+          <label class="crextio-label">Tiến độ hoàn thành: <span id="trackerProgressVal" style="font-weight:700; color:var(--brand-primary);">0%</span></label>
+          <input type="range" min="0" max="100" step="5" value="0" class="crextio-input" id="trackerTaskProgress" style="padding:0; height:36px;" oninput="document.getElementById('trackerProgressVal').textContent = this.value + '%'">
+        </div>
+      </div>
+
+      <div class="crextio-form-group">
+        <label class="crextio-label">Ghi chú</label>
+        <textarea class="crextio-textarea" id="trackerTaskNotes" rows="2" placeholder="Ghi chú chi tiết, yêu cầu thầu phụ hoặc lưu ý..."></textarea>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:22px;">
+        <button class="crextio-btn danger" id="trackerDeleteTaskBtn" style="display:none;" onclick="confirmDeleteTrackerTask()">Xóa Task</button>
+        <div style="display:flex; gap:10px; margin-left:auto;">
+          <button class="crextio-btn secondary" onclick="closeModal('trackerTaskModal')">Hủy</button>
+          <button class="crextio-btn primary" onclick="submitTrackerTask()">Lưu Công Việc</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MANAGE 6 MEMBERS & COLORS -->
+  <div class="crextio-modal-overlay" id="trackerMemberModal">
+    <div class="crextio-modal" style="max-width:580px;">
+      <h3 style="font-size:18px; font-weight:800; margin-bottom:8px; color:var(--text-main);">Quản Lý 6 Thành Viên & Bảng Màu</h3>
+      <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">Tùy chỉnh tên người làm và mã màu hiển thị trên biểu đồ Gantt:</p>
+
+      <div id="trackerMemberListForm" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
+        <!-- Populated via JS -->
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:22px;">
+        <button class="crextio-btn secondary" onclick="closeModal('trackerMemberModal')">Hủy</button>
+        <button class="crextio-btn primary" onclick="submitTrackerMembers()">Lưu Bảng Màu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ========================================================================
        CLIENT APPLICATION SCRIPT
        ======================================================================== -->
@@ -1566,6 +1887,7 @@ export const portalRoutes = new Hono()
       });
       if (tabId === 'kanban') renderKanban();
       if (tabId === 'projects') renderAllProjectsGrid();
+      if (tabId === 'tracker') loadWorkTrackerData();
     }
 
     function toggleProjectPopover(e) {
@@ -1921,6 +2243,11 @@ export const portalRoutes = new Hono()
     }
 
     /* ACTIONS & MODAL CONTROLS */
+    function openModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.style.display = 'flex';
+    }
+
     function closeModal(id) {
       const m = document.getElementById(id);
       if (m) m.style.display = 'none';
@@ -2215,6 +2542,502 @@ export const portalRoutes = new Hono()
       closeModal('switchAccountModal');
       loadPortalData();
       showToast('Đã chuyển sang tài khoản ' + phone);
+    }
+
+    // =========================================================================
+    // WORK TRACKER (INDEPENDENT MASTER TIMELINE & GANTT)
+    // =========================================================================
+    let trackerState = {
+      settings: { project_start_date: '2026-11-09', today_date: '2026-11-10', title: 'THEO DÕI TIẾN ĐỘ CÔNG VIỆC', weeks_count: 7 },
+      members: [],
+      tasks: []
+    };
+    let currentTrackerMemberFilter = 'all';
+
+    async function loadWorkTrackerData() {
+      try {
+        const res = await fetch('/portal/api/work-tracker');
+        const data = await res.json();
+        if (data.ok) {
+          trackerState = data;
+          renderTrackerControls();
+          renderTrackerGantt();
+          renderTrackerTasksTable();
+        } else {
+          showToast('Lỗi tải dữ liệu tiến độ: ' + (data.error || ''));
+        }
+      } catch (err) {
+        console.error('Error loading work tracker:', err);
+      }
+    }
+
+    function renderTrackerControls() {
+      const s = trackerState.settings;
+      const startInp = document.getElementById('trackerProjectStartDate');
+      const todayInp = document.getElementById('trackerTodayDate');
+      if (startInp) startInp.value = s.project_start_date || '2026-11-09';
+      if (todayInp) todayInp.value = s.today_date || '2026-11-10';
+
+      // Legend
+      const legendEl = document.getElementById('trackerMemberLegend');
+      if (legendEl) {
+        legendEl.innerHTML = trackerState.members.map(function(m) {
+          return '<div style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:6px; background:' + m.color_hex + '; color:' + getContrastYIQ(m.color_hex) + '; font-size:11.5px; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,0.1);">' +
+            '<span>●</span> ' + escapeHtml(m.name) +
+          '</div>';
+        }).join('');
+      }
+
+      // Filter buttons
+      const filterEl = document.getElementById('trackerFilterButtons');
+      if (filterEl) {
+        filterEl.innerHTML = trackerState.members.map(function(m) {
+          const isActive = currentTrackerMemberFilter === String(m.id) ? 'active' : '';
+          return '<button class="tracker-filter-pill ' + isActive + '" onclick="filterTrackerMember(' + m.id + ', this)">' +
+            escapeHtml(m.name) +
+          '</button>';
+        }).join('');
+      }
+    }
+
+    function filterTrackerMember(memId, btn) {
+      currentTrackerMemberFilter = String(memId);
+      document.querySelectorAll('.tracker-filter-pill').forEach(function(b) { b.classList.remove('active'); });
+      const allBtn = document.getElementById('trackerFilterAllBtn');
+      if (memId === 'all') {
+        if (allBtn) allBtn.classList.add('active');
+      } else {
+        if (btn) btn.classList.add('active');
+        if (allBtn) allBtn.classList.remove('active');
+      }
+      renderTrackerGantt();
+      renderTrackerTasksTable();
+    }
+
+    function getContrastYIQ(hexcolor){
+      if (!hexcolor) return '#0F172A';
+      hexcolor = hexcolor.replace('#', '');
+      if (hexcolor.length === 3) hexcolor = hexcolor.split('').map(function(c) { return c + c; }).join('');
+      const r = parseInt(hexcolor.substr(0,2),16) || 0;
+      const g = parseInt(hexcolor.substr(2,2),16) || 0;
+      const b = parseInt(hexcolor.substr(4,2),16) || 0;
+      const yiq = ((r*299)+(g*587)+(b*114))/1000;
+      return (yiq >= 140) ? '#0F172A' : '#FFFFFF';
+    }
+
+    function parseDateUtc(dateStr) {
+      if (!dateStr) return new Date();
+      const parts = dateStr.split('-');
+      return new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+    }
+
+    function formatDateUtc(d) {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+
+    function formatDisplayDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length < 3) return dateStr;
+      return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function renderTrackerGantt() {
+      const container = document.getElementById('ganttChartContainer');
+      if (!container) return;
+
+      const startDateStr = trackerState.settings.project_start_date || '2026-11-09';
+      const todayDateStr = trackerState.settings.today_date || '2026-11-10';
+      const startDate = parseDateUtc(startDateStr);
+      const totalDays = 49; // 7 weeks * 7 days
+
+      const days = [];
+      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(startDate.getTime() + i * 86400000);
+        const iso = formatDateUtc(d);
+        const dayOfWeek = d.getUTCDay();
+        days.push({
+          index: i,
+          dateObj: d,
+          isoStr: iso,
+          dayNum: String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0'),
+          weekdayName: dayNames[dayOfWeek],
+          isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+          isToday: iso === todayDateStr
+        });
+      }
+
+      const filteredTasks = trackerState.tasks.filter(function(t) {
+        if (currentTrackerMemberFilter === 'all') return true;
+        return String(t.assigned_member_id) === currentTrackerMemberFilter;
+      });
+
+      const memberMap = {};
+      trackerState.members.forEach(function(m) { memberMap[m.id] = m; });
+
+      let html = '<table class="gantt-table">';
+      html += '<colgroup>';
+      html += '<col style="width:280px; min-width:280px;">';
+      for (let i = 0; i < totalDays; i++) {
+        html += '<col style="width:34px; min-width:34px;">';
+      }
+      html += '</colgroup>';
+
+      // Row 1: 7 Weeks Header
+      html += '<thead><tr>';
+      html += '<th rowspan="3" class="gantt-th-sticky">' +
+        '<div style="font-size:12.5px; font-weight:800; color:var(--text-main); text-transform:uppercase; letter-spacing:0.5px;">Công việc / Thành viên</div>' +
+        '<div style="font-size:11px; color:var(--text-muted); font-weight:normal; margin-top:2px;">Bấm ô để chỉnh sửa</div>' +
+      '</th>';
+      for (let w = 0; w < 7; w++) {
+        const weekStartDate = days[w * 7].dayNum;
+        html += '<th colspan="7" class="gantt-week-header">Tuần ' + (w + 1) + ' (' + weekStartDate + ')</th>';
+      }
+      html += '</tr>';
+
+      // Row 2: Date Header (DD)
+      html += '<tr>';
+      for (let i = 0; i < totalDays; i++) {
+        const d = days[i];
+        const isTodayClass = d.isToday ? 'gantt-col-today' : '';
+        html += '<th class="gantt-date-header ' + isTodayClass + '" title="' + d.isoStr + '">' + d.dayNum.split('/')[0] + '</th>';
+      }
+      html += '</tr>';
+
+      // Row 3: Day of Week Header (T2..CN)
+      html += '<tr>';
+      for (let i = 0; i < totalDays; i++) {
+        const d = days[i];
+        const isTodayClass = d.isToday ? 'gantt-col-today' : '';
+        const weekendClass = d.isWeekend ? 'gantt-col-weekend' : '';
+        html += '<th class="gantt-day-header ' + weekendClass + ' ' + isTodayClass + '" title="' + d.isoStr + '">' + d.weekdayName + '</th>';
+      }
+      html += '</tr></thead>';
+
+      // Table Body
+      html += '<tbody>';
+      if (filteredTasks.length === 0) {
+        html += '<tr><td colspan="' + (totalDays + 1) + '" style="padding:28px; text-align:center; color:var(--text-muted);">Không có công việc nào phù hợp với bộ lọc.</td></tr>';
+      } else {
+        filteredTasks.forEach(function(task, idx) {
+          const mem = memberMap[task.assigned_member_id] || { name: 'Chưa giao', color_hex: '#94A3B8' };
+          html += '<tr>';
+          // Sticky Task Title Cell
+          html += '<td class="gantt-td-sticky" onclick="openEditTrackerTaskModal(' + task.id + ')" title="' + escapeHtml(task.title) + ' (Bấm để sửa)" style="cursor:pointer;">' +
+            '<div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">' +
+              '<span style="font-weight:700; color:var(--text-main); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+                (idx + 1) + '. ' + escapeHtml(task.title) +
+              '</span>' +
+              '<span style="display:inline-block; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; background:' + mem.color_hex + '; color:' + getContrastYIQ(mem.color_hex) + '; flex-shrink:0;">' +
+                escapeHtml(mem.name) +
+              '</span>' +
+            '</div>' +
+          '</td>';
+
+          // 49 day cells
+          for (let i = 0; i < totalDays; i++) {
+            const d = days[i];
+            const isTodayClass = d.isToday ? 'gantt-col-today' : '';
+            const weekendClass = d.isWeekend ? 'gantt-col-weekend' : '';
+            const isInTaskRange = (task.start_date && task.end_date && d.isoStr >= task.start_date && d.isoStr <= task.end_date);
+
+            if (isInTaskRange) {
+              const isStart = d.isoStr === task.start_date;
+              const isEnd = d.isoStr === task.end_date;
+              const borderRadius = (isStart ? '6px' : '0') + ' ' + (isEnd ? '6px' : '0') + ' ' + (isEnd ? '6px' : '0') + ' ' + (isStart ? '6px' : '0');
+              
+              html += '<td class="gantt-bar-cell ' + isTodayClass + '" onclick="openEditTrackerTaskModal(' + task.id + ')" title="' + escapeHtml(task.title) + ' - ' + mem.name + ' (' + formatDisplayDate(task.start_date) + ' đến ' + formatDisplayDate(task.end_date) + ')">' +
+                '<div style="background:' + mem.color_hex + '; height:24px; margin:0 1px; border-radius:' + borderRadius + '; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15);">' +
+                  (isStart ? '<span style="font-size:9.5px; font-weight:800; color:' + getContrastYIQ(mem.color_hex) + '; white-space:nowrap; overflow:hidden; padding:0 3px;">' + Math.round((task.progress || 0) * 100) + '%</span>' : '') +
+                '</div>' +
+              '</td>';
+            } else {
+              html += '<td class="' + weekendClass + ' ' + isTodayClass + '"></td>';
+            }
+          }
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function renderTrackerTasksTable() {
+      const tbody = document.getElementById('trackerTasksTableBody');
+      const badge = document.getElementById('trackerTaskCountBadge');
+      if (!tbody) return;
+
+      const memberMap = {};
+      trackerState.members.forEach(function(m) { memberMap[m.id] = m; });
+
+      const filteredTasks = trackerState.tasks.filter(function(t) {
+        if (currentTrackerMemberFilter === 'all') return true;
+        return String(t.assigned_member_id) === currentTrackerMemberFilter;
+      });
+
+      if (badge) badge.textContent = filteredTasks.length + ' công việc';
+
+      if (filteredTasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">Chưa có công việc nào trong danh sách. Bấm "+ Thêm Dòng Công Việc" để bắt đầu!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filteredTasks.map(function(t, idx) {
+        const mem = memberMap[t.assigned_member_id] || { name: 'Chưa giao', color_hex: '#94A3B8' };
+        const pct = Math.round((t.progress || 0) * 100);
+        let statusBadge = '';
+        if (t.status === 'completed') {
+          statusBadge = '<span class="status-badge done">Hoàn thành</span>';
+        } else if (t.status === 'in_progress') {
+          statusBadge = '<span class="status-badge doing">Đang làm</span>';
+        } else {
+          statusBadge = '<span class="status-badge todo">Chưa làm</span>';
+        }
+
+        return '<tr>' +
+          '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+          '<td style="font-weight:700; color:var(--text-main);">' + escapeHtml(t.title) + '</td>' +
+          '<td>' +
+            '<span style="display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:5px; background:' + mem.color_hex + '; color:' + getContrastYIQ(mem.color_hex) + '; font-size:11px; font-weight:700;">' +
+              '● ' + escapeHtml(mem.name) +
+            '</span>' +
+          '</td>' +
+          '<td style="font-family:JetBrains Mono, monospace; font-size:12px; color:var(--text-muted);">' + formatDisplayDate(t.start_date) + '</td>' +
+          '<td style="font-family:JetBrains Mono, monospace; font-size:12px; color:var(--text-muted);">' + formatDisplayDate(t.end_date) + '</td>' +
+          '<td style="text-align:center; font-weight:700; color:var(--text-main);">' + (t.duration_days || 0) + '</td>' +
+          '<td>' +
+            '<div style="display:flex; align-items:center; gap:8px;">' +
+              '<div style="flex:1; height:7px; background:#E2E8F0; border-radius:999px; overflow:hidden;">' +
+                '<div style="width:' + pct + '%; height:100%; background:' + mem.color_hex + ';"></div>' +
+              '</div>' +
+              '<span style="font-size:11.5px; font-weight:700; min-width:32px;">' + pct + '%</span>' +
+            '</div>' +
+          '</td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td style="font-size:12px; color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escapeHtml(t.notes || '') + '">' +
+            escapeHtml(t.notes || '—') +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<div style="display:inline-flex; gap:6px;">' +
+              '<button class="crextio-btn secondary" style="padding:4px 8px; font-size:11px;" onclick="openEditTrackerTaskModal(' + t.id + ')" title="Chỉnh sửa">Sửa</button>' +
+              '<button class="crextio-btn danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTrackerTask(' + t.id + ')" title="Xóa">Xóa</button>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function calculateTrackerDuration() {
+      const s = document.getElementById('trackerTaskStartDate').value;
+      const e = document.getElementById('trackerTaskEndDate').value;
+      const dur = document.getElementById('trackerTaskDuration');
+      if (s && e) {
+        const d1 = parseDateUtc(s);
+        const d2 = parseDateUtc(e);
+        const diff = Math.round((d2 - d1) / 86400000) + 1;
+        dur.value = diff > 0 ? diff : 0;
+      } else {
+        dur.value = 0;
+      }
+    }
+
+    function openAddTrackerTaskModal() {
+      document.getElementById('trackerTaskModalTitle').textContent = 'Thêm Công Việc Mới';
+      document.getElementById('trackerTaskId').value = '';
+      document.getElementById('trackerTaskTitle').value = '';
+      
+      const memberSelect = document.getElementById('trackerTaskMember');
+      memberSelect.innerHTML = trackerState.members.map(function(m) {
+        return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.color_name || m.color_hex) + ')</option>';
+      }).join('');
+
+      document.getElementById('trackerTaskStatus').value = 'pending';
+      const defaultStart = trackerState.settings.project_start_date || '2026-11-09';
+      document.getElementById('trackerTaskStartDate').value = defaultStart;
+      document.getElementById('trackerTaskEndDate').value = defaultStart;
+      calculateTrackerDuration();
+
+      document.getElementById('trackerTaskProgress').value = 0;
+      document.getElementById('trackerProgressVal').textContent = '0%';
+      document.getElementById('trackerTaskNotes').value = '';
+      document.getElementById('trackerDeleteTaskBtn').style.display = 'none';
+
+      openModal('trackerTaskModal');
+    }
+
+    function openEditTrackerTaskModal(taskId) {
+      const task = trackerState.tasks.find(function(t) { return t.id === Number(taskId); });
+      if (!task) return;
+
+      document.getElementById('trackerTaskModalTitle').textContent = 'Chỉnh Sửa Công Việc';
+      document.getElementById('trackerTaskId').value = task.id;
+      document.getElementById('trackerTaskTitle').value = task.title;
+
+      const memberSelect = document.getElementById('trackerTaskMember');
+      memberSelect.innerHTML = trackerState.members.map(function(m) {
+        const isSelected = task.assigned_member_id === m.id ? 'selected' : '';
+        return '<option value="' + m.id + '" ' + isSelected + '>' + escapeHtml(m.name) + ' (' + escapeHtml(m.color_name || m.color_hex) + ')</option>';
+      }).join('');
+
+      document.getElementById('trackerTaskStatus').value = task.status || 'pending';
+      document.getElementById('trackerTaskStartDate').value = task.start_date || '';
+      document.getElementById('trackerTaskEndDate').value = task.end_date || '';
+      calculateTrackerDuration();
+
+      const pct = Math.round((task.progress || 0) * 100);
+      document.getElementById('trackerTaskProgress').value = pct;
+      document.getElementById('trackerProgressVal').textContent = pct + '%';
+      document.getElementById('trackerTaskNotes').value = task.notes || '';
+      document.getElementById('trackerDeleteTaskBtn').style.display = 'block';
+
+      openModal('trackerTaskModal');
+    }
+
+    async function submitTrackerTask() {
+      const id = document.getElementById('trackerTaskId').value;
+      const title = document.getElementById('trackerTaskTitle').value.trim();
+      if (!title) {
+        alert('Vui lòng nhập tên công việc!');
+        return;
+      }
+      const assigned_member_id = Number(document.getElementById('trackerTaskMember').value);
+      const start_date = document.getElementById('trackerTaskStartDate').value;
+      const end_date = document.getElementById('trackerTaskEndDate').value;
+      const duration_days = Number(document.getElementById('trackerTaskDuration').value) || 0;
+      const progress = Number(document.getElementById('trackerTaskProgress').value) / 100;
+      const status = document.getElementById('trackerTaskStatus').value;
+      const notes = document.getElementById('trackerTaskNotes').value.trim();
+
+      const payload = {
+        id: id ? Number(id) : undefined,
+        title: title,
+        assigned_member_id: assigned_member_id,
+        start_date: start_date,
+        end_date: end_date,
+        duration_days: duration_days,
+        progress: progress,
+        status: status,
+        notes: notes
+      };
+
+      try {
+        const res = await fetch('/portal/api/work-tracker/task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.ok) {
+          closeModal('trackerTaskModal');
+          showToast(id ? 'Đã cập nhật công việc!' : 'Đã thêm công việc mới!');
+          await loadWorkTrackerData();
+        } else {
+          alert('Lỗi: ' + (d.error || 'Không thể lưu công việc'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Lỗi kết nối máy chủ');
+      }
+    }
+
+    function confirmDeleteTrackerTask() {
+      const id = document.getElementById('trackerTaskId').value;
+      if (!id) return;
+      deleteTrackerTask(Number(id));
+    }
+
+    async function deleteTrackerTask(taskId) {
+      if (!confirm('Bạn có chắc chắn muốn xóa công việc này khỏi bảng theo dõi tiến độ?')) return;
+      try {
+        const res = await fetch('/portal/api/work-tracker/task/' + taskId, { method: 'DELETE' });
+        const d = await res.json();
+        if (d.ok) {
+          closeModal('trackerTaskModal');
+          showToast('Đã xóa công việc!');
+          await loadWorkTrackerData();
+        } else {
+          alert('Lỗi xóa công việc: ' + (d.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function saveTrackerDates() {
+      const project_start_date = document.getElementById('trackerProjectStartDate').value;
+      const today_date = document.getElementById('trackerTodayDate').value;
+      try {
+        const res = await fetch('/portal/api/work-tracker/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_start_date: project_start_date, today_date: today_date })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('Đã cập nhật ngày mốc dự án & hôm nay!');
+          await loadWorkTrackerData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function openTrackerMemberModal() {
+      const container = document.getElementById('trackerMemberListForm');
+      if (!container) return;
+
+      container.innerHTML = trackerState.members.map(function(m) {
+        return '<div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px;" data-member-id="' + m.id + '">' +
+          '<span style="font-weight:700; width:24px; color:var(--text-muted);">' + m.member_order + '.</span>' +
+          '<div style="flex:1;">' +
+            '<input type="text" class="crextio-input member-name-input" value="' + escapeHtml(m.name) + '" placeholder="Tên thành viên" style="padding:6px 10px; font-size:13px; font-weight:700;">' +
+          '</div>' +
+          '<div style="width:130px;">' +
+            '<input type="text" class="crextio-input member-colorname-input" value="' + escapeHtml(m.color_name || '') + '" placeholder="Tên màu (Hồng, Cam...)" style="padding:6px 10px; font-size:12px;">' +
+          '</div>' +
+          '<div style="width:50px; display:flex; align-items:center; justify-content:center;">' +
+            '<input type="color" class="member-color-input" value="' + m.color_hex + '" style="width:36px; height:36px; border:none; border-radius:6px; cursor:pointer; background:none;">' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      openModal('trackerMemberModal');
+    }
+
+    async function submitTrackerMembers() {
+      const rows = document.querySelectorAll('#trackerMemberListForm [data-member-id]');
+      const members = [];
+      rows.forEach(function(r) {
+        const id = Number(r.getAttribute('data-member-id'));
+        const name = r.querySelector('.member-name-input').value.trim();
+        const color_name = r.querySelector('.member-colorname-input').value.trim();
+        const color_hex = r.querySelector('.member-color-input').value;
+        if (name) {
+          members.push({ id: id, name: name, color_name: color_name, color_hex: color_hex });
+        }
+      });
+
+      try {
+        const res = await fetch('/portal/api/work-tracker/members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ members: members })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          closeModal('trackerMemberModal');
+          showToast('Đã lưu thông tin 6 thành viên!');
+          await loadWorkTrackerData();
+        } else {
+          alert('Lỗi lưu: ' + (d.error || ''));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     // Formatters
@@ -2843,6 +3666,135 @@ export const portalRoutes = new Hono()
 
     await client.sendMessage(targetThread, msg);
     return c.json({ ok: true, message: `Đã gửi tin nhắn nhắc việc qua Zalo đến thread ${targetThread}` });
+  })
+
+  // =========================================================================
+  // API TIẾN ĐỘ THEO DÕI CÔNG VIỆC (WORK TRACKER & GANTT)
+  // =========================================================================
+  .get("/api/work-tracker", (c) => {
+    try {
+      const settings = db.prepare("SELECT * FROM pm_work_tracker_settings WHERE id = 1").get() || {
+        project_start_date: '2026-11-09',
+        today_date: '2026-11-10',
+        title: 'THEO DÕI TIẾN ĐỘ CÔNG VIỆC',
+        weeks_count: 7
+      };
+      const members = db.prepare("SELECT * FROM pm_work_tracker_members ORDER BY member_order ASC").all();
+      const tasks = db.prepare("SELECT * FROM pm_work_tracker_tasks ORDER BY task_order ASC, id ASC").all();
+      return c.json({ ok: true, settings, members, tasks });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err.message || "Lỗi lấy dữ liệu tiến độ" }, 500);
+    }
+  })
+
+  .post("/api/work-tracker/task", async (c) => {
+    try {
+      const body = await c.req.json<{
+        id?: number;
+        title: string;
+        assigned_member_id?: number;
+        start_date?: string;
+        end_date?: string;
+        duration_days?: number;
+        progress?: number;
+        status?: string;
+        notes?: string;
+      }>();
+
+      if (!body.title) return c.json({ ok: false, error: "Vui lòng nhập tên công việc" }, 400);
+
+      if (body.id) {
+        db.prepare(`
+          UPDATE pm_work_tracker_tasks
+          SET title = ?, assigned_member_id = ?, start_date = ?, end_date = ?, duration_days = ?, progress = ?, status = ?, notes = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+          WHERE id = ?
+        `).run(
+          body.title,
+          body.assigned_member_id ?? null,
+          body.start_date || "",
+          body.end_date || "",
+          body.duration_days || 0,
+          body.progress ?? 0,
+          body.status || "pending",
+          body.notes || "",
+          body.id
+        );
+      } else {
+        const maxOrder = db.prepare("SELECT COALESCE(MAX(task_order), 0) as m FROM pm_work_tracker_tasks").get() as { m: number };
+        const nextOrder = (maxOrder?.m || 0) + 1;
+        db.prepare(`
+          INSERT INTO pm_work_tracker_tasks (task_order, title, assigned_member_id, start_date, end_date, duration_days, progress, status, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          nextOrder,
+          body.title,
+          body.assigned_member_id ?? null,
+          body.start_date || "",
+          body.end_date || "",
+          body.duration_days || 0,
+          body.progress ?? 0,
+          body.status || "pending",
+          body.notes || ""
+        );
+      }
+
+      return c.json({ ok: true });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err.message || "Lỗi lưu công việc" }, 500);
+    }
+  })
+
+  .delete("/api/work-tracker/task/:id", (c) => {
+    try {
+      const id = c.req.param("id");
+      db.prepare("DELETE FROM pm_work_tracker_tasks WHERE id = ?").run(id);
+      return c.json({ ok: true });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err.message || "Lỗi xóa công việc" }, 500);
+    }
+  })
+
+  .post("/api/work-tracker/members", async (c) => {
+    try {
+      const { members } = await c.req.json<{
+        members: Array<{ id: number; name: string; color_name?: string; color_hex: string }>;
+      }>();
+
+      if (!members || !Array.isArray(members)) {
+        return c.json({ ok: false, error: "Dữ liệu không hợp lệ" }, 400);
+      }
+
+      const stmt = db.prepare("UPDATE pm_work_tracker_members SET name = ?, color_name = ?, color_hex = ? WHERE id = ?");
+      for (const m of members) {
+        stmt.run(m.name, m.color_name || "", m.color_hex, m.id);
+      }
+
+      return c.json({ ok: true });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err.message || "Lỗi lưu thành viên" }, 500);
+    }
+  })
+
+  .post("/api/work-tracker/settings", async (c) => {
+    try {
+      const { project_start_date, today_date, title } = await c.req.json<{
+        project_start_date?: string;
+        today_date?: string;
+        title?: string;
+      }>();
+
+      db.prepare(`
+        UPDATE pm_work_tracker_settings
+        SET project_start_date = COALESCE(?, project_start_date),
+            today_date = COALESCE(?, today_date),
+            title = COALESCE(?, title)
+        WHERE id = 1
+      `).run(project_start_date || null, today_date || null, title || null);
+
+      return c.json({ ok: true });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err.message || "Lỗi cập nhật cấu hình" }, 500);
+    }
   })
 
   // API Phục vụ Trang Trình Chiếu Slide Thuyết Trình Khởi Minh
