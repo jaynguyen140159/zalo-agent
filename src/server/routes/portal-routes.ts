@@ -83,12 +83,7 @@ export const portalRoutes = new Hono()
       width: 100%;
       overflow-x: hidden;
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      background-color: var(--bg-canvas);
-      background-image: 
-        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, #FFFFFF 0%, transparent 100%);
-      background-attachment: fixed;
+      background-color: #F8FAFC;
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
@@ -1068,56 +1063,201 @@ export const portalRoutes = new Hono()
     .form-group {
       margin-bottom: 14px;
     }
-    .form-group label {
+    /* ==========================================================================
+       FORMS, INPUTS & CUSTOM SLEEK DROPBOX (SELECT) CONTROLS
+       ========================================================================== */
+    .crextio-form-group, .form-group {
+      margin-bottom: 16px;
+    }
+    .crextio-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .crextio-label, .form-group label {
       display: block;
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 700;
-      color: var(--text-main);
+      color: #334155;
       margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .form-control {
-      width: 100%;
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-subtle);
-      border-radius: var(--radius-md);
-      padding: 10px 14px;
-      font-size: 13.5px;
-      color: var(--text-main);
-      outline: none;
-      transition: all 0.2s ease;
-      font-family: inherit;
-    }
-    .form-control:focus {
-      border-color: var(--brand-primary);
-      background: #FFFFFF;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      letter-spacing: 0.2px;
     }
 
-    /* POPOVER PROJECT SELECTOR */
+    .form-control,
+    .crextio-input,
+    .crextio-textarea {
+      width: 100%;
+      border: 1px solid var(--border-soft);
+      background: #FFFFFF;
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      font-family: inherit;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    .form-control:hover,
+    .crextio-input:hover,
+    .crextio-textarea:hover {
+      border-color: #94A3B8;
+      background: #FAFAFA;
+    }
+    .form-control:focus,
+    .crextio-input:focus,
+    .crextio-textarea:focus {
+      border-color: var(--brand-primary);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    /* CUSTOM SLEEK SELECT (DROPBOX) WITH MODERN SVG CHEVRON */
+    select.form-control,
+    select.crextio-select,
+    .crextio-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      width: 100%;
+      background-color: #FFFFFF;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 14px 14px;
+      padding: 9px 38px 9px 13px !important;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      line-height: 1.4;
+    }
+    select.form-control:hover,
+    select.crextio-select:hover,
+    .crextio-select:hover {
+      border-color: #94A3B8;
+      background-color: #F8FAFC;
+    }
+    select.form-control:focus,
+    select.crextio-select:focus,
+    .crextio-select:focus {
+      border-color: var(--brand-primary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    /* DATE INPUTS */
+    input[type="date"].form-control,
+    input[type="date"].crextio-input {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      background: #FFFFFF;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 7px 11px;
+      cursor: pointer;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.65;
+      transition: opacity 0.15s ease;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+    }
+
+    /* TRACKER DATE PILL GROUP (REPLACES CLUNKY DATE INPUTS) */
+    .tracker-date-pill-group {
+      display: inline-flex;
+      align-items: center;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 4px 6px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: all 0.2s ease;
+    }
+    .tracker-date-pill-group:hover {
+      border-color: var(--border-soft);
+    }
+    .tracker-date-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+    }
+    .tracker-date-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .tracker-date-native-input {
+      border: 1px solid #E2E8F0;
+      background: #F8FAFC;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 125px;
+    }
+    .tracker-date-native-input:hover {
+      background: #FFFFFF;
+      border-color: #CBD5E1;
+    }
+    .tracker-date-native-input:focus {
+      background: #FFFFFF;
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+    .tracker-date-divider {
+      width: 1px;
+      height: 18px;
+      background: #E2E8F0;
+      margin: 0 2px;
+    }
+
+    /* POPOVER PROJECT SELECTOR (LUXURY DROPBOX MENU) */
     .project-popover {
       position: absolute;
-      top: 74px;
+      top: 72px;
       right: 28px;
-      width: 380px;
-      max-width: 90vw;
+      width: 400px;
+      max-width: 92vw;
       background: #FFFFFF;
-      border-radius: var(--radius-lg);
-      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
       border: 1px solid var(--border-subtle);
-      padding: 16px;
+      padding: 18px;
       z-index: 1000;
       display: none;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+      animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes popoverIn {
+      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .popover-project-item {
-      padding: 12px;
-      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      border-radius: 12px;
       border: 1px solid var(--border-subtle);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1125,7 +1265,7 @@ export const portalRoutes = new Hono()
     }
     .popover-project-item:hover {
       border-color: var(--brand-primary);
-      background: var(--brand-primary-light);
+      background: #F8FAFC;
       transform: translateX(2px);
     }
     .popover-project-item.active {
@@ -1548,31 +1688,33 @@ export const portalRoutes = new Hono()
               <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:24px;">🌸</span>
                 <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin:0;">THEO DÕI TIẾN ĐỘ CÔNG VIỆC</h2>
-                <span class="badge-pill" style="background:#FDF2F8; border:1px solid #FBCFE8; color:#DB2777; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">BẢNG ĐỘC LẬP</span>
+                <span class="badge-pill" style="background:#F1F5F9; border:1px solid #E2E8F0; color:#475569; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">BẢNG ĐỘC LẬP</span>
               </div>
               <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">Theo dõi tiến độ vận hành tách riêng với các dự án, trực quan hóa biểu đồ Gantt 7 tuần theo thành viên</p>
             </div>
 
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <!-- Start Date & Today controls -->
-              <div style="display:flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid var(--border-subtle); padding:6px 14px; border-radius:10px;">
-                <span style="font-size:13px;">📅</span>
-                <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Bắt đầu:</span>
-                <input type="date" id="trackerProjectStartDate" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px;" onchange="saveTrackerDates()">
+              <!-- Start Date & Today controls combined into clean pill -->
+              <div class="tracker-date-pill-group">
+                <div class="tracker-date-item">
+                  <span style="font-size:13px;">📅</span>
+                  <span class="tracker-date-label">Bắt đầu:</span>
+                  <input type="date" id="trackerProjectStartDate" class="tracker-date-native-input" onchange="saveTrackerDates()">
+                </div>
+                <div class="tracker-date-divider"></div>
+                <div class="tracker-date-item">
+                  <span style="font-size:13px;">☀️</span>
+                  <span class="tracker-date-label">Hôm nay:</span>
+                  <input type="date" id="trackerTodayDate" class="tracker-date-native-input" onchange="saveTrackerDates()">
+                </div>
               </div>
 
-              <div style="display:flex; align-items:center; gap:8px; background:#FEFCE8; border:1px solid #FEF08A; padding:6px 14px; border-radius:10px;">
-                <span style="font-size:13px;">☀️</span>
-                <span style="font-size:12px; font-weight:700; color:#854D0E;">Hôm nay:</span>
-                <input type="date" id="trackerTodayDate" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px; background:white; color:#854D0E;" onchange="saveTrackerDates()">
-              </div>
-
-              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In bảng tiến độ & biểu đồ Gantt ra giấy hoặc lưu file PDF (Khổ A4 ngang)" style="background:#EEF2FF; border-color:#C7D2FE; color:#4338CA; font-weight:700;">
+              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In bảng tiến độ hoặc xuất PDF (Khổ ngang A4)">
                 <span>🖨️</span><span>In / Xuất PDF</span>
               </button>
 
               <button class="crextio-btn secondary" onclick="openTrackerMemberModal()" title="Chỉnh sửa tên và màu của 6 thành viên">
-                <span>👥</span><span>Quản Lý 6 Thành Viên</span>
+                <span>👥</span><span>6 Thành Viên</span>
               </button>
 
               <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">
@@ -1586,7 +1728,7 @@ export const portalRoutes = new Hono()
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">🎨 Màu theo người làm:</span>
               <div id="trackerMemberLegend" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
-              <div style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; background:#FEF08A; border:1px solid #FDE047; color:#713F12; font-size:11.5px; font-weight:700;">
+              <div style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:6px; background:#FEF08A; border:1px solid #FACC15; color:#854D0E; font-size:11.5px; font-weight:700;">
                 <span>🟨</span> Hôm nay
               </div>
             </div>
