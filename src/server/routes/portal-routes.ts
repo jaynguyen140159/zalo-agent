@@ -1155,6 +1155,135 @@ export const portalRoutes = new Hono()
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ==========================================================================
+       PRINT STYLES (A4 LANDSCAPE PRINT / EXPORT PDF)
+       ========================================================================== */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 6mm 6mm;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+      body {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        font-size: 10px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .app-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      /* Hide web navigation, headers, footers, buttons, and modals */
+      header.app-header,
+      .crextio-nav-pills,
+      .crextio-modal-overlay,
+      .nav-pill,
+      #portalToast,
+      button,
+      .crextio-btn,
+      .no-print,
+      .print-hide,
+      #trackerFilterButtons,
+      #trackerFilterAllBtn,
+      .hint-scroll-text,
+      .th-actions,
+      .col-actions {
+        display: none !important;
+      }
+
+      /* Show only active tab panel */
+      .tab-panel {
+        display: none !important;
+      }
+      .tab-panel.active {
+        display: block !important;
+      }
+
+      /* Print only header element */
+      .print-only {
+        display: block !important;
+      }
+
+      /* Container card styling */
+      .crextio-table-card {
+        border: 1px solid #CBD5E1 !important;
+        box-shadow: none !important;
+        margin-bottom: 12px !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+        page-break-inside: avoid;
+      }
+
+      /* Gantt chart print layout */
+      .gantt-scroll-wrapper {
+        overflow: visible !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+      }
+      .gantt-table {
+        width: 100% !important;
+        table-layout: fixed !important;
+        font-size: 8.5px !important;
+      }
+      .gantt-table th, .gantt-table td {
+        height: 20px !important;
+        padding: 0 !important;
+        font-size: 8px !important;
+        border-right: 1px solid #E2E8F0 !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+      }
+      .gantt-th-sticky, .gantt-td-sticky {
+        position: static !important;
+        box-shadow: none !important;
+        width: 180px !important;
+        min-width: 180px !important;
+        max-width: 180px !important;
+        font-size: 9px !important;
+        padding: 2px 6px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .gantt-week-header {
+        font-size: 9px !important;
+        height: 20px !important;
+      }
+      .gantt-date-header {
+        font-size: 8px !important;
+        height: 18px !important;
+      }
+      .gantt-day-header {
+        font-size: 8px !important;
+        height: 18px !important;
+      }
+      .gantt-bar-cell div {
+        height: 15px !important;
+      }
+
+      /* Task Table */
+      .crextio-table {
+        font-size: 9.5px !important;
+        width: 100% !important;
+      }
+      .crextio-table th, .crextio-table td {
+        padding: 4px 6px !important;
+        font-size: 9px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1231,6 +1360,7 @@ export const portalRoutes = new Hono()
         <!-- Quick Add Task -->
         <button class="crextio-btn primary admin-only" onclick="openAddTaskModal()">+ Thêm Việc</button>
 
+        <button class="tool-circle-btn" onclick="printWorkTracker()" title="In nhanh / Xuất PDF (Khổ A4 ngang)">🖨️</button>
         <a href="/" class="tool-circle-btn" title="Mở Dashboard Zalo Core">⚙️</a>
         <a href="/upload" class="tool-circle-btn" title="Kho Lưu Trữ Tài Liệu">📁</a>
 
@@ -1397,6 +1527,20 @@ export const portalRoutes = new Hono()
 
       <!-- TAB TRACKER: TIẾN ĐỘ THEO DÕI CÔNG VIỆC (GANTT & INDEPENDENT MASTER TASK LIST) -->
       <section id="tab-tracker" class="tab-panel">
+        <!-- PRINT ONLY HEADER (Visible only when printed or exported to PDF) -->
+        <div class="print-only" style="display:none; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #0F172A;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <div>
+              <div style="font-size:20px; font-weight:900; color:#0F172A; letter-spacing:0.5px;">🌸 KHỞI MINH - THEO DÕI TIẾN ĐỘ CÔNG VIỆC 🌸</div>
+              <div style="font-size:11px; color:#475569; margin-top:2px;">Kế hoạch & Biểu đồ Gantt 7 tuần (49 ngày thi công) | Phân công theo 6 nhân sự</div>
+            </div>
+            <div style="text-align:right; font-size:11px; color:#475569; line-height:1.4;">
+              <div>Ngày in: <b id="printDateStr" style="color:#0F172A;"></b></div>
+              <div>Bắt đầu: <b id="printStartDateStr" style="color:#0F172A;">09/11/2026</b> | Hôm nay: <b id="printTodayDateStr" style="color:#0F172A;">10/11/2026</b></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Tracker Header Card -->
         <div class="crextio-table-card" style="margin-bottom: 20px; padding: 22px 26px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:18px;">
@@ -1414,14 +1558,18 @@ export const portalRoutes = new Hono()
               <div style="display:flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid var(--border-subtle); padding:6px 14px; border-radius:10px;">
                 <span style="font-size:13px;">📅</span>
                 <span style="font-size:12px; font-weight:700; color:var(--text-muted);">Bắt đầu:</span>
-                <input type="date" id="trackerStartDateInput" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px;" onchange="saveTrackerDates()">
+                <input type="date" id="trackerProjectStartDate" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px;" onchange="saveTrackerDates()">
               </div>
 
               <div style="display:flex; align-items:center; gap:8px; background:#FEFCE8; border:1px solid #FEF08A; padding:6px 14px; border-radius:10px;">
                 <span style="font-size:13px;">☀️</span>
                 <span style="font-size:12px; font-weight:700; color:#854D0E;">Hôm nay:</span>
-                <input type="date" id="trackerTodayDateInput" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px; background:white; color:#854D0E;" onchange="saveTrackerDates()">
+                <input type="date" id="trackerTodayDate" class="form-control" style="width:135px; padding:3px 8px; font-size:12.5px; height:28px; background:white; color:#854D0E;" onchange="saveTrackerDates()">
               </div>
+
+              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In bảng tiến độ & biểu đồ Gantt ra giấy hoặc lưu file PDF (Khổ A4 ngang)" style="background:#EEF2FF; border-color:#C7D2FE; color:#4338CA; font-weight:700;">
+                <span>🖨️</span><span>In / Xuất PDF</span>
+              </button>
 
               <button class="crextio-btn secondary" onclick="openTrackerMemberModal()" title="Chỉnh sửa tên và màu của 6 thành viên">
                 <span>👥</span><span>Quản Lý 6 Thành Viên</span>
@@ -1476,7 +1624,12 @@ export const portalRoutes = new Hono()
               <h3 style="font-size:17px; font-weight:800; color:var(--text-main); margin:0;">Danh Sách Chi Tiết Công Việc</h3>
               <span id="trackerTaskCountBadge" class="badge-pill" style="background:var(--brand-primary-light); color:var(--brand-primary); font-size:11px; padding:2px 8px; border-radius:999px;">0 công việc</span>
             </div>
-            <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">+ Thêm Dòng Công Việc</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In danh sách tiến độ ra giấy hoặc PDF (Khổ ngang A4)" style="font-size:12px; padding:6px 14px;">
+                <span>🖨️</span><span>In Bảng Tiến Độ</span>
+              </button>
+              <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">+ Thêm Dòng Công Việc</button>
+            </div>
           </div>
 
           <div style="overflow-x:auto;">
@@ -1492,7 +1645,7 @@ export const portalRoutes = new Hono()
                   <th style="width:150px;">% Hoàn Thành</th>
                   <th style="width:130px;">Trạng Thái</th>
                   <th>Ghi Chú</th>
-                  <th style="width:100px; text-align:center;">Thao Tác</th>
+                  <th style="width:100px; text-align:center;" class="th-actions">Thao Tác</th>
                 </tr>
               </thead>
               <tbody id="trackerTasksTableBody">
@@ -2821,7 +2974,7 @@ export const portalRoutes = new Hono()
           '<td style="font-size:12px; color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escapeHtml(t.notes || '') + '">' +
             escapeHtml(t.notes || '—') +
           '</td>' +
-          '<td style="text-align:center;">' +
+          '<td style="text-align:center;" class="col-actions">' +
             '<div style="display:inline-flex; gap:6px;">' +
               '<button class="crextio-btn secondary" style="padding:4px 8px; font-size:11px;" onclick="openEditTrackerTaskModal(' + t.id + ')" title="Chỉnh sửa">Sửa</button>' +
               '<button class="crextio-btn danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTrackerTask(' + t.id + ')" title="Xóa">Xóa</button>' +
@@ -3038,6 +3191,40 @@ export const portalRoutes = new Hono()
       } catch (err) {
         console.error(err);
       }
+    }
+
+    function printWorkTracker() {
+      // If not on tracker tab, switch to it
+      const trackerTab = document.getElementById('tab-tracker');
+      if (trackerTab && !trackerTab.classList.contains('active')) {
+        switchTab('tracker');
+      }
+
+      // Update date info on the print header
+      const now = new Date();
+      const printDateStr = String(now.getDate()).padStart(2, '0') + '/' + 
+                           String(now.getMonth() + 1).padStart(2, '0') + '/' + 
+                           now.getFullYear() + ' ' + 
+                           String(now.getHours()).padStart(2, '0') + ':' + 
+                           String(now.getMinutes()).padStart(2, '0');
+      
+      const pDate = document.getElementById('printDateStr');
+      if (pDate) pDate.textContent = printDateStr;
+
+      const pStart = document.getElementById('printStartDateStr');
+      const startInpVal = document.getElementById('trackerProjectStartDate');
+      const startVal = (startInpVal && startInpVal.value) || (trackerState && trackerState.settings && trackerState.settings.project_start_date);
+      if (pStart && startVal) pStart.textContent = formatDisplayDate(startVal);
+
+      const pToday = document.getElementById('printTodayDateStr');
+      const todayInpVal = document.getElementById('trackerTodayDate');
+      const todayVal = (todayInpVal && todayInpVal.value) || (trackerState && trackerState.settings && trackerState.settings.today_date);
+      if (pToday && todayVal) pToday.textContent = formatDisplayDate(todayVal);
+
+      // Trigger browser native print dialog
+      setTimeout(function() {
+        window.print();
+      }, 150);
     }
 
     // Formatters
