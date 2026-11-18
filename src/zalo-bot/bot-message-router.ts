@@ -15,6 +15,11 @@ import { doiUpdateSangParsedMessage } from "./zalo-bot-update-parser.js";
 import type { ZaloBotUpdate } from "./zalo-bot-api-types.js";
 import { kiemTraLaTinDangKy, xuLyDangKyThanhVien } from "./bot-member-registration.js";
 import { applyBotProgressReport, kiemTraLaTinBaoCaoTienDo } from "./bot-progress-reporter.js";
+import {
+  chayLuatTuDongChuyenTiep,
+  parseForwardCommand,
+  xuLyLenhChuyenTiepBot,
+} from "./bot-message-forwarder.js";
 
 const log = createLogger("bot-message-router");
 
@@ -89,6 +94,19 @@ export function routeBotUpdate(accountId: string, kenh: KenhLuot, update: ZaloBo
     void kenh.duongGui(msg.threadId, msg.threadType)({ text: reportRes.replyMessage }).catch(() => {});
     return;
   }
+
+  // Lệnh chuyển tiếp tin nhắn sang nhóm khác ("ds nhóm", "đặt tên nhóm:", "chuyển sang Nhóm 2: ...")
+  if (parseForwardCommand(msg.text)) {
+    log.info({ threadId: msg.threadId, text: msg.text }, "Nhận lệnh chuyển tiếp Zalo Bot");
+    try {
+      ghiTinDenVaoHistory(config.id, msg, { luuAnhNgay: true });
+    } catch {}
+    void xuLyLenhChuyenTiepBot(config.id, kenh, msg);
+    return;
+  }
+
+  // Luật tự động chuyển tiếp (nếu người dùng cài cầu nối Nhóm A -> Nhóm B)
+  void chayLuatTuDongChuyenTiep(config.id, kenh, msg);
 
   const decision = shouldRespond(config, msg, isBotEnabled(config.id, msg.threadId));
 

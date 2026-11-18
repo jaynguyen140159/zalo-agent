@@ -8,6 +8,11 @@ import { quetVaGuiNhacViecTuDong } from "../../notification/auto-reminder-worker
 import { getSmtpConfig, guiEmailNhacViec } from "../../notification/email-service.js";
 import { sendGroupMentionReminder } from "../../notification/group-mention-reminder.js";
 import { applyBotProgressReport } from "../../zalo-bot/bot-progress-reporter.js";
+import {
+  forwardViaBotClient,
+  listBotTargets,
+  renameBotThread,
+} from "../../zalo-bot/bot-message-forwarder.js";
 import { renderPortalHtml } from "./portal-ui-html.js";
 import { taoZaloBotClient } from "../../zalo-bot/zalo-bot-api-client.js";
 import { classifyPendingAssetsWithAI } from "../../drive/ai-project-classifier.js";
@@ -1356,7 +1361,7 @@ export const portalRoutes = new Hono()
       const data = await listPersonalZaloGroups();
       return c.json({ ok: true, ...data });
     } catch (err: any) {
-      return c.json({ ok: false, error: err?.message || "Chưa kết nối tài khoản Zalo cá nhân", groups: [] }, 400);
+      return c.json({ ok: false, connected: false, error: err?.message || "Chưa kết nối tài khoản Zalo cá nhân", groups: [] });
     }
   })
 
@@ -1536,5 +1541,77 @@ export const portalRoutes = new Hono()
     } catch (err: any) {
       return c.json({ ok: false, error: err?.message || "Gửi nhắc việc nhóm thất bại" }, 500);
     }
+  })
+
+  // --- API CHUYỂN TIẾP TIN NHẮN ZALO BOT SANG NHÓM KHÁC ---
+  .get("/api/bot-forwarding", (c) => {
+    const accountId = c.req.query("accountId") || "bot-tro-ly-jay";
+    const targets = listBotTargets(accountId);
+    const rules = db
+      .prepare("SELECT * FROM pm_bot_forward_rules WHERE account_id = ? ORDER BY id DESC")
+      .all(accountId);
+    return c.json({ ok: true, accountId, targets, rules });
+  })
+
+  .post("/api/bot-forwarding/rename", async (c) => {
+    const body = await c.req.json<{ accountId?: string; threadId: string; displayName: string }>();
+    if (!body.threadId || !body.displayName?.trim()) {
+      return c.json({ ok: false, error: "Thiếu threadId hoặc tên mới" }, 400);
+    }
+    renameBotThread(body.accountId || "bot-tro-ly-jay", body.threadId, body.displayName);
+    return c.json({ ok: true });
+  })
+
+  .post("/api/bot-forwarding/send", async (c) => {
+    const body = await c.req.json<{
+      accountId?: string;
+      targetThreadIds: string[];
+      message: string;
+      senderLabel?: string;
+    }>();
+    if (!Array.isArray(body.targetThreadIds) || body.targetThreadIds.length === 0 || !body.message?.trim()) {
+      return c.json({ ok: false, error: "Cần chọn ít nhất 1 nhóm/người nhận và nhập nội dung" }, 400);
+    }
+    const header = body.senderLabel?.trim()
+      ? `📨 [Chuyển tiếp từ ${body.senderLabel.trim()}]:\n`
+      : `📨 [Thông báo chuyển tiếp từ Zalo Bot]:\n`;
+    const res = await forwardViaBotClient({
+      accountId: body.accountId || "bot-tro-ly-jay",
+      targetThreadIds: body.targetThreadIds,
+      text: `${header}${body.message.trim()}`,
+    });
+    return c.json({ ok: res.sentCount > 0, ...res }, res.sentCount > 0 ? 200 : 400);
+  })
+
+  .post("/api/bot-forwarding/rules", async (c) => {
+    const body = await c.req.json<{
+      accountId?: string;
+      source_thread_id: string;
+      target_thread_id: string;
+      keyword_filter?: string;
+      prefix_label?: string;
+    }>();
+    if (!body.source_thread_id || !body.target_thread_id || body.source_thread_id === body.target_thread_id) {
+      return c.json({ ok: false, error: "Cần chọn nhóm nguồn và nhóm đích khác nhau" }, 400);
+    }
+    const row = db
+      .prepare(
+        `INSERT INTO pm_bot_forward_rules (account_id, source_thread_id, target_thread_id, keyword_filter, prefix_label, enabled)
+         VALUES (?, ?, ?, ?, ?, 1) RETURNING id`,
+      )
+      .get(
+        body.accountId || "bot-tro-ly-jay",
+        body.source_thread_id,
+        body.target_thread_id,
+        body.keyword_filter || "",
+        body.prefix_label || "",
+      ) as { id: number };
+    return c.json({ ok: true, id: row.id });
+  })
+
+  .delete("/api/bot-forwarding/rules/:id", (c) => {
+    const id = Number(c.req.param("id"));
+    db.prepare("DELETE FROM pm_bot_forward_rules WHERE id = ?").run(id);
+    return c.json({ ok: true });
   });
 

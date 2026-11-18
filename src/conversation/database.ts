@@ -1069,6 +1069,40 @@ function taoBangWorkTracker(database: DatabaseSync): void {
       updTaskCl.run(JSON.stringify(cl), newPct, newStatus, row.id);
     }
   }
+
+  // Bảng luật tự động chuyển tiếp tin nhắn cho Zalo Bot + đặt tên mặc định cho các nhóm bot chưa có tên
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_bot_forward_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id TEXT NOT NULL DEFAULT 'bot-tro-ly-jay',
+      source_thread_id TEXT NOT NULL,
+      target_thread_id TEXT NOT NULL,
+      keyword_filter TEXT DEFAULT '',
+      prefix_label TEXT DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  const unnamedGroups = database
+    .prepare("SELECT account_id, thread_id FROM threads WHERE thread_type = 1 AND (display_name IS NULL OR display_name = '') ORDER BY last_message_at DESC")
+    .all() as Array<{ account_id: string; thread_id: string }>;
+  if (unnamedGroups.length > 0) {
+    const grpCounters = new Map<string, number>();
+    const updThreadName = database.prepare(
+      "UPDATE threads SET display_name = ? WHERE account_id = ? AND thread_id = ?",
+    );
+    for (const g of unnamedGroups) {
+      const existingCount = (
+        database
+          .prepare("SELECT count(*) as c FROM threads WHERE account_id = ? AND thread_type = 1 AND display_name != ''")
+          .get(g.account_id) as { c: number }
+      ).c;
+      const idx = (grpCounters.get(g.account_id) ?? existingCount) + 1;
+      grpCounters.set(g.account_id, idx);
+      updThreadName.run(`Nhóm Zalo ${idx}`, g.account_id, g.thread_id);
+    }
+  }
 }
 
 export function closeDatabase(): void {
