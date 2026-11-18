@@ -1119,7 +1119,7 @@
               <div>
                 <div class="card-title">📨 Chuyển tiếp tin nhắn sang nhóm khác (Qua Zalo Bot Trợ Lý Jay)</div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                  Chuyển tiếp nhanh sang 1 hoặc nhiều nhóm cùng lúc, hoặc cài cầu nối tự động chuyển từ Nhóm A sang Nhóm B. Trên Zalo cũng có thể gõ: <code>chuyển sang Nhóm 2: Nội dung</code>.
+                  Chuyển tiếp nhanh sang 1 hoặc nhiều nhóm cùng lúc, hoặc cài cầu nối tự động chuyển từ Nhóm A sang Nhóm B. Trên Zalo gõ: <code>chuyển sang Nhóm Test: Nội dung</code> hoặc <code>đặt tên nhóm 1: Tên mới</code>.
                 </div>
               </div>
               <button class="btn btn-soft btn-sm" onclick="loadBotForwarding()">↻ Làm mới danh sách Bot</button>
@@ -1133,14 +1133,13 @@
                       <tr>
                         <th style="width:44px; text-align:center;">Chọn</th>
                         <th style="width:44px; text-align:center;">STT</th>
-                        <th>Loại</th>
-                        <th>Tên hiển thị (Sửa được)</th>
-                        <th>Mã Thread ID</th>
-                        <th>Người nhắn gần nhất</th>
+                        <th style="width:90px;">Loại</th>
+                        <th style="min-width:240px;">Tên nhóm / Người nhận (Sửa &amp; Lưu)</th>
+                        <th>Thành viên &amp; Tin nhắn nhận diện</th>
                       </tr>
                     </thead>
                     <tbody id="bot-targets-tbody">
-                      <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
+                      <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1328,14 +1327,14 @@
       return jsonRes({ ok: true, tagged: true, matchedName: body.memberName || 'Thành viên' });
     }
     if (url.indexOf('/portal/api/bot-forwarding') === 0) {
-      if (!st.botTargets) {
+      if (!st.botTargets || !st.botTargets[0] || !st.botTargets[0].memberNames || st.botTargets[0].displayName === 'Nhóm Khởi Minh') {
         st.botTargets = [
-          { index: 1, accountId: 'bot-tro-ly-jay', threadId: 'zgr-a0378ef36c9c85c2dc8d', threadType: 1, displayName: 'Nhóm Zalo 1', lastSenderName: 'Huy Nguyễn' },
-          { index: 2, accountId: 'bot-tro-ly-jay', threadId: 'zgr-88fc6d2b7c45951bcc54', threadType: 1, displayName: 'Nhóm Zalo 2', lastSenderName: 'Huy Nguyễn' },
-          { index: 3, accountId: 'bot-tro-ly-jay', threadId: 'c06034026e41871fde50', threadType: 0, displayName: 'Huy Nguyễn', lastSenderName: 'Huy Nguyễn' },
-          { index: 4, accountId: 'bot-tro-ly-jay', threadId: '7c0045282b7dc2239b6c', threadType: 0, displayName: 'Tôn Sa', lastSenderName: 'Tôn Sa' }
+          { index: 1, accountId: 'bot-tro-ly-jay', threadId: 'zgr-a0378ef36c9c85c2dc8d', threadType: 1, displayName: 'KM-3 ANH CHỊ EM', lastSenderName: 'Huy Nguyễn', memberNames: ['Huy Nguyễn', 'Project Manager - Khởi Minh', 'Info - Khởi Minh'], lastMessagePreview: 'Nhắc lịch nhận hộp đựng tranh dát vàng & bút chì' },
+          { index: 2, accountId: 'bot-tro-ly-jay', threadId: 'zgr-88fc6d2b7c45951bcc54', threadType: 1, displayName: 'Nhóm Test', lastSenderName: 'Huy Nguyễn', memberNames: ['Huy Nguyễn'], lastMessagePreview: 'Kiểm tra kết nối Bot Trợ Lý Jay' },
+          { index: 3, accountId: 'bot-tro-ly-jay', threadId: 'c06034026e41871fde50', threadType: 0, displayName: 'Huy Nguyễn', lastSenderName: 'Huy Nguyễn', memberNames: ['Huy Nguyễn'], lastMessagePreview: 'ds nhóm' },
+          { index: 4, accountId: 'bot-tro-ly-jay', threadId: '7c0045282b7dc2239b6c', threadType: 0, displayName: 'Tôn Sa', lastSenderName: 'Tôn Sa', memberNames: ['Tôn Sa'], lastMessagePreview: '' }
         ];
-        st.botRules = [];
+        if (!st.botRules) st.botRules = [];
       }
       if (url === '/portal/api/bot-forwarding' && method === 'GET') return jsonRes({ ok: true, targets: st.botTargets, rules: st.botRules });
       if (url === '/portal/api/bot-forwarding/rename' && method === 'POST') { var tr = st.botTargets.find(function(t) { return t.threadId === body.threadId; }); if (tr) tr.displayName = body.displayName; saveStore(st); return jsonRes({ ok: true }); }
@@ -2601,6 +2600,12 @@
       } catch (e) {}
     }
 
+    function saveBotThreadRenameBtn(btn) {
+      var wrap = btn ? btn.parentNode : null;
+      var inp = wrap ? wrap.querySelector('input[data-tid]') : null;
+      if (inp) renameBotThreadFromInput(inp);
+    }
+
     function renameBotThreadFromInput(inp) {
       var tid = inp.getAttribute('data-tid');
       var name = inp.value.trim();
@@ -2621,17 +2626,21 @@
       var tbody = document.getElementById('bot-targets-tbody');
       if (tbody) {
         if (targets.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
         } else {
           tbody.innerHTML = targets.map(function(t) {
             var kind = t.threadType === 1 ? '<span class="badge">Nhóm</span>' : '<span class="badge muted">Cá nhân</span>';
+            var members = (t.memberNames && t.memberNames.length > 0) ? t.memberNames.slice(0, 4).join(', ') : (t.lastSenderName || '-');
+            var infoHtml = '<div title="ID nội bộ: ' + esc(t.threadId) + '">' +
+              '<div style="font-size:12px; color:var(--text-main);"><strong>Thành viên:</strong> ' + esc(members) + '</div>' +
+              (t.lastMessagePreview ? '<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">💬 "' + esc(t.lastMessagePreview) + '"</div>' : '') +
+              '</div>';
             return '<tr>' +
               '<td style="text-align:center;"><input type="checkbox" class="fw-target-chk" value="' + esc(t.threadId) + '"></td>' +
               '<td style="text-align:center; font-weight:700;">' + t.index + '</td>' +
               '<td>' + kind + '</td>' +
-              '<td><input class="wt-cell-input" style="font-weight:600;" data-tid="' + esc(t.threadId) + '" value="' + esc(t.displayName) + '" onchange="renameBotThreadFromInput(this)"></td>' +
-              '<td style="font-family:JetBrains Mono,monospace; font-size:11.5px; color:var(--text-muted);">' + esc(t.threadId) + '</td>' +
-              '<td style="font-size:12px; color:var(--text-muted);">' + esc(t.lastSenderName || '-') + '</td>' +
+              '<td><div style="display:flex; align-items:center; gap:6px;"><input class="wt-cell-input" style="font-weight:600; flex:1;" data-tid="' + esc(t.threadId) + '" value="' + esc(t.displayName) + '" onchange="renameBotThreadFromInput(this)"><button type="button" class="btn btn-soft btn-sm" style="padding:4px 8px; font-size:11px; white-space:nowrap;" onclick="saveBotThreadRenameBtn(this)">Lưu tên</button></div></td>' +
+              '<td>' + infoHtml + '</td>' +
             '</tr>';
           }).join('');
         }

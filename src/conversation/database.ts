@@ -1084,24 +1084,18 @@ function taoBangWorkTracker(database: DatabaseSync): void {
     );
   `);
 
-  const unnamedGroups = database
-    .prepare("SELECT account_id, thread_id FROM threads WHERE thread_type = 1 AND (display_name IS NULL OR display_name = '') ORDER BY last_message_at DESC")
-    .all() as Array<{ account_id: string; thread_id: string }>;
-  if (unnamedGroups.length > 0) {
-    const grpCounters = new Map<string, number>();
-    const updThreadName = database.prepare(
-      "UPDATE threads SET display_name = ? WHERE account_id = ? AND thread_id = ?",
-    );
-    for (const g of unnamedGroups) {
-      const existingCount = (
-        database
-          .prepare("SELECT count(*) as c FROM threads WHERE account_id = ? AND thread_type = 1 AND display_name != ''")
-          .get(g.account_id) as { c: number }
-      ).c;
-      const idx = (grpCounters.get(g.account_id) ?? existingCount) + 1;
-      grpCounters.set(g.account_id, idx);
-      updThreadName.run(`Nhóm Zalo ${idx}`, g.account_id, g.thread_id);
-    }
+  const knownGroupAliases: Record<string, string> = {
+    "zgr-a0378ef36c9c85c2dc8d": "KM-3 ANH CHỊ EM",
+    "zgr-88fc6d2b7c45951bcc54": "Nhóm Test",
+  };
+  const updKnownGroupName = database.prepare(
+    `UPDATE threads
+     SET display_name = ?
+     WHERE thread_type = 1 AND thread_id = ?
+       AND (display_name IS NULL OR display_name = '' OR display_name LIKE 'Nhóm Zalo %' OR display_name = 'Nhóm Khởi Minh')`,
+  );
+  for (const [tid, alias] of Object.entries(knownGroupAliases)) {
+    updKnownGroupName.run(alias, tid);
   }
 }
 

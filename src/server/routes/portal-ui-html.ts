@@ -1122,7 +1122,7 @@ export function renderPortalHtml(): string {
               <div>
                 <div class="card-title">📨 Chuyển tiếp tin nhắn sang nhóm khác (Qua Zalo Bot Trợ Lý Jay)</div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                  Chuyển tiếp nhanh sang 1 hoặc nhiều nhóm cùng lúc, hoặc cài cầu nối tự động chuyển từ Nhóm A sang Nhóm B. Trên Zalo cũng có thể gõ: <code>chuyển sang Nhóm 2: Nội dung</code>.
+                  Chuyển tiếp nhanh sang 1 hoặc nhiều nhóm cùng lúc, hoặc cài cầu nối tự động chuyển từ Nhóm A sang Nhóm B. Trên Zalo gõ: <code>chuyển sang Nhóm Test: Nội dung</code> hoặc <code>đặt tên nhóm 1: Tên mới</code>.
                 </div>
               </div>
               <button class="btn btn-soft btn-sm" onclick="loadBotForwarding()">↻ Làm mới danh sách Bot</button>
@@ -1136,14 +1136,13 @@ export function renderPortalHtml(): string {
                       <tr>
                         <th style="width:44px; text-align:center;">Chọn</th>
                         <th style="width:44px; text-align:center;">STT</th>
-                        <th>Loại</th>
-                        <th>Tên hiển thị (Sửa được)</th>
-                        <th>Mã Thread ID</th>
-                        <th>Người nhắn gần nhất</th>
+                        <th style="width:90px;">Loại</th>
+                        <th style="min-width:240px;">Tên nhóm / Người nhận (Sửa &amp; Lưu)</th>
+                        <th>Thành viên &amp; Tin nhắn nhận diện</th>
                       </tr>
                     </thead>
                     <tbody id="bot-targets-tbody">
-                      <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
+                      <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2352,6 +2351,12 @@ export function renderPortalHtml(): string {
       } catch (e) {}
     }
 
+    function saveBotThreadRenameBtn(btn) {
+      var wrap = btn ? btn.parentNode : null;
+      var inp = wrap ? wrap.querySelector('input[data-tid]') : null;
+      if (inp) renameBotThreadFromInput(inp);
+    }
+
     function renameBotThreadFromInput(inp) {
       var tid = inp.getAttribute('data-tid');
       var name = inp.value.trim();
@@ -2372,17 +2377,21 @@ export function renderPortalHtml(): string {
       var tbody = document.getElementById('bot-targets-tbody');
       if (tbody) {
         if (targets.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
         } else {
           tbody.innerHTML = targets.map(function(t) {
             var kind = t.threadType === 1 ? '<span class="badge">Nhóm</span>' : '<span class="badge muted">Cá nhân</span>';
+            var members = (t.memberNames && t.memberNames.length > 0) ? t.memberNames.slice(0, 4).join(', ') : (t.lastSenderName || '-');
+            var infoHtml = '<div title="ID nội bộ: ' + esc(t.threadId) + '">' +
+              '<div style="font-size:12px; color:var(--text-main);"><strong>Thành viên:</strong> ' + esc(members) + '</div>' +
+              (t.lastMessagePreview ? '<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">💬 "' + esc(t.lastMessagePreview) + '"</div>' : '') +
+              '</div>';
             return '<tr>' +
               '<td style="text-align:center;"><input type="checkbox" class="fw-target-chk" value="' + esc(t.threadId) + '"></td>' +
               '<td style="text-align:center; font-weight:700;">' + t.index + '</td>' +
               '<td>' + kind + '</td>' +
-              '<td><input class="wt-cell-input" style="font-weight:600;" data-tid="' + esc(t.threadId) + '" value="' + esc(t.displayName) + '" onchange="renameBotThreadFromInput(this)"></td>' +
-              '<td style="font-family:JetBrains Mono,monospace; font-size:11.5px; color:var(--text-muted);">' + esc(t.threadId) + '</td>' +
-              '<td style="font-size:12px; color:var(--text-muted);">' + esc(t.lastSenderName || '-') + '</td>' +
+              '<td><div style="display:flex; align-items:center; gap:6px;"><input class="wt-cell-input" style="font-weight:600; flex:1;" data-tid="' + esc(t.threadId) + '" value="' + esc(t.displayName) + '" onchange="renameBotThreadFromInput(this)"><button type="button" class="btn btn-soft btn-sm" style="padding:4px 8px; font-size:11px; white-space:nowrap;" onclick="saveBotThreadRenameBtn(this)">Lưu tên</button></div></td>' +
+              '<td>' + infoHtml + '</td>' +
             '</tr>';
           }).join('');
         }
