@@ -36,6 +36,63 @@ import {
   scanGroupHistoryForAssets,
 } from "../../drive/zalo-history-collector.js";
 
+type PortalChecklistItem = {
+  id: string;
+  text: string;
+  done: boolean;
+  cancelled?: boolean;
+};
+
+function computeChecklistState(
+  items: PortalChecklistItem[],
+  existingProgress: number,
+  targetStatus?: string,
+): { progress: number; status: "pending" | "in_progress" | "completed" } {
+  if (items.length === 0) {
+    const p = Math.min(100, Math.max(0, Number(existingProgress) || 0));
+    const st =
+      targetStatus === "completed" || targetStatus === "done" || p >= 100
+        ? "completed"
+        : targetStatus === "pending" || p <= 0
+          ? "pending"
+          : "in_progress";
+    return { progress: st === "completed" ? 100 : st === "pending" ? 0 : p, status: st };
+  }
+
+  const doneCount = items.filter((i) => i.done && !i.cancelled).length;
+  const cancelledCount = items.filter((i) => i.cancelled).length;
+  const activeCount = items.length - cancelledCount;
+
+  if (doneCount === 0 && cancelledCount === 0) {
+    return { progress: 0, status: "pending" };
+  }
+  if (
+    (activeCount > 0 && doneCount === activeCount) ||
+    (cancelledCount === items.length && (targetStatus === "completed" || targetStatus === "done"))
+  ) {
+    return { progress: 100, status: "completed" };
+  }
+  if (doneCount > 0 && doneCount < activeCount) {
+    return {
+      progress: Math.min(99, Math.max(1, Math.round((doneCount / activeCount) * 100))),
+      status: "in_progress",
+    };
+  }
+  if (doneCount === 0 && cancelledCount > 0 && activeCount > 0) {
+    if (targetStatus === "in_progress") {
+      return {
+        progress: Math.min(99, Math.max(1, Math.round((cancelledCount / items.length) * 100))),
+        status: "in_progress",
+      };
+    }
+    return { progress: 0, status: "pending" };
+  }
+  // All cancelled without completed targetStatus
+  return targetStatus === "in_progress"
+    ? { progress: 50, status: "in_progress" }
+    : { progress: 100, status: "completed" };
+}
+
 function checkPortalAdminPin(c: { req: { header: (k: string) => string | undefined; query: (k: string) => string | undefined } }): boolean {
   const pin = (c.req.header("x-admin-pin") || c.req.query("adminPin") || "").trim();
   if (!pin) return false;
@@ -291,7 +348,7 @@ export const portalRoutes = new Hono()
     stages.forEach(s => stagesMap.set(s.id, s.title));
 
     const tasks = rawTasks.map(t => {
-      let checklistArr: { id: string; text: string; done: boolean }[] = [];
+      let checklistArr: PortalChecklistItem[] = [];
       try {
         if (t.checklist) checklistArr = JSON.parse(t.checklist);
       } catch {
@@ -1107,6 +1164,7 @@ export const portalRoutes = new Hono()
     let newStatus = body.status || current.status;
 
     if (newProgress >= 100) newStatus = "completed";
+    else if (newProgress <= 0 && !body.status) newStatus = "pending";
 
     db.prepare(`
       UPDATE pm_tasks
@@ -1136,11 +1194,14 @@ export const portalRoutes = new Hono()
   // API Tương tác Checklist việc nhỏ bên trong công việc
   .post("/api/tasks/:id/checklist", async (c) => {
     const id = Number(c.req.param("id"));
-    const { action, text, itemId } = await c.req.json<{
-      action: "add" | "toggle" | "delete";
+    const body = await c.req.json<{
+      action: "add" | "toggle" | "delete" | "cancel" | "bulk_update";
       text?: string;
       itemId?: string;
+      items?: PortalChecklistItem[];
+      targetStatus?: string;
     }>();
+    const { action, text, itemId } = body;
 
     const task = db.prepare("SELECT checklist, progress FROM pm_tasks WHERE id = ?").get(id) as {
       checklist?: string;
@@ -1149,7 +1210,7 @@ export const portalRoutes = new Hono()
 
     if (!task) return c.json({ ok: false, error: "Không tìm thấy công việc" }, 404);
 
-    let items: { id: string; text: string; done: boolean }[] = [];
+    let items: PortalChecklistItem[] = [];
     try {
       if (task.checklist) items = JSON.parse(task.checklist);
     } catch {
@@ -1157,30 +1218,60 @@ export const portalRoutes = new Hono()
     }
 
     if (action === "add" && text?.trim()) {
-      items.push({ id: Date.now().toString(), text: text.trim(), done: false });
+      items.push({ id: Date.now().toString(), text: text.trim(), done: false, cancelled: false });
     } else if (action === "toggle" && itemId) {
-      const it = items.find(i => i.id === itemId);
-      if (it) it.done = !it.done;
+      const it = items.find(i => String(i.id) === String(itemId));
+      if (it) {
+        if (it.cancelled) {
+          it.cancelled = false;
+          it.done = true;
+        } else {
+          it.done = !it.done;
+          it.cancelled = false;
+        }
+      }
+    } else if (action === "cancel" && itemId) {
+      const it = items.find(i => String(i.id) === String(itemId));
+      if (it) {
+        it.cancelled = !it.cancelled;
+        if (it.cancelled) it.done = false;
+      }
+    } else if (action === "bulk_update") {
+      if (body.targetStatus === "pending") {
+        items = items.map(i => ({ ...i, done: false, cancelled: false }));
+      } else if (Array.isArray(body.items) && body.items.length > 0) {
+        const byId = new Map(body.items.map(x => [String(x.id), x]));
+        items = items.map(i => {
+          const upd = byId.get(String(i.id));
+          if (!upd) return i;
+          const isCancelled = Boolean(upd.cancelled);
+          return {
+            ...i,
+            done: isCancelled ? false : Boolean(upd.done),
+            cancelled: isCancelled,
+          };
+        });
+      }
     } else if (action === "delete" && itemId) {
-      items = items.filter(i => i.id !== itemId);
+      items = items.filter(i => String(i.id) !== String(itemId));
     }
 
-    let newProgress = task.progress;
-    if (items.length > 0) {
-      const doneCount = items.filter(i => i.done).length;
-      newProgress = Math.round((doneCount / items.length) * 100);
-    }
+    const { progress: newProgress, status: newStatus } = computeChecklistState(
+      items,
+      task.progress,
+      body.targetStatus,
+    );
 
     db.prepare(`
       UPDATE pm_tasks
       SET checklist = ?,
           progress = ?,
-          status = CASE WHEN ? >= 100 THEN 'completed' WHEN ? > 0 THEN 'in_progress' ELSE 'pending' END,
+          status = ?,
           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
       WHERE id = ?
-    `).run(JSON.stringify(items), newProgress, newProgress, newProgress, id);
+    `).run(JSON.stringify(items), newProgress, newStatus, id);
 
-    return c.json({ ok: true, checklist: items, progress: newProgress });
+    return c.json({ ok: true, checklist: items, progress: newProgress, status: newStatus });
   })
 
   // API Người phụ trách báo tiến độ cho Bot -> Bot đối chiếu đầu mục con & tự kéo thanh tiến độ

@@ -586,6 +586,22 @@ export function renderPortalHtml(): string {
       color: #059669;
       text-decoration: line-through;
     }
+    .cl-item.cancelled {
+      color: #94A3B8;
+      text-decoration: line-through;
+    }
+    .cl-cancel-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #FEF2F2;
+      color: #DC2626;
+      font-weight: 600;
+      margin-left: auto;
+      flex-shrink: 0;
+      text-decoration: none;
+      display: inline-block;
+    }
     .cl-report {
       font-size: 11px;
       color: var(--primary);
@@ -1428,6 +1444,24 @@ export function renderPortalHtml(): string {
     </div>
   </div>
 
+  <div id="checklist-transition-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#fff; border:1px solid var(--border); border-radius:12px; width:100%; max-width:540px; padding:22px; box-shadow:0 20px 40px rgba(15,23,42,0.18);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px;">
+        <div id="cl-modal-title" style="font-size:15.5px; font-weight:700; color:var(--text-main);">Xác nhận đầu mục công việc</div>
+        <span id="cl-modal-target-badge" class="badge"></span>
+      </div>
+      <div id="cl-modal-subtitle" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.45;">
+        Vui lòng tick (&#9745;) vào những đầu mục đã làm. Những đầu mục không tick sẽ được đánh dấu là <strong>Bị huỷ</strong>.
+      </div>
+      <div id="cl-modal-items" style="display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; margin-bottom:16px;"></div>
+      <div style="display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-soft" onclick="closeChecklistTransitionModal()">Đóng / Huỷ thao tác</button>
+        <button id="cl-modal-keep-btn" class="btn" style="display:none;" onclick="confirmChecklistTransition(false)">⏳ Lưu mục đã tick (Giữ mục còn lại làm tiếp)</button>
+        <button id="cl-modal-confirm-btn" class="btn btn-primary" onclick="confirmChecklistTransition(true)">✅ Xác nhận (Mục không tick = Bị huỷ)</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-box" id="toast-box"></div>
 
   <script>
@@ -1907,6 +1941,129 @@ export function renderPortalHtml(): string {
       ev.currentTarget.classList.remove('drag-over');
     }
 
+    function deriveTaskKanbanStatus(t) {
+      var cl = Array.isArray(t.checklist) ? t.checklist : [];
+      if (cl.length > 0) {
+        var clDone = cl.filter(function(i) { return i.done && !i.cancelled; }).length;
+        var clCancelled = cl.filter(function(i) { return i.cancelled; }).length;
+        var clActive = cl.length - clCancelled;
+        if (clDone === 0 && clCancelled === 0) return 'pending';
+        if ((clActive > 0 && clDone === clActive) || (clCancelled === cl.length && (t.status === 'completed' || t.status === 'done'))) return 'done';
+        return 'in_progress';
+      }
+      if (t.progress >= 100 || t.status === 'completed' || t.status === 'done') return 'done';
+      if (t.status === 'in_progress' || (t.progress || 0) > 0) return 'in_progress';
+      return 'pending';
+    }
+
+    var pendingTransitionModal = null;
+
+    function openChecklistTransitionModal(taskId, targetStatus) {
+      var t = (pmData.tasks || []).find(function(x) { return x.id === taskId; });
+      if (!t) return;
+      var cl = Array.isArray(t.checklist) ? t.checklist : [];
+      pendingTransitionModal = {
+        taskId: taskId,
+        targetStatus: targetStatus,
+        items: cl.map(function(i) {
+          return {
+            id: String(i.id),
+            text: i.text,
+            done: Boolean(i.done && !i.cancelled),
+            cancelled: Boolean(i.cancelled),
+            keepActive: false
+          };
+        })
+      };
+      var isDoneTarget = targetStatus === 'completed' || targetStatus === 'done';
+      document.getElementById('cl-modal-title').textContent = 'Xác nhận đầu mục: ' + (t.title || 'Công việc');
+      var badge = document.getElementById('cl-modal-target-badge');
+      badge.className = 'badge ' + (isDoneTarget ? 'done' : '');
+      badge.textContent = isDoneTarget ? 'Chuyển → Hoàn thành' : 'Chuyển → Đang thực hiện';
+      document.getElementById('cl-modal-subtitle').innerHTML = isDoneTarget
+        ? 'Bạn đang chuyển công việc sang <strong>Hoàn thành</strong>. Hãy tick (&#9745;) những việc đã làm — các việc không tick sẽ được đánh dấu là <strong>Bị huỷ</strong>.'
+        : 'Bạn đang chuyển công việc sang <strong>Đang thực hiện</strong> nhưng chưa có đầu mục nào phù hợp được tick. Hãy tick (&#9745;) việc đã làm; các việc không tick sẽ mặc định là <strong>Bị huỷ</strong> (hoặc bấm giữ làm tiếp).';
+      document.getElementById('cl-modal-keep-btn').style.display = isDoneTarget ? 'none' : 'inline-flex';
+      document.getElementById('cl-modal-confirm-btn').textContent = isDoneTarget
+        ? '✅ Xác nhận Hoàn thành (Mục không tick = Bị huỷ)'
+        : '✅ Xác nhận (Mục không tick = Bị huỷ)';
+      renderChecklistTransitionModalItems();
+      document.getElementById('checklist-transition-modal').style.display = 'flex';
+    }
+
+    function renderChecklistTransitionModalItems() {
+      var wrap = document.getElementById('cl-modal-items');
+      if (!wrap || !pendingTransitionModal) return;
+      var isInProg = pendingTransitionModal.targetStatus === 'in_progress';
+      wrap.innerHTML = pendingTransitionModal.items.map(function(item, idx) {
+        var rightCtrl = '';
+        if (item.done) {
+          rightCtrl = '<span class="badge done" style="flex-shrink:0;">✅ Đã làm</span>';
+        } else if (isInProg) {
+          rightCtrl = '<button type="button" class="btn btn-sm" style="height:24px; font-size:11px; padding:0 8px; flex-shrink:0;" onclick="event.preventDefault(); event.stopPropagation(); toggleModalItemMode(' + idx + ')">' +
+            (item.keepActive ? '⏳ Chờ làm tiếp' : '🚫 Bị huỷ (Không tick)') +
+          '</button>';
+        } else {
+          rightCtrl = '<span class="cl-cancel-badge" style="font-size:11px; padding:2px 8px;">🚫 Bị huỷ (Không tick)</span>';
+        }
+        return '<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; background:' + (item.done ? '#ECFDF5' : (item.keepActive ? '#FFFFFF' : '#FEF2F2')) + ';">' +
+          '<input type="checkbox" style="width:17px; height:17px; cursor:pointer; flex-shrink:0;"' + (item.done ? ' checked' : '') + ' onchange="toggleModalChecklistCheck(' + idx + ', this.checked)">' +
+          '<span style="flex:1; font-size:13px; color:var(--text-main); ' + (!item.done && !item.keepActive ? 'text-decoration:line-through; color:#64748B;' : 'font-weight:600;') + '">' + esc(item.text) + '</span>' +
+          rightCtrl +
+        '</label>';
+      }).join('');
+    }
+
+    function toggleModalChecklistCheck(idx, checked) {
+      if (!pendingTransitionModal || !pendingTransitionModal.items[idx]) return;
+      var item = pendingTransitionModal.items[idx];
+      item.done = Boolean(checked);
+      if (item.done) {
+        item.cancelled = false;
+        item.keepActive = false;
+      }
+      renderChecklistTransitionModalItems();
+    }
+
+    function toggleModalItemMode(idx) {
+      if (!pendingTransitionModal || !pendingTransitionModal.items[idx]) return;
+      pendingTransitionModal.items[idx].keepActive = !pendingTransitionModal.items[idx].keepActive;
+      renderChecklistTransitionModalItems();
+    }
+
+    function closeChecklistTransitionModal() {
+      pendingTransitionModal = null;
+      var el = document.getElementById('checklist-transition-modal');
+      if (el) el.style.display = 'none';
+    }
+
+    async function confirmChecklistTransition(cancelUnticked) {
+      if (!pendingTransitionModal) return;
+      var state = pendingTransitionModal;
+      var checkedCount = state.items.filter(function(i) { return i.done; }).length;
+      if (!cancelUnticked && checkedCount === 0) {
+        showToast('Vui lòng tick ít nhất 1 đầu mục đã làm!', true);
+        return;
+      }
+      var payloadItems = state.items.map(function(i) {
+        if (i.done) return { id: i.id, text: i.text, done: true, cancelled: false };
+        var keep = !cancelUnticked || (state.targetStatus === 'in_progress' && i.keepActive);
+        return { id: i.id, text: i.text, done: false, cancelled: !keep };
+      });
+      await fetch('/portal/api/tasks/' + state.taskId + '/checklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'bulk_update',
+          targetStatus: state.targetStatus,
+          items: payloadItems
+        })
+      });
+      closeChecklistTransitionModal();
+      showToast('Đã cập nhật trạng thái công việc & đầu mục!');
+      await loadProjectsData(activeProjectId);
+    }
+
     async function onColDrop(ev) {
       ev.preventDefault();
       ev.currentTarget.classList.remove('drag-over');
@@ -1931,6 +2088,34 @@ export function renderPortalHtml(): string {
       }
 
       if (targetStatus) {
+        var cl = Array.isArray(t.checklist) ? t.checklist : [];
+        if (cl.length > 0) {
+          var curStatus = deriveTaskKanbanStatus(t);
+          var clDone = cl.filter(function(i) { return i.done && !i.cancelled; }).length;
+          var clActive = cl.filter(function(i) { return !i.cancelled; }).length;
+          if (targetStatus === 'pending') {
+            await fetch('/portal/api/tasks/' + id + '/checklist', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'bulk_update', targetStatus: 'pending' })
+            });
+            showToast('Đã đưa "' + t.title + '" về Chờ làm (0% — bỏ tick đầu mục)');
+            loadProjectsData(activeProjectId);
+            return;
+          }
+          if (targetStatus === 'in_progress') {
+            if (clDone === 0 || (curStatus === 'done' && clActive > 0 && clDone === clActive)) {
+              openChecklistTransitionModal(t.id, 'in_progress');
+              return;
+            }
+          }
+          if (targetStatus === 'done') {
+            if (clDone < clActive || (curStatus !== 'done' && clDone === 0)) {
+              openChecklistTransitionModal(t.id, 'completed');
+              return;
+            }
+          }
+        }
         var nextPct = targetStatus === 'done' ? 100 : (targetStatus === 'pending' ? 0 : (t.progress > 0 && t.progress < 100 ? t.progress : 50));
         await fetch('/portal/api/tasks/' + id, {
           method: 'PATCH',
@@ -2063,19 +2248,26 @@ export function renderPortalHtml(): string {
     }
 
     function renderKanbanCard(t, showStageBadge) {
-      var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
-      var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (t.progress > 0 ? 'Đang làm' : 'Chờ làm'));
-      var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (t.progress > 0 ? '' : 'muted'));
+      var stKey = deriveTaskKanbanStatus(t);
+      var isDone = stKey === 'done';
+      var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (stKey === 'in_progress' ? 'Đang làm' : 'Chờ làm'));
+      var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (stKey === 'in_progress' ? '' : 'muted'));
       var cl = Array.isArray(t.checklist) ? t.checklist : [];
-      var clDone = cl.filter(function(i) { return i.done; }).length;
+      var clDone = cl.filter(function(i) { return i.done && !i.cancelled; }).length;
+      var clCancelled = cl.filter(function(i) { return i.cancelled; }).length;
+      var clActive = cl.length - clCancelled;
       var clHtml = cl.map(function(item) {
-        return '<label class="cl-item' + (item.done ? ' done' : '') + '">' +
-          '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + (item.done ? ' checked' : '') + ' onchange="toggleChecklistFromInput(this)">' +
-          '<span>' + esc(item.text) + '</span>' +
+        var itemCls = item.cancelled ? ' cancelled' : (item.done ? ' done' : '');
+        var checkedAttr = (!item.cancelled && item.done) ? ' checked' : '';
+        var cancelBadge = item.cancelled ? '<span class="cl-cancel-badge">Đã huỷ</span>' : '';
+        return '<label class="cl-item' + itemCls + '">' +
+          '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + checkedAttr + ' onchange="toggleChecklistFromInput(this)">' +
+          '<span style="flex:1;">' + esc(item.text) + '</span>' +
+          cancelBadge +
         '</label>';
       }).join('');
 
-      return '<div class="kanban-card" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
+      return '<div class="kanban-card" data-task-id="' + t.id + '" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
         '<div style="font-weight:700; font-size:13.5px; color:var(--text-main); margin-bottom:4px;">' + esc(t.title) + '</div>' +
         '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">' +
           '<span>' + esc(t.assigned_name || t.assigned_phone || 'Chưa gán') + '</span>' +
@@ -2083,7 +2275,7 @@ export function renderPortalHtml(): string {
         '</div>' +
         '<div style="margin-bottom:8px;">' +
           '<div class="progress-header">' +
-            '<span>Tiến độ tự động: ' + clDone + '/' + cl.length + ' đầu mục</span>' +
+            '<span>Tiến độ tự động: ' + clDone + '/' + clActive + ' đầu mục' + (clCancelled > 0 ? ' (Huỷ ' + clCancelled + ')' : '') + '</span>' +
             '<span style="font-family:JetBrains Mono,monospace; color:' + (isDone ? '#059669' : 'var(--primary)') + ';">' + (t.progress || 0) + '%</span>' +
           '</div>' +
           '<div class="progress-track"><div class="progress-fill' + (isDone ? ' done' : '') + '" style="width:' + Math.min(100, Math.max(0, t.progress || 0)) + '%;"></div></div>' +
@@ -2209,9 +2401,7 @@ export function renderPortalHtml(): string {
         ];
         kanban.innerHTML = cols.map(function(col) {
           var colTasks = tasks.filter(function(t) {
-            var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
-            var st = isDone ? 'done' : (t.status === 'in_progress' || t.progress > 0 ? 'in_progress' : 'pending');
-            return st === col.key;
+            return deriveTaskKanbanStatus(t) === col.key;
           });
           var cardsHtml = colTasks.length === 0
             ? '<div style="text-align:center; color:var(--text-muted); font-size:12px; padding:24px 8px; border:1px dashed var(--border); border-radius:8px;">Kéo thẻ công việc vào đây</div>'
@@ -2228,9 +2418,10 @@ export function renderPortalHtml(): string {
         return;
       }
       tbody.innerHTML = tasks.map(function(t) {
-        var stBadge = (t.progress >= 100 || t.status === 'completed' || t.status === 'done')
+        var stKey = deriveTaskKanbanStatus(t);
+        var stBadge = stKey === 'done'
           ? '<span class="badge done">Hoàn thành</span>'
-          : (t.progress > 0 ? '<span class="badge">Đang làm</span>' : '<span class="badge muted">Chờ làm</span>');
+          : (stKey === 'in_progress' ? '<span class="badge">Đang làm</span>' : '<span class="badge muted">Chờ làm</span>');
         return '<tr>' +
           '<td style="font-weight:600;">' + esc(t.title) + '</td>' +
           '<td><span class="badge muted">' + esc(t.stage_title || '-') + '</span></td>' +
@@ -2293,6 +2484,29 @@ export function renderPortalHtml(): string {
 
     async function updateProjectTaskProgress(taskId, val) {
       var pct = Math.min(100, Math.max(0, Number(val) || 0));
+      var t = (pmData.tasks || []).find(function(x) { return x.id === taskId; });
+      var cl = t && Array.isArray(t.checklist) ? t.checklist : [];
+      if (cl.length > 0) {
+        var curStatus = deriveTaskKanbanStatus(t);
+        if (pct <= 0) {
+          await fetch('/portal/api/tasks/' + taskId + '/checklist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bulk_update', targetStatus: 'pending' })
+          });
+          showToast('Đã đưa công việc về Chờ làm (0% — bỏ tick đầu mục)');
+          loadProjectsData(activeProjectId);
+          return;
+        }
+        var wantedStatus = pct >= 100 ? 'completed' : 'in_progress';
+        var clDone = cl.filter(function(i) { return i.done && !i.cancelled; }).length;
+        var clActive = cl.filter(function(i) { return !i.cancelled; }).length;
+        if ((wantedStatus === 'completed' && clDone < clActive) || (wantedStatus === 'in_progress' && (clDone === 0 || (curStatus === 'done' && clActive > 0 && clDone === clActive)))) {
+          loadProjectsData(activeProjectId);
+          openChecklistTransitionModal(taskId, wantedStatus);
+          return;
+        }
+      }
       await fetch('/portal/api/tasks/' + taskId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

@@ -4,6 +4,7 @@ export type ChecklistItem = {
   id: string;
   text: string;
   done: boolean;
+  cancelled?: boolean;
 };
 
 function normalizeVi(raw: string): string {
@@ -243,15 +244,22 @@ export function applyBotProgressReport(params: {
   const newlyCompletedTexts: string[] = [];
 
   for (const item of checklist) {
-    if (matchedIds.includes(item.id) && !item.done) {
+    if (matchedIds.includes(item.id) && (!item.done || item.cancelled)) {
       item.done = true;
+      item.cancelled = false;
       newlyCompletedTexts.push(item.text);
     }
   }
 
-  const totalCount = checklist.length;
-  const doneCount = checklist.filter((i) => i.done).length;
-  const newProgress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : task.progress;
+  const activeItems = checklist.filter((i) => !i.cancelled);
+  const totalCount = activeItems.length;
+  const doneCount = activeItems.filter((i) => i.done).length;
+  const newProgress =
+    totalCount > 0
+      ? Math.round((doneCount / totalCount) * 100)
+      : checklist.length > 0
+        ? 100
+        : task.progress;
   const newStatus = newProgress >= 100 ? "completed" : newProgress > 0 ? "in_progress" : "pending";
 
   const now = new Date();
@@ -265,7 +273,7 @@ export function applyBotProgressReport(params: {
      WHERE id = ?`,
   ).run(JSON.stringify(checklist), newProgress, newStatus, lastReport, task.id);
 
-  const remaining = checklist.filter((i) => !i.done).map((i) => `• ${i.text}`);
+  const remaining = activeItems.filter((i) => !i.done).map((i) => `• ${i.text}`);
   let replyMessage = `🤖 [CẬP NHẬT TIẾN ĐỘ TỪ BOT]\n📌 Công việc: ${task.title}\n`;
   if (newlyCompletedTexts.length > 0) {
     replyMessage += `✅ Bot đã đánh dấu xong (${newlyCompletedTexts.length} đầu mục):\n${newlyCompletedTexts.map((t) => `• ${t}`).join("\n")}\n`;
