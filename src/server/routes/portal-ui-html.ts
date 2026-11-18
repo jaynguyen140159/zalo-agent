@@ -734,15 +734,15 @@ export function renderPortalHtml(): string {
         <button class="nav-item" data-tab="drive" onclick="switchTab('drive')">
           <span class="nav-icon">📁</span> Kho tài liệu &amp; Drive
         </button>
-        <button class="nav-item" data-tab="mention" onclick="switchTab('mention')">
-          <span class="nav-icon">🔔</span> Nhắc việc &amp; Tag nhóm
+        <button class="nav-item admin-only" id="nav-admin-mention" data-tab="mention" style="display:none;" onclick="switchTab('mention')">
+          <span class="nav-icon">🔔</span> Nhắc việc &amp; Chuyển tiếp Bot
         </button>
-        <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
-          <span class="nav-icon">⚙️</span> Cài đặt kết nối
+        <button class="nav-item admin-only" id="nav-admin-settings" data-tab="settings" style="display:none;" onclick="switchTab('settings')">
+          <span class="nav-icon">🤖</span> Quản lý Zalo Bot &amp; Kết nối
         </button>
       </nav>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer admin-only" id="sidebar-admin-footer" style="display:none;">
         <div class="status-line" style="cursor:pointer;" title="Bấm để mở phần Quét mã QR Zalo Cá Nhân" onclick="switchTab('settings')">
           <span><span class="dot" id="dot-zalo"></span>Zalo cá nhân</span>
           <strong id="lbl-zalo">Đang kiểm tra...</strong>
@@ -761,6 +761,7 @@ export function renderPortalHtml(): string {
           <h1 class="page-title" id="topbar-title">Dự án Khởi Minh Gift</h1>
         </div>
         <div class="topbar-actions" id="topbar-actions">
+          <button class="btn btn-soft" id="btn-admin-auth" onclick="openAdminLoginModal()">🔐 Đăng nhập Admin</button>
           <a href="../" onclick="window.open(location.hostname.indexOf('github.io') !== -1 ? '../' : '/portal/pitch', '_blank'); return false;" class="btn btn-soft">📽️ Xem Slide</a>
           <button class="btn btn-primary" onclick="window.print()">🖨️ Xuất PDF / In</button>
         </div>
@@ -1226,8 +1227,40 @@ export function renderPortalHtml(): string {
           </div>
         </section>
 
-        <!-- TAB 4: CÀI ĐẶT KẾT NỐI -->
+        <!-- TAB 4: QUẢN LÝ ZALO BOT & CÀI ĐẶT KẾT NỐI (CHỈ ADMIN) -->
         <section class="panel" id="panel-settings">
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🤖 Quản lý &amp; Điều chỉnh Tài khoản Zalo Bot (Chỉ Admin)</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                  Bật/tắt Bot, đổi tên, cập nhật Token hoặc điều chỉnh cách Bot phản hồi trong nhóm Zalo ngay tại đây.
+                </div>
+              </div>
+              <button class="btn btn-soft btn-sm" onclick="loadAdminZaloBots()">↻ Làm mới danh sách Bot</button>
+            </div>
+            <div class="card-body">
+              <div id="admin-zalo-bots-list" style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+                <div style="font-size:12.5px; color:var(--text-muted);">Đang tải danh sách Zalo Bot...</div>
+              </div>
+
+              <div style="padding-top:14px; border-top:1px solid var(--border);">
+                <div style="font-size:13px; font-weight:700; margin-bottom:10px;">➕ Thêm Zalo Bot mới</div>
+                <div style="display:grid; grid-template-columns:1fr 1.6fr auto; gap:10px; align-items:end;">
+                  <div class="field">
+                    <label>Tên hiển thị Bot</label>
+                    <input class="input" id="new-bot-label" placeholder="VD: Bot CSKH Khởi Minh">
+                  </div>
+                  <div class="field">
+                    <label>Zalo Bot Token</label>
+                    <input class="input" id="new-bot-token" type="password" placeholder="Dán Bot Token từ Zalo Bot Platform...">
+                  </div>
+                  <button class="btn btn-primary" onclick="createAdminZaloBot()">+ Thêm &amp; Khởi động Bot</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card" style="margin-bottom:16px;">
             <div class="card-header">
               <div>
@@ -1302,6 +1335,24 @@ export function renderPortalHtml(): string {
     </main>
   </div>
 
+  <div id="admin-login-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:999; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#fff; border:1px solid var(--border); border-radius:12px; width:100%; max-width:380px; padding:22px; box-shadow:0 20px 40px rgba(15,23,42,0.18);">
+      <div style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">🔐 Đăng nhập Quản trị viên (Admin)</div>
+      <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+        Phần điều chỉnh Zalo Bot, chuyển tiếp nhóm và kết nối tài khoản chỉ dành riêng cho Quản trị viên.
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Mã PIN Admin (mặc định 123456)</label>
+        <input class="input" id="admin-pin-input" type="password" placeholder="Nhập mã PIN..." onkeydown="if(event.key==='Enter') submitAdminLogin()">
+      </div>
+      <div id="admin-login-err" style="display:none; color:#dc2626; font-size:12px; margin-bottom:10px;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-soft" onclick="closeAdminLoginModal()">Đóng</button>
+        <button class="btn btn-primary" onclick="submitAdminLogin()">Xác nhận đăng nhập</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-box" id="toast-box"></div>
 
   <script>
@@ -1354,12 +1405,16 @@ export function renderPortalHtml(): string {
     }
 
     function switchTab(tab) {
+      if ((tab === 'mention' || tab === 'settings') && !isAdminMode) {
+        openAdminLoginModal(tab);
+        return;
+      }
       var titles = {
         projects: 'Dự án ' + (activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner'),
         tracker: 'Theo dõi tiến độ công việc',
         drive: 'Kho tài liệu & Google Drive AI',
-        mention: 'Nhắc việc & Tag thành viên nhóm',
-        settings: 'Cài đặt kết nối hệ thống'
+        mention: 'Nhắc việc & Chuyển tiếp Zalo Bot (Admin)',
+        settings: 'Quản lý Zalo Bot & Kết nối (Admin)'
       };
       document.getElementById('topbar-title').textContent = titles[tab] || 'Khởi Minh Workspace';
       document.querySelectorAll('.nav-item').forEach(function(btn) {
@@ -1380,6 +1435,10 @@ export function renderPortalHtml(): string {
       if (tab === 'mention') {
         loadBotForwarding();
         if (zaloGroups.length === 0) loadZaloGroups();
+      }
+      if (tab === 'settings') {
+        loadPersonalStatus();
+        loadAdminZaloBots();
       }
     }
 
@@ -2386,8 +2445,9 @@ export function renderPortalHtml(): string {
     var botFwData = { targets: [], rules: [] };
 
     async function loadBotForwarding() {
+      if (!isAdminMode) return;
       try {
-        var res = await fetch('/portal/api/bot-forwarding');
+        var res = await fetch('/portal/api/bot-forwarding', { headers: adminHeaders() });
         var data = await res.json();
         if (!data.ok) return;
         botFwData = data;
@@ -2407,7 +2467,7 @@ export function renderPortalHtml(): string {
       if (!tid || !name) return;
       fetch('/portal/api/bot-forwarding/rename', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ threadId: tid, displayName: name })
       }).then(function() {
         showToast('Đã đổi tên nhóm thành "' + name + '"');
@@ -2485,7 +2545,7 @@ export function renderPortalHtml(): string {
       try {
         var res = await fetch('/portal/api/bot-forwarding/send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ targetThreadIds: ids, message: msg, senderLabel: label })
         });
         var data = await res.json();
@@ -2513,7 +2573,7 @@ export function renderPortalHtml(): string {
       }
       var res = await fetch('/portal/api/bot-forwarding/rules', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ source_thread_id: src, target_thread_id: dst, keyword_filter: kw })
       });
       var data = await res.json();
@@ -2527,7 +2587,7 @@ export function renderPortalHtml(): string {
     }
 
     async function deleteBotForwardRule(id) {
-      await fetch('/portal/api/bot-forwarding/rules/' + id, { method: 'DELETE' });
+      await fetch('/portal/api/bot-forwarding/rules/' + id, { method: 'DELETE', headers: adminHeaders() });
       showToast('Đã xóa cầu nối chuyển tiếp');
       loadBotForwarding();
     }
@@ -2596,9 +2656,238 @@ export function renderPortalHtml(): string {
       }
     }
 
+    var adminPin = '';
+    var isAdminMode = false;
+    var pendingAdminTab = 'settings';
+
+    function getAdminPin() {
+      return adminPin || '';
+    }
+
+    function adminHeaders(extra) {
+      var h = Object.assign({}, extra || {});
+      if (adminPin) h['x-admin-pin'] = adminPin;
+      return h;
+    }
+
+    function syncAdminVisibility() {
+      document.querySelectorAll('.admin-only').forEach(function(el) {
+        el.style.display = isAdminMode ? (el.classList.contains('nav-item') ? 'flex' : 'block') : 'none';
+      });
+      var btn = document.getElementById('btn-admin-auth');
+      if (btn) {
+        if (isAdminMode) {
+          btn.textContent = '👑 Admin: Đang bật (Thoát)';
+          btn.onclick = logoutAdminMode;
+        } else {
+          btn.textContent = '🔐 Đăng nhập Admin';
+          btn.onclick = function() { openAdminLoginModal('settings'); };
+        }
+      }
+      if (!isAdminMode) {
+        var activePanel = document.querySelector('.panel.active');
+        if (activePanel && (activePanel.id === 'panel-mention' || activePanel.id === 'panel-settings')) {
+          switchTab('projects');
+        }
+      }
+    }
+
+    function openAdminLoginModal(targetTab) {
+      pendingAdminTab = targetTab || 'settings';
+      var m = document.getElementById('admin-login-modal');
+      var errEl = document.getElementById('admin-login-err');
+      var inp = document.getElementById('admin-pin-input');
+      if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+      if (inp) inp.value = '';
+      if (m) m.style.display = 'flex';
+      if (inp) setTimeout(function() { inp.focus(); }, 60);
+    }
+
+    function closeAdminLoginModal() {
+      var m = document.getElementById('admin-login-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    async function submitAdminLogin() {
+      var inp = document.getElementById('admin-pin-input');
+      var errEl = document.getElementById('admin-login-err');
+      var pin = (inp ? inp.value : '').trim();
+      if (!pin) {
+        if (errEl) { errEl.textContent = 'Vui lòng nhập mã PIN Admin'; errEl.style.display = 'block'; }
+        return;
+      }
+      try {
+        var res = await fetch('/portal/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: 'admin', pin: pin })
+        });
+        var data = await res.json();
+        if (!data.ok || !data.user || !data.user.isAdmin) {
+          if (errEl) { errEl.textContent = data.error || 'Mã PIN Admin không đúng'; errEl.style.display = 'block'; }
+          return;
+        }
+        adminPin = pin;
+        isAdminMode = true;
+        try { localStorage.setItem('km_portal_admin_pin', pin); } catch (e) {}
+        closeAdminLoginModal();
+        syncAdminVisibility();
+        showToast('Đã đăng nhập quyền Admin!');
+        switchTab(pendingAdminTab || 'settings');
+      } catch (e) {
+        if (errEl) { errEl.textContent = 'Lỗi kết nối máy chủ'; errEl.style.display = 'block'; }
+      }
+    }
+
+    function logoutAdminMode() {
+      adminPin = '';
+      isAdminMode = false;
+      try { localStorage.removeItem('km_portal_admin_pin'); } catch (e) {}
+      syncAdminVisibility();
+      showToast('Đã thoát chế độ Admin');
+    }
+
+    async function initAdminMode() {
+      try {
+        var savedPin = localStorage.getItem('km_portal_admin_pin') || '';
+        if (savedPin) {
+          var res = await fetch('/portal/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: 'admin', pin: savedPin })
+          });
+          var data = await res.json();
+          if (data.ok && data.user && data.user.isAdmin) {
+            adminPin = savedPin;
+            isAdminMode = true;
+          } else {
+            localStorage.removeItem('km_portal_admin_pin');
+          }
+        }
+      } catch (e) {}
+      syncAdminVisibility();
+    }
+
+    async function loadAdminZaloBots() {
+      if (!isAdminMode) return;
+      var box = document.getElementById('admin-zalo-bots-list');
+      try {
+        var res = await fetch('/portal/api/admin/zalo-bots', { headers: adminHeaders() });
+        var data = await res.json();
+        if (!data.ok) {
+          if (box) box.innerHTML = '<div style="font-size:12.5px; color:#dc2626;">' + esc(data.error || 'Không có quyền truy cập') + '</div>';
+          return;
+        }
+        renderAdminZaloBots(data.bots || []);
+      } catch (e) {}
+    }
+
+    function renderAdminZaloBots(bots) {
+      var box = document.getElementById('admin-zalo-bots-list');
+      if (!box) return;
+      if (!bots || bots.length === 0) {
+        box.innerHTML = '<div style="font-size:12.5px; color:var(--text-muted);">Chưa có Zalo Bot nào được cấu hình.</div>';
+        return;
+      }
+      box.innerHTML = bots.map(function(b) {
+        var stBadge = b.running
+          ? '<span class="badge">🟢 Đang chạy</span>'
+          : (b.enabled ? '<span class="badge muted">🟡 Đang bật (Chờ kết nối)</span>' : '<span class="badge muted">⚪ Đang tắt</span>');
+        var toggleLabel = b.enabled ? '⏸️ Tắt Bot' : '⚡ Bật Bot';
+        var chkStyle = 'display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-main); cursor:pointer;';
+        return '<div class="admin-bot-card" data-bot-id="' + esc(b.id) + '" style="padding:14px; border:1px solid var(--border); border-radius:10px; background:var(--bg-canvas);">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">' +
+            '<div style="display:flex; align-items:center; gap:8px; flex:1; min-width:220px;">' +
+              '<input class="input bot-label-inp" value="' + esc(b.label) + '" style="max-width:230px; height:32px; font-weight:700;">' +
+              '<span style="font-size:11.5px; color:var(--text-muted);">ID: ' + esc(b.id) + '</span>' +
+              stBadge +
+            '</div>' +
+            '<div style="display:flex; gap:8px; align-items:center;">' +
+              '<button class="btn btn-soft btn-sm" onclick="saveAdminBotFromBtn(this, ' + (b.enabled ? 'false' : 'true') + ')">' + toggleLabel + '</button>' +
+              '<button class="btn btn-primary btn-sm" onclick="saveAdminBotFromBtn(this)">💾 Lưu cấu hình</button>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:10px;">' +
+            '<label style="' + chkStyle + '"><input type="checkbox" class="bot-chk-groups" ' + (b.respondToGroups ? 'checked' : '') + '> Trả lời nhóm</label>' +
+            '<label style="' + chkStyle + '"><input type="checkbox" class="bot-chk-mention" ' + (b.groupRequireMention ? 'checked' : '') + '> Chỉ trả lời nhóm khi @tag</label>' +
+            '<label style="' + chkStyle + '"><input type="checkbox" class="bot-chk-passive" ' + (b.groupPassiveListen ? 'checked' : '') + '> Ghi lịch sử nhóm</label>' +
+            '<label style="' + chkStyle + '"><input type="checkbox" class="bot-chk-typing" ' + (b.typingIndicatorEnabled ? 'checked' : '') + '> Báo "đang nhập..."</label>' +
+          '</div>' +
+          '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+            '<span style="font-size:12px; color:var(--text-muted);">Token: ' + (b.coBotToken ? '✅ Đã lưu' : '⚠️ Chưa có') + '</span>' +
+            '<input class="input bot-token-inp" type="password" placeholder="Nhập Bot Token mới nếu muốn thay..." style="flex:1; min-width:240px; height:32px; font-size:12px;">' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function saveAdminBotFromBtn(btn, forceEnabled) {
+      var card = btn && btn.closest ? btn.closest('.admin-bot-card') : null;
+      if (card) saveAdminZaloBot(card.getAttribute('data-bot-id'), forceEnabled);
+    }
+
+    async function saveAdminZaloBot(botId, forceEnabled) {
+      var card = document.querySelector('.admin-bot-card[data-bot-id="' + botId + '"]');
+      if (!card) return;
+      var label = card.querySelector('.bot-label-inp').value.trim();
+      var respondToGroups = card.querySelector('.bot-chk-groups').checked;
+      var groupRequireMention = card.querySelector('.bot-chk-mention').checked;
+      var groupPassiveListen = card.querySelector('.bot-chk-passive').checked;
+      var typingIndicatorEnabled = card.querySelector('.bot-chk-typing').checked;
+      var botToken = card.querySelector('.bot-token-inp').value.trim();
+
+      var payload = {
+        id: botId,
+        label: label,
+        respondToGroups: respondToGroups,
+        groupRequireMention: groupRequireMention,
+        groupPassiveListen: groupPassiveListen,
+        typingIndicatorEnabled: typingIndicatorEnabled
+      };
+      if (forceEnabled !== undefined) payload.enabled = forceEnabled;
+      if (botToken) payload.botToken = botToken;
+
+      var res = await fetch('/portal/api/admin/zalo-bots/update', {
+        method: 'POST',
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      });
+      var data = await res.json();
+      if (data.ok) {
+        showToast('Đã cập nhật & áp dụng cấu hình cho Bot "' + label + '"!');
+        loadAdminZaloBots();
+      } else {
+        showToast(data.error || 'Cập nhật thất bại', true);
+      }
+    }
+
+    async function createAdminZaloBot() {
+      var label = document.getElementById('new-bot-label').value.trim();
+      var botToken = document.getElementById('new-bot-token').value.trim();
+      if (!label || !botToken) {
+        showToast('Vui lòng nhập đủ Tên Bot và Token Zalo Bot', true);
+        return;
+      }
+      var res = await fetch('/portal/api/admin/zalo-bots/create', {
+        method: 'POST',
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ label: label, botToken: botToken })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        showToast('Đã thêm & khởi động Bot "' + label + '" thành công!');
+        document.getElementById('new-bot-label').value = '';
+        document.getElementById('new-bot-token').value = '';
+        loadAdminZaloBots();
+      } else {
+        showToast(data.error || 'Không thêm được Bot mới', true);
+      }
+    }
+
     var qrPollTimer = null;
 
     async function startPersonalZaloQr() {
+      if (!isAdminMode) { openAdminLoginModal('settings'); return; }
       var box = document.getElementById('personal-qr-box');
       var wrap = document.getElementById('personal-qr-img-wrap');
       var msgEl = document.getElementById('personal-qr-msg');
@@ -2606,7 +2895,10 @@ export function renderPortalHtml(): string {
       if (wrap) wrap.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">Đang tạo mã QR...</span>';
       if (msgEl) msgEl.textContent = 'Đang khởi tạo phiên đăng nhập QR...';
       try {
-        var res = await fetch('/portal/api/personal-zalo/qr-start', { method: 'POST' });
+        var res = await fetch('/portal/api/personal-zalo/qr-start', {
+          method: 'POST',
+          headers: adminHeaders()
+        });
         var data = await res.json();
         renderPersonalQrState(data);
         if (qrPollTimer) clearInterval(qrPollTimer);
@@ -2662,7 +2954,8 @@ export function renderPortalHtml(): string {
     }
 
     async function disconnectPersonalZalo() {
-      await fetch('/portal/api/personal-zalo/disconnect', { method: 'POST' });
+      if (!isAdminMode) { openAdminLoginModal('settings'); return; }
+      await fetch('/portal/api/personal-zalo/disconnect', { method: 'POST', headers: adminHeaders() });
       showToast('Đã ngắt kết nối tài khoản Zalo cá nhân');
       var box = document.getElementById('personal-qr-box');
       if (box) box.style.display = 'none';
@@ -2670,6 +2963,7 @@ export function renderPortalHtml(): string {
     }
 
     // Init
+    initAdminMode();
     loadPersonalStatus();
     loadProjectsData();
     loadWorkTracker();

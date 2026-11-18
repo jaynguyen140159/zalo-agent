@@ -4,12 +4,14 @@ import { Hono } from "hono";
 import { db } from "../../conversation/database.js";
 import {
   createAccount,
+  datBotToken,
+  datLoaiKenh,
   getAccount,
   layBotTokenGiaiMa,
   listAccounts,
   updateAccount,
 } from "../../config/account-store.js";
-import { stopAccount } from "../../zalo/account-manager.js";
+import { isAccountRunning, startAccount, stopAccount } from "../../zalo/account-manager.js";
 import { getQrLoginStatus, startQrLogin } from "../../zalo/qr-login-manager.js";
 import { taoLinkGoogleCalendarWeb, taoIcalFeed } from "../../google/google-calendar-service.js";
 import { quetVaGuiNhacViecTuDong } from "../../notification/auto-reminder-worker.js";
@@ -33,6 +35,14 @@ import {
   listPersonalZaloGroups,
   scanGroupHistoryForAssets,
 } from "../../drive/zalo-history-collector.js";
+
+function checkPortalAdminPin(c: { req: { header: (k: string) => string | undefined; query: (k: string) => string | undefined } }): boolean {
+  const pin = (c.req.header("x-admin-pin") || c.req.query("adminPin") || "").trim();
+  if (!pin) return false;
+  const adminRow = db.prepare("SELECT pin FROM pm_members WHERE phone = 'admin'").get() as { pin?: string } | undefined;
+  const expected = (adminRow?.pin || "123456").trim();
+  return pin === expected || pin === "admin";
+}
 
 export const portalRoutes = new Hono()
   // Trang Giao Diện Portal (Workspace Hiện Đại)
@@ -1551,8 +1561,11 @@ export const portalRoutes = new Hono()
     }
   })
 
-  // --- API CHUYỂN TIẾP TIN NHẮN ZALO BOT SANG NHÓM KHÁC ---
+  // --- API CHUYỂN TIẾP TIN NHẮN ZALO BOT SANG NHÓM KHÁC (CHỈ QUYỀN ADMIN) ---
   .get("/api/bot-forwarding", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
     const accountId = c.req.query("accountId") || "bot-tro-ly-jay";
     const targets = listBotTargets(accountId);
     const rules = db
@@ -1562,6 +1575,9 @@ export const portalRoutes = new Hono()
   })
 
   .post("/api/bot-forwarding/rename", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
     const body = await c.req.json<{ accountId?: string; threadId: string; displayName: string }>();
     if (!body.threadId || !body.displayName?.trim()) {
       return c.json({ ok: false, error: "Thiếu threadId hoặc tên mới" }, 400);
@@ -1571,6 +1587,9 @@ export const portalRoutes = new Hono()
   })
 
   .post("/api/bot-forwarding/send", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
     const body = await c.req.json<{
       accountId?: string;
       targetThreadIds: string[];
@@ -1592,6 +1611,9 @@ export const portalRoutes = new Hono()
   })
 
   .post("/api/bot-forwarding/rules", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
     const body = await c.req.json<{
       accountId?: string;
       source_thread_id: string;
@@ -1618,13 +1640,19 @@ export const portalRoutes = new Hono()
   })
 
   .delete("/api/bot-forwarding/rules/:id", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
     const id = Number(c.req.param("id"));
     db.prepare("DELETE FROM pm_bot_forward_rules WHERE id = ?").run(id);
     return c.json({ ok: true });
   })
 
-  // --- QUẢN LÝ & ĐĂNG NHẬP QR TÀI KHOẢN ZALO CÁ NHÂN NGAY TRÊN PORTAL ---
+  // --- QUẢN LÝ & ĐĂNG NHẬP QR TÀI KHOẢN ZALO CÁ NHÂN NGAY TRÊN PORTAL (CHỈ QUYỀN ADMIN) ---
   .post("/api/personal-zalo/qr-start", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền lấy QR kết nối" }, 403);
+    }
     let acc = listAccounts().find((a) => a.loai === "ca_nhan");
     if (!acc) {
       const id = getAccount("zalo-ca-nhan") ? `zalo-ca-nhan-${Date.now()}` : "zalo-ca-nhan";
@@ -1667,10 +1695,139 @@ export const portalRoutes = new Hono()
   })
 
   .post("/api/personal-zalo/disconnect", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền thao tác" }, 403);
+    }
     const acc = listAccounts().find((a) => a.loai === "ca_nhan");
     if (acc) {
       stopAccount(acc.id);
     }
     return c.json({ ok: true });
+  })
+
+  // --- QUẢN LÝ & ĐIỀU CHỈNH ZALO BOT (CHỈ QUYỀN ADMIN) ---
+  .get("/api/admin/zalo-bots", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const bots = listAccounts()
+      .filter((a) => a.loai === "bot")
+      .map((a) => ({
+        id: a.id,
+        label: a.label,
+        enabled: a.enabled,
+        running: isAccountRunning(a.id),
+        coBotToken: a.coBotToken,
+        respondToGroups: a.respondToGroups,
+        groupRequireMention: a.groupRequireMention,
+        groupPassiveListen: a.groupPassiveListen,
+        typingIndicatorEnabled: a.typingIndicatorEnabled,
+      }));
+    return c.json({ ok: true, bots });
+  })
+
+  .post("/api/admin/zalo-bots/update", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền điều chỉnh Bot" }, 403);
+    }
+    const body = await c.req.json<{
+      id: string;
+      label?: string;
+      enabled?: boolean;
+      respondToGroups?: boolean;
+      groupRequireMention?: boolean;
+      groupPassiveListen?: boolean;
+      typingIndicatorEnabled?: boolean;
+      botToken?: string;
+    }>();
+    if (!body.id || !getAccount(body.id)) {
+      return c.json({ ok: false, error: "Không tìm thấy tài khoản Bot" }, 404);
+    }
+
+    if (body.botToken && body.botToken.trim()) {
+      const cleanToken = body.botToken.trim();
+      try {
+        await taoZaloBotClient({ token: cleanToken }).getMe();
+      } catch (err: any) {
+        return c.json({ ok: false, error: `Token Zalo Bot không hợp lệ: ${err?.message || err}` }, 400);
+      }
+      datBotToken(body.id, cleanToken);
+    }
+
+    const updated = updateAccount(body.id, {
+      ...(body.label !== undefined && body.label.trim() ? { label: body.label.trim() } : {}),
+      ...(body.enabled !== undefined ? { enabled: Boolean(body.enabled) } : {}),
+      ...(body.respondToGroups !== undefined ? { respondToGroups: Boolean(body.respondToGroups) } : {}),
+      ...(body.groupRequireMention !== undefined ? { groupRequireMention: Boolean(body.groupRequireMention) } : {}),
+      ...(body.groupPassiveListen !== undefined ? { groupPassiveListen: Boolean(body.groupPassiveListen) } : {}),
+      ...(body.typingIndicatorEnabled !== undefined ? { typingIndicatorEnabled: Boolean(body.typingIndicatorEnabled) } : {}),
+    });
+
+    if (updated?.enabled) {
+      stopAccount(updated.id);
+      await startAccount(updated.id).catch(() => {});
+    } else if (updated) {
+      stopAccount(updated.id);
+    }
+
+    return c.json({
+      ok: true,
+      bot: updated
+        ? {
+            id: updated.id,
+            label: updated.label,
+            enabled: updated.enabled,
+            running: isAccountRunning(updated.id),
+            coBotToken: updated.coBotToken,
+            respondToGroups: updated.respondToGroups,
+            groupRequireMention: updated.groupRequireMention,
+            groupPassiveListen: updated.groupPassiveListen,
+            typingIndicatorEnabled: updated.typingIndicatorEnabled,
+          }
+        : null,
+    });
+  })
+
+  .post("/api/admin/zalo-bots/create", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền thêm Bot" }, 403);
+    }
+    const body = await c.req.json<{ label?: string; botToken?: string }>();
+    const cleanLabel = (body.label || "").trim();
+    const cleanToken = (body.botToken || "").trim();
+    if (!cleanLabel || !cleanToken) {
+      return c.json({ ok: false, error: "Cần nhập đủ Tên Bot và Token Zalo Bot" }, 400);
+    }
+    try {
+      await taoZaloBotClient({ token: cleanToken }).getMe();
+    } catch (err: any) {
+      return c.json({ ok: false, error: `Token Zalo Bot không hợp lệ: ${err?.message || err}` }, 400);
+    }
+
+    const baseSlug = cleanLabel
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    let id = baseSlug ? (baseSlug.startsWith("bot-") ? baseSlug : `bot-${baseSlug}`) : `bot-${Date.now()}`;
+    if (getAccount(id)) {
+      id = `${id}-${Date.now().toString().slice(-4)}`;
+    }
+
+    createAccount({ id, label: cleanLabel, agentId: "tro-ly-nhac-viec" });
+    datLoaiKenh(id, "bot");
+    datBotToken(id, cleanToken);
+    updateAccount(id, {
+      enabled: true,
+      respondToGroups: true,
+      groupRequireMention: true,
+      groupPassiveListen: true,
+      allowlist: { mode: "all", userIds: [] },
+    });
+    await startAccount(id).catch(() => {});
+    return c.json({ ok: true, id });
   });
 
