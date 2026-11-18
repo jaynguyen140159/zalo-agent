@@ -8,6 +8,13 @@ export type IncomingImage = {
   localPath?: string;
 };
 
+export type IncomingFile = {
+  url: string;
+  fileName: string;
+  fileExt?: string;
+  localPath?: string;
+};
+
 export type ParsedMessage = {
   accountId: string;
   threadId: string;
@@ -17,6 +24,8 @@ export type ParsedMessage = {
   senderName: string;
   text: string;
   images: IncomingImage[];
+  files?: IncomingFile[];
+  links?: string[];
   msgId: string;
   cliMsgId: string;
   isSelf: boolean;
@@ -72,6 +81,8 @@ export function parseIncomingMessage(
 
   let text = "";
   const images: IncomingImage[] = [];
+  const files: IncomingFile[] = [];
+  const linksSet = new Set<string>();
 
   if (typeof content === "string") {
     text = content;
@@ -85,6 +96,39 @@ export function parseIncomingMessage(
       : null;
     if (picked) {
       images.push({ url: picked.url });
+    } else if (
+      typeof content.href === "string" &&
+      /^https?:\/\//i.test(content.href) &&
+      (msgType.includes("file") || msgType.includes("share"))
+    ) {
+      const fileName = String(content.title || "tai-lieu").trim() || "tai-lieu";
+      let fileExt = "";
+      try {
+        const params = typeof content.params === "string" ? JSON.parse(content.params) : content.params;
+        if (params && typeof params.fileExt === "string") {
+          fileExt = params.fileExt.replace(/^\./, "").toLowerCase();
+        }
+      } catch {
+        // Bỏ qua params không parse được
+      }
+      if (!fileExt && fileName.includes(".")) {
+        fileExt = fileName.split(".").pop()?.toLowerCase() ?? "";
+      }
+      files.push({
+        url: content.href,
+        fileName,
+        ...(fileExt ? { fileExt } : {}),
+      });
+    } else if (typeof content.href === "string" && /^https?:\/\//i.test(content.href)) {
+      linksSet.add(content.href);
+    }
+  }
+
+  // Trích xuất link URL từ nội dung chữ
+  if (text) {
+    const urlMatches = text.match(/https?:\/\/[^\s<>"')\]\}]+/gi) ?? [];
+    for (const u of urlMatches) {
+      linksSet.add(u.replace(/[.,;!?]+$/, ""));
     }
   }
 
@@ -100,6 +144,8 @@ export function parseIncomingMessage(
     senderName: String(data.dName ?? "Người dùng"),
     text,
     images,
+    ...(files.length > 0 ? { files } : {}),
+    ...(linksSet.size > 0 ? { links: Array.from(linksSet) } : {}),
     msgId: String(data.msgId ?? ""),
     cliMsgId: String(data.cliMsgId ?? ""),
     isSelf: Boolean(message?.isSelf),

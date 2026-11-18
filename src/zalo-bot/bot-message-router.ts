@@ -14,6 +14,7 @@ import { replyTargetTuKenh } from "../zalo/reply-target-tu-kenh.js";
 import { doiUpdateSangParsedMessage } from "./zalo-bot-update-parser.js";
 import type { ZaloBotUpdate } from "./zalo-bot-api-types.js";
 import { kiemTraLaTinDangKy, xuLyDangKyThanhVien } from "./bot-member-registration.js";
+import { applyBotProgressReport, kiemTraLaTinBaoCaoTienDo } from "./bot-progress-reporter.js";
 
 const log = createLogger("bot-message-router");
 
@@ -72,6 +73,20 @@ export function routeBotUpdate(accountId: string, kenh: KenhLuot, update: ZaloBo
       ghiTinDenVaoHistory(config.id, msg, { luuAnhNgay: true });
     } catch {}
     void xuLyDangKyThanhVien(kenh, msg);
+    return;
+  }
+
+  // Tự động nhận diện báo cáo tiến độ công việc gửi cho Bot -> tick checklist & cập nhật thanh tiến độ
+  if (kiemTraLaTinBaoCaoTienDo(msg.text)) {
+    log.info({ threadId: msg.threadId, sender: msg.senderName, text: msg.text }, "Nhận báo cáo tiến độ cho Bot");
+    try {
+      ghiTinDenVaoHistory(config.id, msg, { luuAnhNgay: true });
+    } catch {}
+    const reportRes = applyBotProgressReport({
+      senderName: msg.senderName,
+      reportText: msg.text,
+    });
+    void kenh.duongGui(msg.threadId, msg.threadType)({ text: reportRes.replyMessage }).catch(() => {});
     return;
   }
 

@@ -5,6 +5,7 @@ import { getAccount } from "../config/account-store.js";
 import { getTuning } from "../config/runtime-tuning-settings.js";
 import { recordContactActivity } from "../conversation/contact-store.js";
 import { persistBatchImages } from "../conversation/media-store.js";
+import { recordCollectedAssetsFromMessage } from "../drive/asset-collector-store.js";
 import {
   hasDisplayName,
   isBotEnabled,
@@ -60,6 +61,14 @@ export function routeIncomingMessage(
   }
 
   const decision = shouldRespond(config, msg, isBotEnabled(config.id, msg.threadId));
+
+  if (!msg.isSelf && msg.threadId && (decision.respond || decision.record)) {
+    try {
+      recordCollectedAssetsFromMessage(config.id, msg);
+    } catch (err) {
+      log.debug({ accountId: config.id, threadId: msg.threadId, err }, "Không ghi được asset vào kho");
+    }
+  }
 
   if (!decision.respond) {
     if (decision.record) {

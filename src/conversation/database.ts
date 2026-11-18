@@ -4,6 +4,7 @@ import path from "node:path";
 // mọi store (history/thread/contact/usage) - node:sqlite là sync nên không cần pool.
 import { DatabaseSync } from "node:sqlite";
 import { dataDir } from "../config/env.js";
+import { calculateKmGiftSchedule, KM_GIFT_CUSTOMISED_FLOW } from "../drive/km-gift-sla.js";
 import { taoBangKnowledgeBase } from "../knowledge/kb-schema.js";
 import { taoBangMcp } from "../mcp/mcp-schema.js";
 import { taoBangFriendRequests } from "./friend-schema.js";
@@ -494,6 +495,579 @@ function taoBangWorkTracker(database: DatabaseSync): void {
       (7, 'Lắp đặt hoàn thiện đồ gỗ, phụ kiện & rèm đèn', 2, '2026-12-11', '2026-12-17', 7, 0.0, 'pending', ''),
       (8, 'Vệ sinh công nghiệp, Nghiệm thu & Bàn giao nhà', 1, '2026-12-21', '2026-12-23', 3, 0.0, 'pending', '');
     `);
+  }
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_drive_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      root_folder_name TEXT DEFAULT 'Khởi Minh Drive',
+      root_folder_id TEXT DEFAULT '',
+      access_token TEXT DEFAULT '',
+      refresh_token TEXT DEFAULT '',
+      client_id TEXT DEFAULT '',
+      client_secret TEXT DEFAULT '',
+      token_expires_at INTEGER DEFAULT 0,
+      auto_sync INTEGER DEFAULT 0,
+      default_account_id TEXT DEFAULT '',
+      default_group_id TEXT DEFAULT '',
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS pm_collected_assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL,
+      thread_name TEXT DEFAULT '',
+      msg_id TEXT NOT NULL,
+      sender_id TEXT DEFAULT '',
+      sender_name TEXT DEFAULT '',
+      asset_type TEXT NOT NULL CHECK (asset_type IN ('image', 'file', 'link')),
+      title TEXT NOT NULL DEFAULT '',
+      original_url TEXT DEFAULT '',
+      local_path TEXT DEFAULT '',
+      mime_type TEXT DEFAULT '',
+      drive_file_id TEXT DEFAULT '',
+      drive_web_url TEXT DEFAULT '',
+      project_name TEXT DEFAULT 'Chờ phân loại',
+      ai_summary TEXT DEFAULT '',
+      context_text TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'classified', 'synced', 'error')),
+      error_message TEXT DEFAULT '',
+      sent_at TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      UNIQUE(thread_id, msg_id, asset_type, original_url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pm_assets_project ON pm_collected_assets(project_name, status);
+    CREATE INDEX IF NOT EXISTS idx_pm_assets_thread ON pm_collected_assets(thread_id, sent_at DESC);
+  `);
+
+  const hasDriveSettings = database.prepare("SELECT count(*) as c FROM pm_drive_settings").get() as { c: number };
+  if (!hasDriveSettings || hasDriveSettings.c === 0) {
+    database.exec(`
+      INSERT INTO pm_drive_settings (id, root_folder_name) VALUES (1, 'Khởi Minh Drive');
+    `);
+  }
+
+  // Migration an toàn cho pm_projects & pm_stages (hỗ trợ KM Gift / Homeplanner + SLA tự động)
+  const projCols = new Set(
+    (database.prepare("PRAGMA table_info(pm_projects)").all() as { name: string }[]).map((r) => r.name),
+  );
+  if (!projCols.has("business_unit")) {
+    database.exec("ALTER TABLE pm_projects ADD COLUMN business_unit TEXT DEFAULT 'KM Gift'");
+  }
+  if (!projCols.has("flow_type")) {
+    database.exec("ALTER TABLE pm_projects ADD COLUMN flow_type TEXT DEFAULT 'customised'");
+  }
+  if (!projCols.has("contract_date")) {
+    database.exec("ALTER TABLE pm_projects ADD COLUMN contract_date TEXT DEFAULT ''");
+  }
+  if (!projCols.has("deposit_date")) {
+    database.exec("ALTER TABLE pm_projects ADD COLUMN deposit_date TEXT DEFAULT ''");
+  }
+
+  const stageCols = new Set(
+    (database.prepare("PRAGMA table_info(pm_stages)").all() as { name: string }[]).map((r) => r.name),
+  );
+  if (!stageCols.has("sla_days")) {
+    database.exec("ALTER TABLE pm_stages ADD COLUMN sla_days INTEGER DEFAULT 0");
+  }
+  if (!stageCols.has("phase")) {
+    database.exec("ALTER TABLE pm_stages ADD COLUMN phase TEXT DEFAULT 'post_deposit'");
+  }
+  if (!stageCols.has("start_date")) {
+    database.exec("ALTER TABLE pm_stages ADD COLUMN start_date TEXT DEFAULT ''");
+  }
+  if (!stageCols.has("end_date")) {
+    database.exec("ALTER TABLE pm_stages ADD COLUMN end_date TEXT DEFAULT ''");
+  }
+
+  // Seed 1 dự án mẫu Khởi Minh Gift (luồng Customised, mốc Tạm ứng 10/11) nếu chưa có
+  const hasKmGiftSample = database
+    .prepare("SELECT count(*) as c FROM pm_projects WHERE name LIKE '%KM Gift%'")
+    .get() as { c: number };
+  if (!hasKmGiftSample || hasKmGiftSample.c === 0) {
+    const projRow = database
+      .prepare(
+        `INSERT INTO pm_projects (name, description, budget, status, business_unit, flow_type, deposit_date)
+         VALUES (?, ?, ?, 'active', 'KM Gift', 'customised', '2026-11-10')
+         RETURNING id`,
+      )
+      .get(
+        "KM Gift - Bộ Quà Tết Doanh Nghiệp (Mẫu SLA)",
+        "Dự án mẫu quy trình Khởi Minh Gift (Không có sẵn / Customised) tự động tính deadline từng giai đoạn theo ngày tạm ứng.",
+        120000000,
+      ) as { id: number };
+
+    const schedule = calculateKmGiftSchedule({
+      flowType: "customised",
+      depositDate: "2026-11-10",
+    });
+
+    const stageStmt = database.prepare(
+      `INSERT INTO pm_stages (project_id, step_order, title, description, sla_days, phase, start_date, end_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    );
+    const taskStmt = database.prepare(
+      `INSERT INTO pm_tasks (project_id, stage_id, title, description, assigned_phone, deadline, progress, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+
+    for (const st of schedule) {
+      const stageRow = stageStmt.get(
+        projRow.id,
+        st.stepOrder,
+        st.title,
+        `SLA chuẩn: ${st.slaDays} ngày`,
+        st.slaDays,
+        st.phase,
+        st.startDate,
+        st.endDate,
+      ) as { id: number };
+      const isDone = st.stepOrder <= 3;
+      const isInProgress = st.stepOrder === 4;
+      taskStmt.run(
+        projRow.id,
+        stageRow.id,
+        st.defaultTaskTitle,
+        `Mốc SLA: ${st.startDate} → ${st.endDate} (${st.slaDays} ngày)`,
+        null,
+        st.endDate,
+        isDone ? 100 : isInProgress ? 35 : 0,
+        isDone ? "completed" : isInProgress ? "in_progress" : "pending",
+      );
+    }
+  }
+
+  // Bảng Chi phí hạng mục & Báo giá tự động
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_project_costs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      stage_id INTEGER DEFAULT NULL,
+      category TEXT DEFAULT 'Sản xuất',
+      item_name TEXT NOT NULL DEFAULT '',
+      vendor_name TEXT DEFAULT '',
+      cost_amount REAL DEFAULT 0,
+      quantity INTEGER DEFAULT 1,
+      unit TEXT DEFAULT 'bộ',
+      duration_days INTEGER DEFAULT 0,
+      markup_factor REAL DEFAULT 1.5,
+      description_specs TEXT DEFAULT '',
+      payment_status TEXT DEFAULT 'Chưa thanh toán',
+      contract_ref TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_pm_costs_proj ON pm_project_costs(project_id);
+
+    CREATE TABLE IF NOT EXISTS pm_quotations (
+      project_id INTEGER PRIMARY KEY,
+      customer_name TEXT DEFAULT '',
+      customer_rep TEXT DEFAULT '',
+      quote_date TEXT DEFAULT '',
+      title TEXT DEFAULT 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ',
+      client_tier TEXT DEFAULT 'Doanh nghiệp',
+      default_markup REAL DEFAULT 1.5,
+      vat_percent REAL DEFAULT 8,
+      notes TEXT DEFAULT 'Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội.',
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  // Seed chi phí mẫu cho dự án KM Gift mẫu nếu chưa có
+  const kmGiftProj = database
+    .prepare("SELECT id FROM pm_projects WHERE name LIKE '%KM Gift%' ORDER BY id ASC LIMIT 1")
+    .get() as { id: number } | undefined;
+  if (kmGiftProj) {
+    const hasCosts = database
+      .prepare("SELECT count(*) as c FROM pm_project_costs WHERE project_id = ?")
+      .get(kmGiftProj.id) as { c: number };
+    if (!hasCosts || hasCosts.c === 0) {
+      const stages = database
+        .prepare("SELECT id, title, sla_days FROM pm_stages WHERE project_id = ? ORDER BY step_order ASC")
+        .all(kmGiftProj.id) as Array<{ id: number; title: string; sla_days: number }>;
+      const findStageId = (kw: string) => stages.find((s) => s.title.includes(kw))?.id ?? null;
+
+      const insCost = database.prepare(
+        `INSERT INTO pm_project_costs
+          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      insCost.run(
+        kmGiftProj.id,
+        findStageId("Thiết kế"),
+        "Thiết kế",
+        "Thiết kế Packaging & Keyvisual Bộ Quà Tết",
+        "Freelancer - Hà Ngọc Khánh Linh",
+        7500000,
+        1,
+        "gói",
+        7,
+        1.6,
+        "- Thiết kế 02 phương án concept hộp quà & thiệp chúc mừng\n- Xuất file in ấn chuẩn CMYK & mockup 3D",
+        "Đã tạm ứng 50%",
+      );
+      insCost.run(
+        kmGiftProj.id,
+        findStageId("Sản xuất"),
+        "Sản xuất",
+        "Sản xuất Bookmark Đồng Mạ Vàng 24K + Đế gỗ",
+        "Xưởng gia công Mỹ Nghệ",
+        385000,
+        100,
+        "bộ",
+        14,
+        1.65,
+        "- Chất liệu: Đồng mạ vàng 24K, kích thước 60 x 101 mm\n- Kèm tua rua, thiệp gài & đế gỗ khắc laser cá nhân hóa",
+        "Chưa thanh toán",
+      );
+      insCost.run(
+        kmGiftProj.id,
+        findStageId("Đóng gói"),
+        "In ấn & Bao bì",
+        "In ấn Hộp đựng kiểu Notebook & Túi giấy cao cấp",
+        "Xưởng in Ấn Packaging",
+        65000,
+        100,
+        "hộp",
+        2,
+        1.55,
+        "- Giấy mỹ thuật ép kim logo Khởi Minh / Khách hàng\n- Khay định hình nhung & túi giấy đồng bộ",
+        "Chưa thanh toán",
+      );
+      insCost.run(
+        kmGiftProj.id,
+        findStageId("Kiểm hàng"),
+        "Media",
+        "Chụp ảnh sản phẩm mẫu & nghiệm thu thành phẩm",
+        "Freelancer - Khánh Vy",
+        2500000,
+        1,
+        "gói",
+        2,
+        1.4,
+        "- Chụp bộ ảnh studio 10 góc sản phẩm bàn giao tư liệu truyền thông",
+        "Đã TT 100%",
+      );
+
+      database
+        .prepare(
+          `INSERT OR IGNORE INTO pm_quotations (project_id, customer_name, customer_rep, quote_date, title, client_tier, default_markup, vat_percent)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          kmGiftProj.id,
+          "ĐẠI HỌC QUỐC GIA",
+          "Hà Cửu Long Hồ - 0909112893",
+          "2026-11-16",
+          "BÁO GIÁ SET QUÀ TẶNG BOOKMARK & BAO BÌ CAO CẤP",
+          "Doanh nghiệp",
+          1.6,
+          8,
+        );
+    }
+  }
+
+  // Đảm bảo có ít nhất 1 dự án Homeplanner để tách biệt rõ 2 mảng
+  const hasHomeplanner = database
+    .prepare("SELECT count(*) as c FROM pm_projects WHERE business_unit = 'Homeplanner'")
+    .get() as { c: number };
+  if (!hasHomeplanner || hasHomeplanner.c === 0) {
+    database
+      .prepare("UPDATE pm_projects SET business_unit = 'Homeplanner' WHERE id = 1 AND name NOT LIKE '%KM Gift%'")
+      .run();
+  }
+
+  // Seed 6 dự án thực tế từ sheet CHI PHÍ DỰ ÁN của Khởi Minh (chia đúng KM Gift & Homeplanner)
+  const hasRealPortfolio = database
+    .prepare("SELECT count(*) as c FROM pm_projects WHERE name LIKE '%HALONG RUM%'")
+    .get() as { c: number };
+
+  if (!hasRealPortfolio || hasRealPortfolio.c === 0) {
+    const oldDemoRows = database
+      .prepare(
+        "SELECT id FROM pm_projects WHERE name IN ('Dự Án Nâng Cấp Hệ Thống 2026', 'KM Gift - Bộ Quà Tết Doanh Nghiệp (Mẫu SLA)')",
+      )
+      .all() as Array<{ id: number }>;
+
+    for (const oldP of oldDemoRows) {
+      database.prepare("DELETE FROM pm_expenses WHERE project_id = ?").run(oldP.id);
+      database.prepare("DELETE FROM pm_project_costs WHERE project_id = ?").run(oldP.id);
+      database.prepare("DELETE FROM pm_quotations WHERE project_id = ?").run(oldP.id);
+      database.prepare("DELETE FROM pm_tasks WHERE project_id = ?").run(oldP.id);
+      database.prepare("DELETE FROM pm_stages WHERE project_id = ?").run(oldP.id);
+      database.prepare("DELETE FROM pm_projects WHERE id = ?").run(oldP.id);
+    }
+
+    type SeedCost = {
+      stageKeyword: string;
+      category: string;
+      itemName: string;
+      vendorName: string;
+      costAmount: number;
+      quantity?: number;
+      unit?: string;
+      durationDays: number;
+      markupFactor: number;
+      paymentStatus: string;
+      contractRef?: string;
+      specs?: string;
+    };
+
+    type SeedProject = {
+      name: string;
+      description: string;
+      budget: number;
+      businessUnit: "KM Gift" | "Homeplanner";
+      flowType: "customised" | "ready_stock";
+      depositDate: string;
+      customerName: string;
+      defaultMarkup: number;
+      completedSteps: number;
+      costs: SeedCost[];
+    };
+
+    const seedPortfolio: SeedProject[] = [
+      {
+        name: "Bookmark Lương Thế Vinh",
+        description: "Sản xuất bookmark LTV, tua rua + đế gỗ, in ấn packaging",
+        budget: 77052000,
+        businessUnit: "KM Gift",
+        flowType: "customised",
+        depositDate: "2026-11-10",
+        customerName: "Trường Lương Thế Vinh",
+        defaultMarkup: 2.0,
+        completedSteps: 4,
+        costs: [
+          { stageKeyword: "Sản xuất", category: "Sản xuất", itemName: "Sản xuất bookmark LTV", vendorName: "Xưởng sản xuất", costAmount: 17120000, durationDays: 14, markupFactor: 2.0, paymentStatus: "Đã tạm ứng 50%" },
+          { stageKeyword: "Sản xuất", category: "Phụ kiện", itemName: "Tua rua + đế gỗ", vendorName: "Xưởng phụ kiện", costAmount: 1474000, durationDays: 7, markupFactor: 2.0, paymentStatus: "Đã tạm ứng 50%" },
+          { stageKeyword: "Đóng gói", category: "In ấn", itemName: "In ấn packaging", vendorName: "Xưởng in packaging", costAmount: 4400000, durationDays: 5, markupFactor: 2.0, paymentStatus: "Đã tạm ứng 50%" },
+          { stageKeyword: "Bàn giao", category: "Chiết khấu", itemName: "Chiết khấu c Quyên", vendorName: "Chị Quyên", costAmount: 15410400, durationDays: 2, markupFactor: 2.0, paymentStatus: "Chưa thanh toán" },
+        ],
+      },
+      {
+        name: "PVEP - Set Quà Tặng Điêu Khắc & Packaging",
+        description: "Landingpage sản phẩm, Set B+C+D có sẵn, Set A+B điêu khắc 3D & Packaging",
+        budget: 55000000,
+        businessUnit: "KM Gift",
+        flowType: "customised",
+        depositDate: "2026-11-11",
+        customerName: "PVEP (Tổng Công ty Thăm dò Khai thác Dầu khí)",
+        defaultMarkup: 1.6,
+        completedSteps: 3,
+        costs: [
+          { stageKeyword: "Thiết kế", category: "Digital", itemName: "Landingpage sản phẩm", vendorName: "Huy", costAmount: 10000000, durationDays: 7, markupFactor: 1.6, paymentStatus: "Chưa thanh toán" },
+          { stageKeyword: "Đóng gói", category: "Hàng có sẵn", itemName: "Set quà tặng B + C + D (Mẫu có sẵn)", vendorName: "Kho KM Gift", costAmount: 3264000, durationDays: 3, markupFactor: 1.6, paymentStatus: "Đã tạm ứng 50%" },
+          { stageKeyword: "Sản xuất", category: "Điêu khắc 3D", itemName: "Set quà tặng A + B: Thiết kế & SX 2 mẫu điêu khắc 3D", vendorName: "Freelancer - Lam Đoàn", costAmount: 4000000, durationDays: 14, markupFactor: 1.6, paymentStatus: "Đã TT 100%", contractRef: "01/2026/HDKV-KM - LamDoan/Thietke3D" },
+          { stageKeyword: "Thiết kế", category: "Bao bì", itemName: "Thiết kế Packaging set quà tặng", vendorName: "Freelance - Hà Linh", costAmount: 15000000, durationDays: 7, markupFactor: 1.6, paymentStatus: "Chưa thanh toán" },
+        ],
+      },
+      {
+        name: "KM CST - BST Đồng Vọng (Keycharm & Gác Đũa)",
+        description: "Designer BST Keycharm, Copywriter BST Gác đũa, In ấn packaging & Chụp ảnh",
+        budget: 18000000,
+        businessUnit: "KM Gift",
+        flowType: "customised",
+        depositDate: "2026-11-08",
+        customerName: "KM CST (Bộ Sưu Tập Đồng Vọng)",
+        defaultMarkup: 1.5,
+        completedSteps: 6,
+        costs: [
+          { stageKeyword: "Thiết kế", category: "Thiết kế", itemName: "Designer - BST Keycharm Đồng Vọng", vendorName: "Freelancer - Khánh Vy", costAmount: 2500000, durationDays: 7, markupFactor: 1.5, paymentStatus: "Đã TT 100%", contractRef: "03/2026/HDKV-KM - KhanhVy/Thietkepackaging" },
+          { stageKeyword: "Thiết kế", category: "Thiết kế", itemName: "Thiết kế phụ trợ BST Đồng Vọng", vendorName: "Freelancer - Hà Linh", costAmount: 2000000, durationDays: 5, markupFactor: 1.5, paymentStatus: "Đã TT 100%" },
+          { stageKeyword: "Đóng gói", category: "In ấn", itemName: "In ấn packaging BST Đồng Vọng", vendorName: "Xưởng in", costAmount: 2117203, durationDays: 7, markupFactor: 1.5, paymentStatus: "Đã TT 100%" },
+          { stageKeyword: "Kiểm hàng", category: "Media", itemName: "Chụp ảnh sản phẩm BST Đồng Vọng", vendorName: "Studio", costAmount: 500000, durationDays: 2, markupFactor: 1.5, paymentStatus: "Đã TT 100%" },
+          { stageKeyword: "Chốt thiết kế", category: "Nội dung", itemName: "Copywriter - BST Gác đũa Đồng Vọng", vendorName: "Freelancer - Mavis", costAmount: 1500000, durationDays: 4, markupFactor: 1.5, paymentStatus: "Đã tạm ứng 50%", contractRef: "262805/HĐKV" },
+        ],
+      },
+      {
+        name: "HALONG RUM - Thiết Kế Label Đêm",
+        description: "Thiết kế Label Đêm cho dự án HALONG RUM",
+        budget: 12000000,
+        businessUnit: "KM Gift",
+        flowType: "customised",
+        depositDate: "2026-11-05",
+        customerName: "HALONG RUM",
+        defaultMarkup: 1.6,
+        completedSteps: 9,
+        costs: [
+          { stageKeyword: "Thiết kế", category: "Thiết kế", itemName: "Thiết kế Label Đêm", vendorName: "Freelancer - Hà Ngọc Khánh Linh", costAmount: 7500000, durationDays: 7, markupFactor: 1.6, paymentStatus: "Đã TT 100%", contractRef: "260905/HĐKV/KMCST" },
+        ],
+      },
+      {
+        name: "Maison Mùi - Brand Strategy & Storestyling",
+        description: "Brand Strategy, Storestyling & Media Pre-launch (6 tháng)",
+        budget: 320000000,
+        businessUnit: "Homeplanner",
+        flowType: "customised",
+        depositDate: "2026-11-01",
+        customerName: "Maison Mùi",
+        defaultMarkup: 1.5,
+        completedSteps: 4,
+        costs: [
+          { stageKeyword: "Thiết kế", category: "Chiến lược", itemName: "Brand Strategy & Storestyling", vendorName: "Freelancer - Nguyễn Hoàng Phương Thảo", costAmount: 70000000, durationDays: 30, markupFactor: 1.5, paymentStatus: "Đã tạm ứng 50%", contractRef: "20260821/KMCST-PYY" },
+          { stageKeyword: "Sản xuất", category: "Media", itemName: "Media Pre-launch (6 tháng)", vendorName: "Freelancer - Thảo Vũ", costAmount: 132000000, durationDays: 180, markupFactor: 1.5, paymentStatus: "Chưa thanh toán" },
+        ],
+      },
+      {
+        name: "Viên Villa - Thiết Kế Biển Chỉ Dẫn & Không Gian",
+        description: "Thiết kế biển chỉ dẫn Viên Villa & biển Khởi Minh",
+        budget: 12000000,
+        businessUnit: "Homeplanner",
+        flowType: "customised",
+        depositDate: "2026-11-12",
+        customerName: "Viên Villa",
+        defaultMarkup: 1.6,
+        completedSteps: 3,
+        costs: [
+          { stageKeyword: "Thiết kế", category: "Thiết kế", itemName: "Thiết kế biển chỉ dẫn", vendorName: "Freelancer - Hà Ngọc Khánh Linh", costAmount: 4000000, durationDays: 7, markupFactor: 1.6, paymentStatus: "Chưa thanh toán" },
+          { stageKeyword: "Thiết kế", category: "Thiết kế", itemName: "Thiết kế biển Khởi Minh", vendorName: "Freelancer - Hà Ngọc Khánh Linh", costAmount: 2500000, durationDays: 5, markupFactor: 1.6, paymentStatus: "Đã tạm ứng 50%", contractRef: "260806/HĐKV" },
+        ],
+      },
+    ];
+
+    const insProj = database.prepare(
+      `INSERT INTO pm_projects (name, description, budget, status, business_unit, flow_type, deposit_date)
+       VALUES (?, ?, ?, 'active', ?, ?, ?) RETURNING id`,
+    );
+    const insStage = database.prepare(
+      `INSERT INTO pm_stages (project_id, step_order, title, description, sla_days, phase, start_date, end_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    );
+    const insTask = database.prepare(
+      `INSERT INTO pm_tasks (project_id, stage_id, title, description, assigned_phone, deadline, progress, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const insCost = database.prepare(
+      `INSERT INTO pm_project_costs
+        (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const insQuote = database.prepare(
+      `INSERT OR IGNORE INTO pm_quotations (project_id, customer_name, customer_rep, quote_date, title, client_tier, default_markup, vat_percent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+
+    for (const sp of seedPortfolio) {
+      const pRow = insProj.get(
+        sp.name,
+        sp.description,
+        sp.budget,
+        sp.businessUnit,
+        sp.flowType,
+        sp.depositDate,
+      ) as { id: number };
+
+      const schedule = calculateKmGiftSchedule({
+        flowType: sp.flowType,
+        depositDate: sp.depositDate,
+      });
+
+      const createdStages: Array<{ id: number; title: string }> = [];
+      for (const st of schedule) {
+        const sRow = insStage.get(
+          pRow.id,
+          st.stepOrder,
+          st.title,
+          `SLA: ${st.slaDays} ngày (${st.startDate} → ${st.endDate})`,
+          st.slaDays,
+          st.phase,
+          st.startDate,
+          st.endDate,
+        ) as { id: number };
+        createdStages.push({ id: sRow.id, title: st.title });
+
+        const isDone = st.stepOrder <= sp.completedSteps;
+        const isInProgress = st.stepOrder === sp.completedSteps + 1;
+        insTask.run(
+          pRow.id,
+          sRow.id,
+          st.defaultTaskTitle,
+          `Mốc SLA: ${st.startDate} → ${st.endDate} (${st.slaDays} ngày)`,
+          null,
+          st.endDate,
+          isDone ? 100 : isInProgress ? 40 : 0,
+          isDone ? "completed" : isInProgress ? "in_progress" : "pending",
+        );
+      }
+
+      for (const cItem of sp.costs) {
+        const matchStage =
+          createdStages.find((cs) => cs.title.includes(cItem.stageKeyword)) ?? createdStages[0];
+        insCost.run(
+          pRow.id,
+          matchStage ? matchStage.id : null,
+          cItem.category,
+          cItem.itemName,
+          cItem.vendorName,
+          cItem.costAmount,
+          cItem.quantity ?? 1,
+          cItem.unit ?? "gói",
+          cItem.durationDays,
+          cItem.markupFactor,
+          cItem.specs ?? "",
+          cItem.paymentStatus,
+          cItem.contractRef ?? "",
+        );
+      }
+
+      insQuote.run(
+        pRow.id,
+        sp.customerName,
+        "",
+        sp.depositDate,
+        `BÁO GIÁ ${sp.name.toUpperCase()}`,
+        "Doanh nghiệp",
+        sp.defaultMarkup,
+        8,
+      );
+    }
+  }
+
+  // Migration cột last_report và backfill đầu mục công việc con (checklist) cho pm_tasks
+  const taskCols = new Set(
+    (database.prepare("PRAGMA table_info(pm_tasks)").all() as { name: string }[]).map((r) => r.name),
+  );
+  if (!taskCols.has("last_report")) {
+    database.exec("ALTER TABLE pm_tasks ADD COLUMN last_report TEXT DEFAULT ''");
+  }
+
+  const tasksWithoutChecklist = database
+    .prepare(
+      `SELECT t.id, t.progress, t.status, s.title as stage_title
+       FROM pm_tasks t
+       LEFT JOIN pm_stages s ON t.stage_id = s.id
+       WHERE t.checklist IS NULL OR t.checklist = '' OR t.checklist = '[]'`,
+    )
+    .all() as Array<{ id: number; progress: number; status: string; stage_title?: string }>;
+
+  if (tasksWithoutChecklist.length > 0) {
+    const updTaskCl = database.prepare(
+      "UPDATE pm_tasks SET checklist = ?, progress = ?, status = ? WHERE id = ?",
+    );
+    for (const row of tasksWithoutChecklist) {
+      const tpl = KM_GIFT_CUSTOMISED_FLOW.find(
+        (s) => row.stage_title && (s.title === row.stage_title || row.stage_title.includes(s.title)),
+      );
+      const rawItems = tpl?.defaultChecklist ?? [
+        "Tiếp nhận yêu cầu & lên kế hoạch",
+        "Triển khai thực hiện",
+        "Kiểm tra & bàn giao hoàn tất",
+      ];
+      const targetDone =
+        row.status === "completed" || row.status === "done" || (row.progress || 0) >= 100
+          ? rawItems.length
+          : (row.progress || 0) > 0
+            ? Math.max(1, Math.floor((rawItems.length * (row.progress || 0)) / 100))
+            : 0;
+      const cl = rawItems.map((txt, idx) => ({
+        id: `${row.id}_${idx + 1}`,
+        text: txt,
+        done: idx < targetDone,
+      }));
+      const newPct = Math.round((targetDone / cl.length) * 100);
+      const newStatus = newPct >= 100 ? "completed" : newPct > 0 ? "in_progress" : "pending";
+      updTaskCl.run(JSON.stringify(cl), newPct, newStatus, row.id);
+    }
   }
 }
 

@@ -6,3397 +6,24 @@ import { layBotTokenGiaiMa } from "../../config/account-store.js";
 import { taoLinkGoogleCalendarWeb, taoIcalFeed } from "../../google/google-calendar-service.js";
 import { quetVaGuiNhacViecTuDong } from "../../notification/auto-reminder-worker.js";
 import { getSmtpConfig, guiEmailNhacViec } from "../../notification/email-service.js";
+import { sendGroupMentionReminder } from "../../notification/group-mention-reminder.js";
+import { applyBotProgressReport } from "../../zalo-bot/bot-progress-reporter.js";
+import { renderPortalHtml } from "./portal-ui-html.js";
 import { taoZaloBotClient } from "../../zalo-bot/zalo-bot-api-client.js";
+import { classifyPendingAssetsWithAI } from "../../drive/ai-project-classifier.js";
+import { addDaysIso, calculateKmGiftSchedule, type KmGiftFlowType } from "../../drive/km-gift-sla.js";
+import type { CollectedAssetRow } from "../../drive/asset-collector-store.js";
+import { getDriveSettings, syncAssetToDrive, updateDriveSettings } from "../../drive/google-drive-client.js";
+import {
+  findActivePersonalAccount,
+  getZaloGroupMembers,
+  listPersonalZaloGroups,
+  scanGroupHistoryForAssets,
+} from "../../drive/zalo-history-collector.js";
 
 export const portalRoutes = new Hono()
-  // Trang Giao Diện Portal (Theme Xanh Dương Công Nghệ & Xanh Lá Ngọc, Không Lỗi Tràn Màn Hình)
-  .get("/", (c) => {
-    return c.html(`<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Zalo Agent Studio // Modern Tech Blue & Emerald Green</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    /* ==========================================================================
-       DESIGN TOKENS - MODERN TECH BLUE (#2563EB) & EMERALD GREEN (#10B981)
-       ========================================================================== */
-    :root {
-      /* Brand Accents */
-      --brand-primary: #2563EB;        /* Tech Blue */
-      --brand-primary-hover: #1D4ED8;
-      --brand-primary-light: #EFF6FF;
-      --brand-primary-border: #BFDBFE;
-
-      --brand-success: #10B981;        /* Emerald Green */
-      --brand-success-hover: #059669;
-      --brand-success-light: #ECFDF5;
-      --brand-success-border: #A7F3D0;
-
-      --brand-accent: #2563EB;
-      --brand-dark: #0F172A;          /* Deep Navy Charcoal */
-
-      /* Background & Neutral Surfaces */
-      --bg-canvas: #F8FAFC;            /* Clean Slate White Canvas */
-      --bg-surface: #FFFFFF;           /* Pure White */
-      --bg-subtle: #F1F5F9;            /* Slate 100 */
-      --bg-hover: #E2E8F0;
-
-      /* Borders */
-      --border-subtle: #E2E8F0;
-      --border-soft: #CBD5E1;
-      --border-focus: #3B82F6;
-
-      /* Typography */
-      --text-main: #0F172A;            /* Crisp Dark Navy */
-      --text-muted: #64748B;           /* Slate 500 */
-      --text-light: #94A3B8;           /* Slate 400 */
-
-      /* Pill & Card Radii */
-      --radius-pill: 9999px;
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 20px;
-      --radius-xl: 28px;
-
-      /* Clean Shadows */
-      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
-      --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.05);
-      --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.08);
-      --shadow-glow-blue: 0 4px 16px rgba(37, 99, 235, 0.25);
-      --shadow-glow-green: 0 4px 16px rgba(16, 185, 129, 0.25);
-    }
-
-    /* GLOBAL RESET & PREVENT ALL HORIZONTAL WINDOW OVERFLOW */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      max-width: 100vw;
-      width: 100%;
-      overflow-x: hidden;
-      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      background-color: #F8FAFC;
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      -webkit-font-smoothing: antialiased;
-      padding: 16px;
-    }
-
-    /* THE FLOATING APP SHELL (NO HORIZONTAL OVERFLOW) */
-    .crextio-app-shell {
-      max-width: 1720px;
-      width: 100%;
-      min-width: 0;
-      margin: 0 auto;
-      background: #FFFFFF;
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-lg);
-      padding: 24px 28px;
-      border: 1px solid var(--border-subtle);
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    /* ==========================================================================
-       TOP FLOATING NAVIGATION (RESPONSIVE & NO TEXT WRAPPING)
-       ========================================================================== */
-    .crextio-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      gap: 16px;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-
-    .brand-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      color: var(--text-main);
-      flex-shrink: 0;
-    }
-    .brand-logo-circle {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-pill);
-      background: var(--bg-subtle);
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--border-subtle);
-      transition: transform 0.2s;
-    }
-    .brand-logo-circle:hover {
-      transform: scale(1.05);
-    }
-    .brand-name {
-      font-size: 19px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--brand-dark);
-      white-space: nowrap;
-    }
-    .brand-sub {
-      font-size: 11px;
-      color: var(--brand-primary);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      background: var(--brand-primary-light);
-      padding: 2px 8px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--brand-primary-border);
-      display: inline-block;
-      margin-left: 6px;
-    }
-
-    /* FLOATING PILL NAV GROUP (SINGLE LINE, ZERO WRAP, SCROLLS IF NARROW) */
-    .nav-pill-group {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: center;
-      background: var(--bg-subtle);
-      border-radius: var(--radius-pill);
-      padding: 5px 6px;
-      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
-      border: 1px solid var(--border-subtle);
-      gap: 4px;
-      flex-shrink: 1;
-      min-width: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .nav-pill-group::-webkit-scrollbar { display: none; }
-
-    .nav-pill {
-      background: transparent;
-      border: none;
-      padding: 9px 18px;
-      border-radius: var(--radius-pill);
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      display: inline-flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap !important;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-    .nav-pill:hover {
-      color: var(--brand-primary);
-      background: rgba(37, 99, 235, 0.08);
-    }
-    .nav-pill.active {
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      box-shadow: var(--shadow-glow-blue);
-      font-weight: 700;
-    }
-
-    /* TOPBAR TOOLS & PROJECT SELECTOR */
-    .topbar-tools {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-      flex-wrap: wrap;
-    }
-    .topbar-project-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
-      padding: 7px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.2s ease;
-      white-space: nowrap !important;
-      flex-shrink: 0;
-    }
-    .topbar-project-pill:hover {
-      border-color: var(--brand-primary);
-      background: var(--brand-primary-light);
-    }
-    #topbarProjectName {
-      white-space: nowrap;
-      max-width: 180px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: inline-block;
-    }
-    .badge-percent-pill {
-      background: var(--brand-success-light);
-      color: var(--brand-success);
-      padding: 2px 8px;
-      border-radius: var(--radius-pill);
-      font-size: 11px;
-      font-weight: 800;
-      white-space: nowrap;
-      border: 1px solid var(--brand-success-border);
-    }
-
-    .tool-circle-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: var(--radius-pill);
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-subtle);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-main);
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-      font-size: 15px;
-    }
-    .tool-circle-btn:hover {
-      background: var(--brand-primary-light);
-      border-color: var(--brand-primary-border);
-      color: var(--brand-primary);
-      transform: translateY(-1px);
-    }
-
-    .user-pill-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
-      padding: 5px 14px 5px 6px;
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.2s ease;
-    }
-    .user-pill-btn:hover {
-      background: var(--bg-hover);
-    }
-    .user-avatar-circle {
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-pill);
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      font-size: 12px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* BUTTONS */
-    .crextio-btn {
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 9px 20px;
-      font-size: 13.5px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      text-decoration: none;
-      white-space: nowrap !important;
-      line-height: 1;
-    }
-    .crextio-btn.primary {
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      box-shadow: var(--shadow-glow-blue);
-    }
-    .crextio-btn.primary:hover {
-      background: var(--brand-primary-hover);
-      transform: translateY(-1px);
-    }
-    .crextio-btn.success {
-      background: var(--brand-success);
-      color: #FFFFFF;
-      box-shadow: var(--shadow-glow-green);
-    }
-    .crextio-btn.success:hover {
-      background: var(--brand-success-hover);
-      transform: translateY(-1px);
-    }
-    .crextio-btn.secondary {
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-main);
-    }
-    .crextio-btn.secondary:hover {
-      background: var(--bg-subtle);
-      border-color: var(--border-soft);
-    }
-    .crextio-btn.dark {
-      background: var(--brand-dark);
-      color: #FFFFFF;
-    }
-    .crextio-btn.dark:hover {
-      background: #1E293B;
-    }
-
-    /* ==========================================================================
-       HORIZONTAL PROJECT OVERVIEW BANNER (COMPACT TOP BANNER + COMPACT RIGHT ASSIGNEES)
-       ========================================================================== */
-    .project-banner-horizontal {
-      background: #FFFFFF;
-      border-radius: 22px;
-      padding: 20px 24px;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--border-subtle);
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      width: 100%;
-      min-width: 0;
-    }
-
-    .banner-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .banner-identity {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .project-code-badge {
-      background: var(--brand-primary-light);
-      color: var(--brand-primary);
-      padding: 5px 12px;
-      border-radius: var(--radius-pill);
-      font-size: 12px;
-      font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
-      border: 1px solid var(--brand-primary-border);
-    }
-    .project-title-heading {
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: -0.4px;
-      color: var(--text-main);
-    }
-    .status-pill-active {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--brand-success-light);
-      color: var(--brand-success);
-      padding: 4px 12px;
-      border-radius: var(--radius-pill);
-      font-size: 12px;
-      font-weight: 700;
-      border: 1px solid var(--brand-success-border);
-    }
-    .project-desc-text {
-      width: 100%;
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: -4px;
-    }
-
-    /* COMPACT TOP-RIGHT ASSIGNEES BOX */
-    .banner-assignees-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-subtle);
-      border-radius: var(--radius-pill);
-      padding: 5px 12px 5px 14px;
-      border: 1px solid var(--border-subtle);
-      flex-shrink: 0;
-    }
-    .assignees-box-label {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-    .assignees-avatars-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .compact-assignee-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
-      padding: 3px 10px 3px 4px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-main);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-    }
-    .compact-assignee-chip:hover {
-      border-color: var(--brand-primary);
-      background: var(--brand-primary-light);
-      color: var(--brand-primary);
-    }
-    .compact-assignee-chip.active {
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      border-color: var(--brand-primary);
-    }
-    .compact-assignee-chip.active .chip-avatar {
-      background: #FFFFFF;
-      color: var(--brand-primary);
-    }
-    .chip-avatar {
-      width: 22px;
-      height: 22px;
-      border-radius: var(--radius-pill);
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      font-size: 10px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .chip-name {
-      white-space: nowrap;
-    }
-    .chip-stats {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 600;
-      background: var(--bg-subtle);
-      padding: 1px 6px;
-      border-radius: 9999px;
-    }
-
-    /* HORIZONTAL METRICS ROW */
-    .banner-metrics-row {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      background: var(--bg-subtle);
-      border-radius: var(--radius-md);
-      padding: 12px 18px;
-      flex-wrap: wrap;
-      border: 1px solid var(--border-subtle);
-    }
-    .metric-col {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .metric-lbl {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .metric-val {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--text-main);
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .metric-divider {
-      width: 1px;
-      height: 28px;
-      background: var(--border-soft);
-    }
-    .banner-quick-actions {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    /* PROGRESS BAR (BLUE & GREEN SEGMENTED) */
-    .banner-progress-bar-wrapper {
-      width: 100%;
-    }
-    .crextio-seg-bar {
-      width: 100%;
-      height: 9px;
-      border-radius: 9999px;
-      background: #E2E8F0;
-      overflow: hidden;
-      display: flex;
-      gap: 2px;
-    }
-    .seg-green {
-      background: var(--brand-success);
-      height: 100%;
-      border-radius: 9999px 0 0 9999px;
-      transition: width 0.4s ease;
-    }
-    .seg-blue {
-      background: var(--brand-primary);
-      height: 100%;
-      transition: width 0.4s ease;
-    }
-    .seg-gray {
-      flex: 1;
-      background: #E2E8F0;
-      height: 100%;
-    }
-
-    /* ==========================================================================
-       ACTION & FILTER BAR
-       ========================================================================== */
-    .crextio-action-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      gap: 16px;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-    .action-bar-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
-      padding: 7px 18px;
-      box-shadow: var(--shadow-sm);
-      flex: 1;
-      max-width: 480px;
-      min-width: 220px;
-    }
-    .action-bar-left:focus-within {
-      border-color: var(--brand-primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-    }
-    .action-search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13.5px;
-      width: 100%;
-      color: var(--text-main);
-    }
-    .action-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* ==========================================================================
-       MAIN WORKSPACE & TAB PANELS (100% WIDTH, ZERO WINDOW OVERFLOW)
-       ========================================================================== */
-    main {
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-    }
-
-    .tab-panel {
-      display: none;
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-    }
-    .tab-panel.active {
-      display: block;
-    }
-
-    /* ==========================================================================
-       WORK TRACKER & GANTT STYLES (MATCHING EXCEL SCHEMA)
-       ========================================================================== */
-    .gantt-scroll-wrapper {
-      overflow-x: auto;
-      max-width: 100%;
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      background: white;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    }
-    .gantt-scroll-wrapper::-webkit-scrollbar {
-      height: 9px;
-    }
-    .gantt-scroll-wrapper::-webkit-scrollbar-track {
-      background: #F1F5F9;
-    }
-    .gantt-scroll-wrapper::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 9999px;
-    }
-    .gantt-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-      background: var(--brand-primary);
-    }
-
-    .gantt-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      table-layout: fixed;
-      font-size: 12px;
-    }
-
-    .gantt-table th, .gantt-table td {
-      border-right: 1px solid #E2E8F0;
-      border-bottom: 1px solid #E2E8F0;
-      padding: 0;
-      text-align: center;
-      vertical-align: middle;
-      height: 38px;
-    }
-
-    .gantt-th-sticky {
-      position: sticky;
-      left: 0;
-      z-index: 20;
-      background: #F8FAFC !important;
-      text-align: left !important;
-      padding: 8px 14px !important;
-      box-shadow: 2px 0 6px rgba(0,0,0,0.06);
-    }
-
-    .gantt-td-sticky {
-      position: sticky;
-      left: 0;
-      z-index: 10;
-      background: white;
-      text-align: left !important;
-      padding: 6px 14px !important;
-      box-shadow: 2px 0 6px rgba(0,0,0,0.06);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .gantt-week-header {
-      background: #F1F5F9;
-      color: #334155;
-      font-weight: 700;
-      font-size: 11.5px;
-      letter-spacing: 0.02em;
-      border-bottom: 2px solid #CBD5E1 !important;
-      height: 30px !important;
-    }
-
-    .gantt-date-header {
-      background: #F8FAFC;
-      color: #64748B;
-      font-size: 10.5px;
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-      height: 26px !important;
-    }
-
-    .gantt-day-header {
-      background: #F8FAFC;
-      color: #475569;
-      font-size: 11px;
-      font-weight: 700;
-      height: 26px !important;
-    }
-
-    .gantt-col-weekend {
-      background: #F8FAFC;
-    }
-
-    .gantt-col-today {
-      background: rgba(254, 240, 138, 0.45) !important;
-      border-left: 2px dashed #EAB308 !important;
-      border-right: 2px dashed #EAB308 !important;
-    }
-
-    .gantt-bar-cell {
-      position: relative;
-      cursor: pointer;
-      transition: filter 0.15s ease;
-    }
-    .gantt-bar-cell:hover {
-      filter: brightness(0.92);
-    }
-
-    .tracker-filter-pill {
-      border: 1px solid var(--border-subtle);
-      background: white;
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .tracker-filter-pill:hover, .tracker-filter-pill.active {
-      background: var(--brand-primary);
-      color: white;
-      border-color: var(--brand-primary);
-    }
-
-    /* ==========================================================================
-       HORIZONTAL KANBAN BOARD (SINGLE ROW, HORIZONTAL SCROLL TO THE RIGHT)
-       ========================================================================== */
-    .kanban-board-scrollable {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 20px;
-      overflow-x: auto;
-      padding-bottom: 24px;
-      padding-top: 4px;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-    }
-    /* Sleek Blue/Emerald Custom Scrollbar */
-    .kanban-board-scrollable::-webkit-scrollbar {
-      height: 9px;
-    }
-    .kanban-board-scrollable::-webkit-scrollbar-track {
-      background: #F1F5F9;
-      border-radius: 9999px;
-    }
-    .kanban-board-scrollable::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 9999px;
-    }
-    .kanban-board-scrollable::-webkit-scrollbar-thumb:hover {
-      background: var(--brand-primary);
-    }
-
-    /* FIXED-WIDTH COLUMN (NEVER WRAPS DOWN) */
-    .kanban-col-container {
-      flex: 0 0 340px;
-      width: 340px;
-      min-width: 340px;
-      max-width: 340px;
-      background: #F8FAFC;
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .kanban-col-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .col-title-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      overflow: hidden;
-    }
-    .col-step-circle {
-      width: 26px;
-      height: 26px;
-      border-radius: var(--radius-pill);
-      background: var(--brand-primary);
-      color: #FFFFFF;
-      font-size: 12px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .col-title {
-      font-size: 14.5px;
-      font-weight: 800;
-      color: var(--text-main);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .col-count-pill {
-      background: var(--brand-primary-light);
-      color: var(--brand-primary);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--brand-primary-border);
-      flex-shrink: 0;
-    }
-
-    /* DROPZONE & TASK CARDS */
-    .kanban-dropzone-crextio {
-      min-height: 280px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      border-radius: var(--radius-md);
-      transition: background 0.2s ease;
-    }
-    .kanban-dropzone-crextio.drag-over {
-      background: var(--brand-primary-light);
-      outline: 2px dashed var(--brand-primary);
-    }
-
-    .task-card-crextio {
-      background: #FFFFFF;
-      border-radius: var(--radius-md);
-      padding: 16px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-subtle);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      cursor: grab;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .task-card-crextio:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
-      border-color: #93C5FD;
-    }
-    .task-card-crextio.dragging {
-      opacity: 0.4;
-      cursor: grabbing;
-    }
-
-    .task-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .task-assignee-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .task-deadline-pill {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--brand-primary);
-      background: var(--brand-primary-light);
-      padding: 2px 8px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--brand-primary-border);
-      white-space: nowrap;
-    }
-    .task-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-main);
-      line-height: 1.35;
-    }
-    .task-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .task-card-footer {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 2px;
-      flex-wrap: wrap;
-    }
-    .action-pill-btn {
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-subtle);
-      border-radius: var(--radius-pill);
-      padding: 4px 10px;
-      font-size: 11.5px;
-      font-weight: 700;
-      color: var(--text-main);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .action-pill-btn:hover {
-      background: var(--bg-hover);
-      transform: translateY(-1px);
-    }
-    .action-pill-btn.blue {
-      background: var(--brand-primary-light);
-      border-color: var(--brand-primary-border);
-      color: var(--brand-primary);
-    }
-    .action-pill-btn.blue:hover {
-      background: var(--brand-primary);
-      color: #FFFFFF;
-    }
-    .action-pill-btn.green {
-      background: var(--brand-success-light);
-      border-color: var(--brand-success-border);
-      color: var(--brand-success);
-    }
-    .action-pill-btn.green:hover {
-      background: var(--brand-success);
-      color: #FFFFFF;
-    }
-
-    /* PROJECT CARDS GRID (TAB 1) */
-    .project-card-interactive {
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 22px;
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .project-card-interactive:hover {
-      border-color: var(--brand-primary);
-      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
-      transform: translateY(-3px);
-    }
-    .project-card-interactive.active {
-      border: 2px solid var(--brand-primary);
-      background: #FAFCFF;
-    }
-
-    /* TABLES & FORMS */
-    .crextio-table-card {
-      background: #FFFFFF;
-      border-radius: var(--radius-lg);
-      padding: 22px;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--border-subtle);
-      overflow-x: auto;
-    }
-    .crextio-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 6px;
-    }
-    .crextio-table th {
-      text-align: left;
-      font-size: 11.5px;
-      font-weight: 800;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 8px 14px;
-    }
-    .crextio-table td {
-      background: var(--bg-subtle);
-      padding: 12px 14px;
-      font-size: 13.5px;
-      color: var(--text-main);
-    }
-    .crextio-table tr td:first-child { border-radius: 12px 0 0 12px; }
-    .crextio-table tr td:last-child { border-radius: 0 12px 12px 0; }
-
-    /* MODAL */
-    .crextio-modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(8px);
-      z-index: 9999;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .crextio-modal {
-      background: #FFFFFF;
-      border-radius: var(--radius-xl);
-      padding: 28px;
-      max-width: 580px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
-      border: 1px solid var(--border-subtle);
-      position: relative;
-      animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes modalSlideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .form-group {
-      margin-bottom: 14px;
-    }
-    /* ==========================================================================
-       FORMS, INPUTS & CUSTOM SLEEK DROPBOX (SELECT) CONTROLS
-       ========================================================================== */
-    .crextio-form-group, .form-group {
-      margin-bottom: 16px;
-    }
-    .crextio-form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .crextio-label, .form-group label {
-      display: block;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #334155;
-      margin-bottom: 6px;
-      letter-spacing: 0.2px;
-    }
-
-    .form-control,
-    .crextio-input,
-    .crextio-textarea {
-      width: 100%;
-      border: 1px solid var(--border-soft);
-      background: #FFFFFF;
-      border-radius: 10px;
-      padding: 9px 13px;
-      font-size: 13.5px;
-      font-weight: 500;
-      color: var(--text-main);
-      outline: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      font-family: inherit;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-    }
-    .form-control:hover,
-    .crextio-input:hover,
-    .crextio-textarea:hover {
-      border-color: #94A3B8;
-      background: #FAFAFA;
-    }
-    .form-control:focus,
-    .crextio-input:focus,
-    .crextio-textarea:focus {
-      border-color: var(--brand-primary);
-      background: #FFFFFF;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-    }
-
-    /* CUSTOM SLEEK SELECT (DROPBOX) WITH MODERN SVG CHEVRON */
-    select.form-control,
-    select.crextio-select,
-    .crextio-select {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      width: 100%;
-      background-color: #FFFFFF;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      background-size: 14px 14px;
-      padding: 9px 38px 9px 13px !important;
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--text-main);
-      border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      outline: none;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-      line-height: 1.4;
-    }
-    select.form-control:hover,
-    select.crextio-select:hover,
-    .crextio-select:hover {
-      border-color: #94A3B8;
-      background-color: #F8FAFC;
-    }
-    select.form-control:focus,
-    select.crextio-select:focus,
-    .crextio-select:focus {
-      border-color: var(--brand-primary);
-      background-color: #FFFFFF;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-    }
-
-    /* DATE INPUTS */
-    input[type="date"].form-control,
-    input[type="date"].crextio-input {
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-      background: #FFFFFF;
-      border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      padding: 7px 11px;
-      cursor: pointer;
-    }
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      cursor: pointer;
-      opacity: 0.65;
-      transition: opacity 0.15s ease;
-    }
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-      opacity: 1;
-    }
-
-    /* TRACKER DATE PILL GROUP (REPLACES CLUNKY DATE INPUTS) */
-    .tracker-date-pill-group {
-      display: inline-flex;
-      align-items: center;
-      background: #FFFFFF;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
-      padding: 4px 6px;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-      transition: all 0.2s ease;
-    }
-    .tracker-date-pill-group:hover {
-      border-color: var(--border-soft);
-    }
-    .tracker-date-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 2px 8px;
-    }
-    .tracker-date-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-    .tracker-date-native-input {
-      border: 1px solid #E2E8F0;
-      background: #F8FAFC;
-      border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-main);
-      font-family: inherit;
-      outline: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      width: 125px;
-    }
-    .tracker-date-native-input:hover {
-      background: #FFFFFF;
-      border-color: #CBD5E1;
-    }
-    .tracker-date-native-input:focus {
-      background: #FFFFFF;
-      border-color: var(--brand-primary);
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-    }
-    .tracker-date-divider {
-      width: 1px;
-      height: 18px;
-      background: #E2E8F0;
-      margin: 0 2px;
-    }
-
-    /* POPOVER PROJECT SELECTOR (LUXURY DROPBOX MENU) */
-    .project-popover {
-      position: absolute;
-      top: 72px;
-      right: 28px;
-      width: 400px;
-      max-width: 92vw;
-      background: #FFFFFF;
-      border-radius: 16px;
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
-      border: 1px solid var(--border-subtle);
-      padding: 18px;
-      z-index: 1000;
-      display: none;
-      flex-direction: column;
-      gap: 14px;
-      animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes popoverIn {
-      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .popover-project-item {
-      padding: 11px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #FFFFFF;
-    }
-    .popover-project-item:hover {
-      border-color: var(--brand-primary);
-      background: #F8FAFC;
-      transform: translateX(2px);
-    }
-    .popover-project-item.active {
-      border-color: var(--brand-primary);
-      background: var(--brand-primary-light);
-    }
-
-    /* TOAST NOTIFICATION */
-    .portal-toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--brand-dark);
-      color: #FFFFFF;
-      padding: 12px 20px;
-      border-radius: var(--radius-pill);
-      font-size: 13px;
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-      z-index: 10000;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      animation: toastIn 0.25s ease;
-    }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ==========================================================================
-       PRINT STYLES (A4 LANDSCAPE PRINT / EXPORT PDF)
-       ========================================================================== */
-    @media print {
-      @page {
-        size: landscape;
-        margin: 6mm 6mm;
-      }
-      *, *::before, *::after {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        box-shadow: none !important;
-        text-shadow: none !important;
-      }
-      body {
-        background: #FFFFFF !important;
-        color: #0F172A !important;
-        font-size: 10px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .app-container {
-        max-width: 100% !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-
-      /* Hide web navigation, headers, footers, buttons, and modals */
-      header.app-header,
-      .crextio-nav-pills,
-      .crextio-modal-overlay,
-      .nav-pill,
-      #portalToast,
-      button,
-      .crextio-btn,
-      .no-print,
-      .print-hide,
-      #trackerFilterButtons,
-      #trackerFilterAllBtn,
-      .hint-scroll-text,
-      .th-actions,
-      .col-actions {
-        display: none !important;
-      }
-
-      /* Show only active tab panel */
-      .tab-panel {
-        display: none !important;
-      }
-      .tab-panel.active {
-        display: block !important;
-      }
-
-      /* Print only header element */
-      .print-only {
-        display: block !important;
-      }
-
-      /* Container card styling */
-      .crextio-table-card {
-        border: 1px solid #CBD5E1 !important;
-        box-shadow: none !important;
-        margin-bottom: 12px !important;
-        padding: 10px 14px !important;
-        border-radius: 8px !important;
-        page-break-inside: avoid;
-      }
-
-      /* Gantt chart print layout */
-      .gantt-scroll-wrapper {
-        overflow: visible !important;
-        max-width: 100% !important;
-        width: 100% !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 6px !important;
-      }
-      .gantt-table {
-        width: 100% !important;
-        table-layout: fixed !important;
-        font-size: 8.5px !important;
-      }
-      .gantt-table th, .gantt-table td {
-        height: 20px !important;
-        padding: 0 !important;
-        font-size: 8px !important;
-        border-right: 1px solid #E2E8F0 !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-      }
-      .gantt-th-sticky, .gantt-td-sticky {
-        position: static !important;
-        box-shadow: none !important;
-        width: 180px !important;
-        min-width: 180px !important;
-        max-width: 180px !important;
-        font-size: 9px !important;
-        padding: 2px 6px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-      }
-      .gantt-week-header {
-        font-size: 9px !important;
-        height: 20px !important;
-      }
-      .gantt-date-header {
-        font-size: 8px !important;
-        height: 18px !important;
-      }
-      .gantt-day-header {
-        font-size: 8px !important;
-        height: 18px !important;
-      }
-      .gantt-bar-cell div {
-        height: 15px !important;
-      }
-
-      /* Task Table */
-      .crextio-table {
-        font-size: 9.5px !important;
-        width: 100% !important;
-      }
-      .crextio-table th, .crextio-table td {
-        padding: 4px 6px !important;
-        font-size: 9px !important;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- THE FLOATING LUXURY APP SHELL -->
-  <div class="crextio-app-shell">
-
-    <!-- ========================================================================
-         TOP FLOATING NAVIGATION
-         ======================================================================== -->
-    <header class="crextio-topbar">
-      <!-- Left: Logo & Portal Identity -->
-      <a href="/portal" class="brand-group" title="Zalo Agent Portal">
-        <div class="brand-logo-circle">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="28" height="28" fill="none">
-            <g transform="translate(24, 24)">
-              <g transform="rotate(0)">
-                <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#2563EB"/>
-              </g>
-              <g transform="rotate(120)">
-                <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#1D4ED8"/>
-              </g>
-              <g transform="rotate(240)">
-                <path d="M0 -4 C7 -18 19 -17 19 -8 C19 1 9 7 0 4 Z" fill="#10B981"/>
-              </g>
-              <circle cx="0" cy="0" r="3.5" fill="#059669"/>
-            </g>
-          </svg>
-        </div>
-        <div>
-          <span class="brand-name">Zalo Agent</span>
-          <span class="brand-sub">PORTAL</span>
-        </div>
-      </a>
-
-      <!-- Center: Nav Pills (Single Line, Never Wraps) -->
-      <nav class="nav-pill-group" id="topNavPills">
-        <button class="nav-pill" data-tab="projects" onclick="switchTab('projects')">
-          <span>📁</span><span>Dự Án</span>
-        </button>
-        <button class="nav-pill active" data-tab="kanban" onclick="switchTab('kanban')">
-          <span>📌</span><span>Bảng Tiến Độ</span>
-        </button>
-        <button class="nav-pill" data-tab="tasks" onclick="switchTab('tasks')">
-          <span>📋</span><span>Danh Sách</span>
-        </button>
-        <button class="nav-pill" data-tab="tracker" onclick="switchTab('tracker')">
-          <span>🌸</span><span>Theo Dõi Tiến Độ</span>
-        </button>
-        <button class="nav-pill" data-tab="budget" onclick="switchTab('budget')">
-          <span>💰</span><span>Chi Phí</span>
-        </button>
-        <button class="nav-pill" data-tab="zalo" onclick="switchTab('zalo')">
-          <span>🤖</span><span>Zalo Bot</span>
-        </button>
-        <button class="nav-pill" data-tab="gcal" onclick="switchTab('gcal')">
-          <span>📅</span><span>Google Lịch</span>
-        </button>
-        <button class="nav-pill admin-only" data-tab="members" onclick="switchTab('members')">
-          <span>👥</span><span>Phân Quyền</span>
-        </button>
-      </nav>
-
-      <!-- Right: Tools, Project Selector & Account -->
-      <div class="topbar-tools">
-        <!-- Project Selector Dropdown Button -->
-        <button class="topbar-project-pill" id="topbarProjectBtn" onclick="toggleProjectPopover(event)" title="Nhấn để đổi dự án">
-          <span>📁</span>
-          <span id="topbarProjectName">Đang tải...</span>
-          <span class="badge-percent-pill" id="topbarProjectProgressBadge">0%</span>
-          <span style="font-size:10px; color:var(--text-light);">▼</span>
-        </button>
-
-        <!-- Quick Add Task -->
-        <button class="crextio-btn primary admin-only" onclick="openAddTaskModal()">+ Thêm Việc</button>
-
-        <button class="tool-circle-btn" onclick="printWorkTracker()" title="In nhanh / Xuất PDF (Khổ A4 ngang)">🖨️</button>
-        <a href="/" class="tool-circle-btn" title="Mở Dashboard Zalo Core">⚙️</a>
-        <a href="/upload" class="tool-circle-btn" title="Kho Lưu Trữ Tài Liệu">📁</a>
-
-        <div class="user-pill-btn" onclick="openSwitchAccountModal()" title="Nhấn để đổi tài khoản">
-          <div class="user-avatar-circle" id="currentUserAvatarLetter">Q</div>
-          <span style="font-size:12.5px; font-weight:700;" id="currentUserName">Quản Trị Viên</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- POPOVER DROPDOWN CHỌN DỰ ÁN -->
-    <div class="project-popover" id="projectPopover" onclick="event.stopPropagation()">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:13px; font-weight:800; color:var(--text-main);">CHỌN DỰ ÁN</span>
-        <button class="crextio-btn primary admin-only" style="padding:4px 10px; font-size:11px;" onclick="openAddProjectModal()">+ Mới</button>
-      </div>
-      <input type="text" class="form-control" placeholder="Tìm kiếm dự án..." oninput="filterPopoverProjects(this.value)">
-      <div style="display:flex; gap:6px;">
-        <button class="action-pill-btn blue active popover-filter-btn" onclick="setPopoverFilter('all', this)">Tất cả (<span id="popoverAllCount">0</span>)</button>
-        <button class="action-pill-btn popover-filter-btn" onclick="setPopoverFilter('active', this)">Đang chạy</button>
-        <button class="action-pill-btn popover-filter-btn" onclick="setPopoverFilter('completed', this)">Hoàn thành</button>
-      </div>
-      <div id="popoverProjectList" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-        <!-- Populated via JS -->
-      </div>
-    </div>
-
-    <!-- ========================================================================
-         HORIZONTAL PROJECT OVERVIEW BANNER (COMPACT TOP & RIGHT ASSIGNEES)
-         ======================================================================== -->
-    <div class="project-banner-horizontal" id="projectBannerHorizontal">
-      <div class="banner-top-row">
-        <!-- Left: Project Identity & Status -->
-        <div class="banner-identity">
-          <span class="project-code-badge" id="sideProjectCodeBadge">#PRJ-01</span>
-          <h2 class="project-title-heading" id="sideCurrentProjectName">Đang tải dự án...</h2>
-          <span class="status-pill-active" id="drawerProjectStatus">🟢 Đang chạy</span>
-          <p class="project-desc-text" id="sideProjectDesc">Dự án triển khai trợ lý AI Zalo và cổng quản lý công việc</p>
-        </div>
-
-        <!-- Right: Small Compact Assignees Box -->
-        <div class="banner-assignees-box">
-          <div class="assignees-box-label">NHÂN SỰ:</div>
-          <div class="assignees-avatars-row" id="bannerAssigneesList">
-            <!-- Populated via JS with compact chips -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Middle: Metrics Row & Quick Actions -->
-      <div class="banner-metrics-row">
-        <div class="metric-col">
-          <span class="metric-lbl">Tiến Độ Dự Án</span>
-          <span class="metric-val" id="bannerProgressVal" style="color:var(--brand-primary);">0%</span>
-        </div>
-        <div class="metric-divider"></div>
-        <div class="metric-col">
-          <span class="metric-lbl">Ngân Sách Dự Kiến</span>
-          <span class="metric-val" id="drawerProjectBudget">0 đ</span>
-        </div>
-        <div class="metric-divider"></div>
-        <div class="metric-col">
-          <span class="metric-lbl">Đã Giải Ngân</span>
-          <span class="metric-val" id="drawerProjectSpent" style="color:var(--brand-success);">0 đ</span>
-        </div>
-        <div class="metric-divider"></div>
-        <div class="metric-col">
-          <span class="metric-lbl">Còn Lại</span>
-          <span class="metric-val" id="drawerProjectRemaining">0 đ</span>
-        </div>
-        <div class="metric-divider"></div>
-        <div class="metric-col">
-          <span class="metric-lbl">Khối Lượng</span>
-          <span class="metric-val" id="bannerTasksCountText">0 / 0 hoàn thành</span>
-        </div>
-
-        <!-- Quick actions right -->
-        <div class="banner-quick-actions">
-          <button class="crextio-btn primary" style="padding: 6px 14px; font-size: 12px;" onclick="triggerManualSyncReminders()">⚡ Quét Nhắc Zalo</button>
-          <button class="crextio-btn secondary" style="padding: 6px 14px; font-size: 12px;" onclick="copyIcalFeedUrl()">📋 Link iCal Feed</button>
-          <a href="/upload" class="crextio-btn secondary" style="padding: 6px 14px; font-size: 12px;">📁 Tài Liệu</a>
-        </div>
-      </div>
-
-      <!-- Segmented Overall Progress Bar (Green = Done, Blue = In Progress, Gray = Remaining) -->
-      <div class="banner-progress-bar-wrapper">
-        <div class="crextio-seg-bar">
-          <div class="seg-green" id="centerSegGreen" style="width: 0%;"></div>
-          <div class="seg-blue" id="centerSegBlue" style="width: 0%;"></div>
-          <div class="seg-gray"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================================================
-         MAIN CONTENT TABS (ZERO HORIZONTAL WINDOW OVERFLOW)
-         ======================================================================== -->
-    <main>
-      
-      <!-- TAB 1: DANH MỤC DỰ ÁN (BẤM VÀO SẼ CHUYỂN NGAY SANG BẢNG TIẾN ĐỘ CỦA DỰ ÁN ĐÓ) -->
-      <section id="tab-projects" class="tab-panel">
-        <div class="crextio-table-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-            <div>
-              <h3 style="font-size:19px; font-weight:800; color:var(--text-main);">📁 Danh Mục Tất Cả Dự Án</h3>
-              <p style="font-size:13px; color:var(--text-muted);">Bấm vào bất kỳ dự án nào để mở ngay bảng tiến độ và công việc chi tiết</p>
-            </div>
-            <button class="crextio-btn primary admin-only" onclick="openAddProjectModal()">+ Tạo Dự Án Mới</button>
-          </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;" id="allProjectsGrid">
-            <!-- Rendered via JS -->
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 2: KANBAN BOARD (CÁC BƯỚC NẰM NGANG, KÉO SANG PHẢI) -->
-      <section id="tab-kanban" class="tab-panel active">
-        <!-- Search & Filter Capsule Bar -->
-        <div class="crextio-action-bar">
-          <div class="action-bar-left">
-            <span>🔍</span>
-            <input type="text" id="taskSearchInput" class="action-search-input" placeholder="Tìm kiếm công việc, mô tả hoặc người phụ trách..." oninput="renderKanban()">
-          </div>
-          <div class="action-bar-right">
-            <select id="memberFilterSelect" class="form-control" style="width:auto; padding:6px 14px; border-radius:var(--radius-pill); font-size:12px;" onchange="renderKanban()">
-              <option value="">Tất cả nhân sự</option>
-            </select>
-            <button class="crextio-btn secondary admin-only" onclick="openAddStageModal()">+ Thêm Bước / Giai Đoạn</button>
-            <button class="crextio-btn primary admin-only" onclick="openAddTaskModal()">+ Thêm Công Việc</button>
-          </div>
-        </div>
-
-        <!-- Horizontal Scrollable Kanban Container -->
-        <div class="kanban-board-scrollable" id="kanbanBoardContainer">
-          <!-- Kanban columns rendered horizontally side-by-side via JS -->
-        </div>
-      </section>
-
-      <!-- TAB 3: TASKS TABLE (DANH SÁCH CHI TIẾT) -->
-      <section id="tab-tasks" class="tab-panel">
-        <div class="crextio-table-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-            <h3 style="font-size:18px; font-weight:800; color:var(--text-main);">📋 Danh Sách Chi Tiết Công Việc & Tiến Độ</h3>
-            <button class="crextio-btn primary admin-only" onclick="openAddTaskModal()">+ Thêm Công Việc</button>
-          </div>
-          <table class="crextio-table">
-            <thead>
-              <tr>
-                <th>Công Việc</th>
-                <th>Giai Đoạn</th>
-                <th>Phụ Trách</th>
-                <th>Hạn Chót</th>
-                <th>Tiến Độ</th>
-                <th>Chi Phí</th>
-                <th>Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody id="tasksTableBody">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- TAB TRACKER: TIẾN ĐỘ THEO DÕI CÔNG VIỆC (GANTT & INDEPENDENT MASTER TASK LIST) -->
-      <section id="tab-tracker" class="tab-panel">
-        <!-- PRINT ONLY HEADER (Visible only when printed or exported to PDF) -->
-        <div class="print-only" style="display:none; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #0F172A;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <div>
-              <div style="font-size:20px; font-weight:900; color:#0F172A; letter-spacing:0.5px;">🌸 KHỞI MINH - THEO DÕI TIẾN ĐỘ CÔNG VIỆC 🌸</div>
-              <div style="font-size:11px; color:#475569; margin-top:2px;">Kế hoạch & Biểu đồ Gantt 7 tuần (49 ngày thi công) | Phân công theo 6 nhân sự</div>
-            </div>
-            <div style="text-align:right; font-size:11px; color:#475569; line-height:1.4;">
-              <div>Ngày in: <b id="printDateStr" style="color:#0F172A;"></b></div>
-              <div>Bắt đầu: <b id="printStartDateStr" style="color:#0F172A;">09/11/2026</b> | Hôm nay: <b id="printTodayDateStr" style="color:#0F172A;">10/11/2026</b></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tracker Header Card -->
-        <div class="crextio-table-card" style="margin-bottom: 20px; padding: 22px 26px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:18px;">
-            <div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:24px;">🌸</span>
-                <h2 style="font-size:20px; font-weight:800; color:var(--text-main); margin:0;">THEO DÕI TIẾN ĐỘ CÔNG VIỆC</h2>
-                <span class="badge-pill" style="background:#F1F5F9; border:1px solid #E2E8F0; color:#475569; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;">BẢNG ĐỘC LẬP</span>
-              </div>
-              <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">Theo dõi tiến độ vận hành tách riêng với các dự án, trực quan hóa biểu đồ Gantt 7 tuần theo thành viên</p>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <!-- Start Date & Today controls combined into clean pill -->
-              <div class="tracker-date-pill-group">
-                <div class="tracker-date-item">
-                  <span style="font-size:13px;">📅</span>
-                  <span class="tracker-date-label">Bắt đầu:</span>
-                  <input type="date" id="trackerProjectStartDate" class="tracker-date-native-input" onchange="saveTrackerDates()">
-                </div>
-                <div class="tracker-date-divider"></div>
-                <div class="tracker-date-item">
-                  <span style="font-size:13px;">☀️</span>
-                  <span class="tracker-date-label">Hôm nay:</span>
-                  <input type="date" id="trackerTodayDate" class="tracker-date-native-input" onchange="saveTrackerDates()">
-                </div>
-              </div>
-
-              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In bảng tiến độ hoặc xuất PDF (Khổ ngang A4)">
-                <span>🖨️</span><span>In / Xuất PDF</span>
-              </button>
-
-              <button class="crextio-btn secondary" onclick="openTrackerMemberModal()" title="Chỉnh sửa tên và màu của 6 thành viên">
-                <span>👥</span><span>6 Thành Viên</span>
-              </button>
-
-              <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">
-                <span>+</span><span>Thêm Công Việc</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Color Palette Legend & Member Filter -->
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:14px; border-top:1px solid var(--border-subtle);">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">🎨 Màu theo người làm:</span>
-              <div id="trackerMemberLegend" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
-              <div style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:6px; background:#FEF08A; border:1px solid #FACC15; color:#854D0E; font-size:11.5px; font-weight:700;">
-                <span>🟨</span> Hôm nay
-              </div>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:12px; color:var(--text-muted);">Lọc theo người làm:</span>
-              <button class="tracker-filter-pill active" id="trackerFilterAllBtn" onclick="filterTrackerMember('all', this)">Tất cả</button>
-              <div id="trackerFilterButtons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Biểu Đồ Gantt (Interactive Horizontal Scrollable Timeline) -->
-        <div class="crextio-table-card" style="margin-bottom: 24px; padding: 20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:16px;">✨</span>
-              <h3 style="font-size:16.5px; font-weight:800; color:var(--text-main); margin:0;">Biểu Đồ Gantt Tiến Độ (7 Tuần)</h3>
-            </div>
-            <div style="font-size:12px; color:var(--text-muted);">
-              Cuộn ngang ➡️ để xem toàn bộ 49 ngày thi công
-            </div>
-          </div>
-
-          <div class="gantt-scroll-wrapper" id="ganttScrollWrapper">
-            <div id="ganttChartContainer">Đang tải biểu đồ Gantt...</div>
-          </div>
-        </div>
-
-        <!-- Bảng Danh Sách Công Việc (Data Table) -->
-        <div class="crextio-table-card" style="padding: 22px 24px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:18px;">📝</span>
-              <h3 style="font-size:17px; font-weight:800; color:var(--text-main); margin:0;">Danh Sách Chi Tiết Công Việc</h3>
-              <span id="trackerTaskCountBadge" class="badge-pill" style="background:var(--brand-primary-light); color:var(--brand-primary); font-size:11px; padding:2px 8px; border-radius:999px;">0 công việc</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button class="crextio-btn secondary" onclick="printWorkTracker()" title="In danh sách tiến độ ra giấy hoặc PDF (Khổ ngang A4)" style="font-size:12px; padding:6px 14px;">
-                <span>🖨️</span><span>In Bảng Tiến Độ</span>
-              </button>
-              <button class="crextio-btn primary" onclick="openAddTrackerTaskModal()">+ Thêm Dòng Công Việc</button>
-            </div>
-          </div>
-
-          <div style="overflow-x:auto;">
-            <table class="crextio-table">
-              <thead>
-                <tr>
-                  <th style="width:48px; text-align:center;">STT</th>
-                  <th style="min-width:240px;">Tên Task</th>
-                  <th style="width:140px;">Người Làm</th>
-                  <th style="width:110px;">Bắt Đầu</th>
-                  <th style="width:110px;">Kết Thúc</th>
-                  <th style="width:85px; text-align:center;">Số Ngày</th>
-                  <th style="width:150px;">% Hoàn Thành</th>
-                  <th style="width:130px;">Trạng Thái</th>
-                  <th>Ghi Chú</th>
-                  <th style="width:100px; text-align:center;" class="th-actions">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody id="trackerTasksTableBody">
-                <!-- Rendered via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 4: BUDGET & EXPENSES -->
-      <section id="tab-budget" class="tab-panel">
-        <div class="crextio-table-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-            <div>
-              <h3 style="font-size:18px; font-weight:800; color:var(--text-main);">💰 Sổ Thu Chi & Ngân Sách Dự Án</h3>
-              <p style="font-size:13px; color:var(--text-muted);" id="budgetSubHeading">Theo dõi chi phí theo từng đầu việc</p>
-            </div>
-            <button class="crextio-btn primary admin-only" onclick="openAddExpenseModal()">+ Ghi Nhận Chi Phí</button>
-          </div>
-          <table class="crextio-table">
-            <thead>
-              <tr>
-                <th>Ngày</th>
-                <th>Khoản Chi / Nội Dung</th>
-                <th>Công Việc Liên Quan</th>
-                <th>Số Tiền</th>
-                <th>Người Chi</th>
-              </tr>
-            </thead>
-            <tbody id="expensesTableBody">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- TAB 5: ZALO BOT AUTOMATION -->
-      <section id="tab-zalo" class="tab-panel">
-        <div class="crextio-table-card">
-          <h3 style="font-size:18px; font-weight:800; margin-bottom:8px; color:var(--text-main);">🤖 Tự Động Hóa Nhắc Việc Qua Zalo</h3>
-          <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Trợ lý AI tự động quét deadline và gửi thông báo nhắc việc đến Zalo cá nhân</p>
-          
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
-            <div style="background:var(--bg-subtle); padding:20px; border-radius:var(--radius-lg); border:1px solid var(--border-subtle);">
-              <h4 style="font-size:15px; font-weight:800; margin-bottom:10px; color:var(--text-main);">⚡ Gửi Thử Tin Nhắn Zalo</h4>
-              <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Gửi tin nhắn test từ Bot Zalo đến số điện thoại bất kỳ</p>
-              <div class="form-group">
-                <label>Số điện thoại nhận</label>
-                <input type="text" id="zaloTestPhone" class="form-control" placeholder="0988...">
-              </div>
-              <div class="form-group">
-                <label>Nội dung tin nhắn</label>
-                <input type="text" id="zaloTestMsg" class="form-control" value="[Zalo Agent] Xin chào! Đây là thông báo tự động từ hệ thống quản lý dự án.">
-              </div>
-              <button class="crextio-btn primary admin-only" onclick="sendTestZaloMsg()">Gửi Thử Nghiệm Ngay</button>
-            </div>
-
-            <div style="background:var(--bg-subtle); padding:20px; border-radius:var(--radius-lg); border:1px solid var(--border-subtle);">
-              <h4 style="font-size:15px; font-weight:800; margin-bottom:10px; color:var(--text-main);">🔔 Quét Nhắc Việc Định Kỳ</h4>
-              <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Worker tự động chạy nền mỗi 60 giây quét task sắp đến hạn (trong vòng 24h) để nhắc Zalo</p>
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <div style="display:flex; justify-content:space-between; font-size:13px;">
-                  <span>Trạng thái Worker:</span>
-                  <span style="font-weight:700; color:var(--brand-success);">🟢 Đang chạy</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:13px;">
-                  <span>Tài khoản Bot:</span>
-                  <span style="font-weight:700; color:var(--brand-primary);">Bot Trợ Lý Jay</span>
-                </div>
-              </div>
-              <button class="crextio-btn success admin-only" style="margin-top:20px;" onclick="triggerManualSyncReminders()">⚡ Quét Thủ Công Toàn Bộ Hạn Chót</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 6: GOOGLE CALENDAR -->
-      <section id="tab-gcal" class="tab-panel">
-        <div class="crextio-table-card">
-          <h3 style="font-size:18px; font-weight:800; margin-bottom:8px; color:var(--text-main);">📅 Đồng Bộ Lịch Google Calendar Tự Động</h3>
-          <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Đồng bộ toàn bộ deadline và lịch công việc vào ứng dụng Google Calendar, Apple Calendar hoặc Outlook</p>
-
-          <div style="background:var(--brand-primary-light); border:1px solid var(--brand-primary-border); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px;">
-            <h4 style="font-size:15px; font-weight:800; color:var(--brand-primary); margin-bottom:8px;">🔗 Đường Dẫn iCal Feed Trực Tiếp</h4>
-            <p style="font-size:13px; color:var(--brand-primary); margin-bottom:14px;">Dán đường dẫn này vào Google Calendar (Mục "Thêm lịch khác" -> "Từ URL") để tự động cập nhật lịch:</p>
-            <div style="display:flex; gap:10px; align-items:center;">
-              <input type="text" id="gcalFeedUrlInput" class="form-control" readonly style="background:#FFFFFF; font-family:'JetBrains Mono', monospace; font-size:12.5px;">
-              <button class="crextio-btn primary" onclick="copyIcalFeedUrl()">Sao Chép</button>
-              <a id="downloadIcsBtn" href="/portal/api/calendar.ics" class="crextio-btn secondary">Tải Tệp .ics</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 7: MEMBERS & ROLES -->
-      <section id="tab-members" class="tab-panel">
-        <div class="crextio-table-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-            <div>
-              <h3 style="font-size:18px; font-weight:800; color:var(--text-main);">👥 Phân Quyền Thành Viên & Tài Khoản</h3>
-              <p style="font-size:13px; color:var(--text-muted);">Admin có toàn quyền quản trị, Manager quản lý công việc, Member phụ trách task</p>
-            </div>
-            <button class="crextio-btn primary admin-only" onclick="openAddMemberModal()">+ Thêm Thành Viên</button>
-          </div>
-          <table class="crextio-table">
-            <thead>
-              <tr>
-                <th>Thành Viên</th>
-                <th>Số Điện Thoại</th>
-                <th>Email</th>
-                <th>Vai Trò</th>
-                <th>Trạng Thái Zalo</th>
-                <th>Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody id="membersTableBody">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-    </main>
-
-  </div>
-
-  <!-- TOAST NOTIFICATION -->
-  <div class="portal-toast" id="portalToast">Thông báo</div>
-
-  <!-- ========================================================================
-       MODALS
-       ======================================================================== -->
-
-  <!-- MODAL: ADD / EDIT TASK -->
-  <div class="crextio-modal-overlay" id="taskModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);" id="taskModalTitle">Thêm Công Việc Mới</h3>
-      <input type="hidden" id="editTaskId">
-      <div class="form-group">
-        <label>Tên công việc *</label>
-        <input type="text" id="taskTitleInput" class="form-control" placeholder="VD: Thiết kế giao diện...">
-      </div>
-      <div class="form-group">
-        <label>Mô tả chi tiết</label>
-        <textarea id="taskDescInput" class="form-control" rows="2" placeholder="Chi tiết yêu cầu công việc..."></textarea>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label>Giai đoạn / Bước *</label>
-          <select id="taskStageSelect" class="form-control"></select>
-        </div>
-        <div class="form-group">
-          <label>Người phụ trách</label>
-          <select id="taskAssigneeSelect" class="form-control"></select>
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label>Hạn chót (Deadline)</label>
-          <input type="datetime-local" id="taskDeadlineInput" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Tiến độ hoàn thành (%)</label>
-          <input type="number" id="taskProgressInput" class="form-control" min="0" max="100" value="0">
-        </div>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('taskModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="saveTaskModal()">Lưu Công Việc</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD PROJECT -->
-  <div class="crextio-modal-overlay" id="projectModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);">Tạo Dự Án Mới</h3>
-      <div class="form-group">
-        <label>Tên dự án *</label>
-        <input type="text" id="newProjectName" class="form-control" placeholder="VD: Dự Án Triển Khai ERP 2026">
-      </div>
-      <div class="form-group">
-        <label>Mô tả</label>
-        <textarea id="newProjectDesc" class="form-control" rows="2" placeholder="Mục tiêu và phạm vi dự án..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Ngân sách dự kiến (VNĐ)</label>
-        <input type="number" id="newProjectBudget" class="form-control" placeholder="50000000">
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('projectModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="saveNewProject()">Tạo Dự Án</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD STAGE -->
-  <div class="crextio-modal-overlay" id="stageModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);">Thêm Giai Đoạn / Bước Mới</h3>
-      <div class="form-group">
-        <label>Tên giai đoạn *</label>
-        <input type="text" id="newStageTitle" class="form-control" placeholder="VD: Bước 5: Bàn Giao & Vận Hành">
-      </div>
-      <div class="form-group">
-        <label>Mô tả giai đoạn</label>
-        <input type="text" id="newStageDesc" class="form-control" placeholder="Mô tả tóm tắt...">
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('stageModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="saveNewStage()">Thêm Giai Đoạn</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD EXPENSE -->
-  <div class="crextio-modal-overlay" id="expenseModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);">Ghi Nhận Chi Phí Dự Án</h3>
-      <div class="form-group">
-        <label>Nội dung chi *</label>
-        <input type="text" id="expenseDesc" class="form-control" placeholder="VD: Thuê server, thiết kế logo...">
-      </div>
-      <div class="form-group">
-        <label>Số tiền (VNĐ) *</label>
-        <input type="number" id="expenseAmount" class="form-control" placeholder="1500000">
-      </div>
-      <div class="form-group">
-        <label>Gắn vào công việc</label>
-        <select id="expenseTaskSelect" class="form-control"></select>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('expenseModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="saveExpense()">Lưu Khoản Chi</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD MEMBER -->
-  <div class="crextio-modal-overlay" id="memberModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);">Thêm Thành Viên & Phân Quyền</h3>
-      <div class="form-group">
-        <label>Họ và tên *</label>
-        <input type="text" id="newMemberName" class="form-control" placeholder="VD: Nguyễn Văn Tuấn">
-      </div>
-      <div class="form-group">
-        <label>Số điện thoại *</label>
-        <input type="text" id="newMemberPhone" class="form-control" placeholder="0901234567">
-      </div>
-      <div class="form-group">
-        <label>Email (Đồng bộ Lịch Google)</label>
-        <input type="email" id="newMemberEmail" class="form-control" placeholder="tuan.nguyen@gmail.com">
-      </div>
-      <div class="form-group">
-        <label>Vai trò hệ thống</label>
-        <select id="newMemberRole" class="form-control">
-          <option value="member">Thành viên (Member - Nhận việc & cập nhật tiến độ)</option>
-          <option value="manager">Quản lý (Manager - Giao việc & xem ngân sách)</option>
-          <option value="admin">Quản trị viên (Admin - Toàn quyền cấu hình)</option>
-          <option value="viewer">Người xem (Viewer - Chỉ xem, không sửa)</option>
-        </select>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('memberModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="saveNewMember()">Thêm Thành Viên</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: SWITCH ACCOUNT -->
-  <div class="crextio-modal-overlay" id="switchAccountModal">
-    <div class="crextio-modal">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);">Đổi Tài Khoản / Phân Quyền</h3>
-      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Chọn tài khoản để trải nghiệm góc nhìn phân quyền tương ứng:</p>
-      <div id="switchAccountList" style="display:flex; flex-direction:column; gap:8px;"></div>
-      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-        <button class="crextio-btn secondary" onclick="closeModal('switchAccountModal')">Đóng</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD / EDIT WORK TRACKER TASK -->
-  <div class="crextio-modal-overlay" id="trackerTaskModal">
-    <div class="crextio-modal" style="max-width:560px;">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:16px; color:var(--text-main);" id="trackerTaskModalTitle">Thêm Công Việc Tiến Độ</h3>
-      <input type="hidden" id="trackerTaskId" value="">
-
-      <div class="crextio-form-group">
-        <label class="crextio-label">Tên công việc / Task *</label>
-        <input type="text" class="crextio-input" id="trackerTaskTitle" placeholder="Ví dụ: Dựng phối cảnh 3D Render...">
-      </div>
-
-      <div class="crextio-form-row">
-        <div class="crextio-form-group">
-          <label class="crextio-label">Người làm (Trong 6 thành viên) *</label>
-          <select class="crextio-select" id="trackerTaskMember">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-        <div class="crextio-form-group">
-          <label class="crextio-label">Trạng thái</label>
-          <select class="crextio-select" id="trackerTaskStatus">
-            <option value="pending">Chưa làm (Pending)</option>
-            <option value="in_progress">Đang làm (In Progress)</option>
-            <option value="completed">Đã xong (Completed)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="crextio-form-row">
-        <div class="crextio-form-group">
-          <label class="crextio-label">Ngày bắt đầu *</label>
-          <input type="date" class="crextio-input" id="trackerTaskStartDate" onchange="calculateTrackerDuration()">
-        </div>
-        <div class="crextio-form-group">
-          <label class="crextio-label">Ngày kết thúc *</label>
-          <input type="date" class="crextio-input" id="trackerTaskEndDate" onchange="calculateTrackerDuration()">
-        </div>
-      </div>
-
-      <div class="crextio-form-row">
-        <div class="crextio-form-group">
-          <label class="crextio-label">Số ngày thi công</label>
-          <input type="number" class="crextio-input" id="trackerTaskDuration" readonly style="background:#F8FAFC; cursor:not-allowed;">
-        </div>
-        <div class="crextio-form-group">
-          <label class="crextio-label">Tiến độ hoàn thành: <span id="trackerProgressVal" style="font-weight:700; color:var(--brand-primary);">0%</span></label>
-          <input type="range" min="0" max="100" step="5" value="0" class="crextio-input" id="trackerTaskProgress" style="padding:0; height:36px;" oninput="document.getElementById('trackerProgressVal').textContent = this.value + '%'">
-        </div>
-      </div>
-
-      <div class="crextio-form-group">
-        <label class="crextio-label">Ghi chú</label>
-        <textarea class="crextio-textarea" id="trackerTaskNotes" rows="2" placeholder="Ghi chú chi tiết, yêu cầu thầu phụ hoặc lưu ý..."></textarea>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:22px;">
-        <button class="crextio-btn danger" id="trackerDeleteTaskBtn" style="display:none;" onclick="confirmDeleteTrackerTask()">Xóa Task</button>
-        <div style="display:flex; gap:10px; margin-left:auto;">
-          <button class="crextio-btn secondary" onclick="closeModal('trackerTaskModal')">Hủy</button>
-          <button class="crextio-btn primary" onclick="submitTrackerTask()">Lưu Công Việc</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: MANAGE 6 MEMBERS & COLORS -->
-  <div class="crextio-modal-overlay" id="trackerMemberModal">
-    <div class="crextio-modal" style="max-width:580px;">
-      <h3 style="font-size:18px; font-weight:800; margin-bottom:8px; color:var(--text-main);">Quản Lý 6 Thành Viên & Bảng Màu</h3>
-      <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">Tùy chỉnh tên người làm và mã màu hiển thị trên biểu đồ Gantt:</p>
-
-      <div id="trackerMemberListForm" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
-        <!-- Populated via JS -->
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:22px;">
-        <button class="crextio-btn secondary" onclick="closeModal('trackerMemberModal')">Hủy</button>
-        <button class="crextio-btn primary" onclick="submitTrackerMembers()">Lưu Bảng Màu</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================
-       CLIENT APPLICATION SCRIPT
-       ======================================================================== -->
-  <script>
-    let globalData = {};
-    let popoverFilter = 'all';
-
-    function getQueryParam(key) {
-      const p = new URLSearchParams(window.location.search);
-      return p.get(key);
-    }
-
-    function showToast(msg) {
-      const t = document.getElementById('portalToast');
-      if (!t) return;
-      t.textContent = msg;
-      t.style.display = 'flex';
-      setTimeout(() => { t.style.display = 'none'; }, 2800);
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.nav-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabId);
-      });
-      document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === ('tab-' + tabId));
-      });
-      if (tabId === 'kanban') renderKanban();
-      if (tabId === 'projects') renderAllProjectsGrid();
-      if (tabId === 'tracker') loadWorkTrackerData();
-    }
-
-    function toggleProjectPopover(e) {
-      e.stopPropagation();
-      const p = document.getElementById('projectPopover');
-      p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-    }
-
-    function closeProjectPopover() {
-      const p = document.getElementById('projectPopover');
-      if (p) p.style.display = 'none';
-    }
-
-    function setPopoverFilter(f, btn) {
-      popoverFilter = f;
-      document.querySelectorAll('.popover-filter-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      renderPopoverProjects();
-    }
-
-    function filterPopoverProjects(query) {
-      renderPopoverProjects(query);
-    }
-
-    /* CHỌN DỰ ÁN: LUÔN TẢI DỮ LIỆU VÀ CHUYỂN NGAY SANG BẢNG TIẾN ĐỘ CỦA DỰ ÁN ĐÓ */
-    function selectProject(pid) {
-      closeProjectPopover();
-      const url = new URL(window.location.href);
-      url.searchParams.set('projectId', pid);
-      window.history.pushState({}, '', url);
-
-      // Chuyển tab sang bảng tiến độ
-      switchTab('kanban');
-
-      // Nạp dữ liệu dự án mới
-      loadPortalData(pid);
-      showToast('Đã chuyển sang dự án #' + pid);
-    }
-    function selectProjectFromPopover(pid) {
-      selectProject(pid);
-    }
-
-    async function loadPortalData(targetProjectId = null) {
-      const phone = localStorage.getItem('pm_user_phone') || getQueryParam('phone') || 'admin';
-      const pid = targetProjectId || getQueryParam('projectId') || '';
-      
-      try {
-        const res = await fetch('/portal/api/data?phone=' + encodeURIComponent(phone) + (pid ? '&projectId=' + encodeURIComponent(pid) : ''));
-        if (!res.ok) throw new Error('Không thể tải dữ liệu portal');
-        globalData = await res.json();
-        renderEntireUI();
-      } catch (err) {
-        console.error('Lỗi nạp dữ liệu:', err);
-      }
-    }
-
-    function renderEntireUI() {
-      const u = globalData.currentUser;
-      if (!u) return;
-
-      document.getElementById('currentUserName').textContent = u.name || u.phone;
-      document.getElementById('currentUserAvatarLetter').textContent = (u.name || 'Q').charAt(0).toUpperCase();
-
-      const p = globalData.activeProject;
-      if (p) {
-        // Topbar
-        document.getElementById('topbarProjectName').textContent = p.name;
-        document.getElementById('topbarProjectProgressBadge').textContent = (p.overall_progress || 0) + '%';
-        
-        // Horizontal Project Banner
-        document.getElementById('sideCurrentProjectName').textContent = p.name;
-        document.getElementById('sideProjectCodeBadge').textContent = '#PRJ-' + String(p.id).padStart(2, '0');
-        document.getElementById('sideProjectDesc').textContent = p.description || 'Dự án đang triển khai';
-        document.getElementById('drawerProjectStatus').textContent = p.status === 'completed' ? '🔵 Hoàn thành' : '🟢 Đang chạy';
-
-        document.getElementById('bannerProgressVal').textContent = (p.overall_progress || 0) + '%';
-        document.getElementById('drawerProjectBudget').textContent = formatVnd(p.budget || 0);
-        document.getElementById('drawerProjectSpent').textContent = formatVnd(p.expenses_sum || 0);
-        document.getElementById('drawerProjectRemaining').textContent = formatVnd(Math.max(0, (p.budget || 0) - (p.expenses_sum || 0)));
-        document.getElementById('bannerTasksCountText').textContent = (p.completed_tasks || 0) + ' / ' + (p.tasks_count || 0) + ' hoàn thành';
-
-        // Segmented Bar (Green done, Blue in progress)
-        const pctDone = p.overall_progress || 0;
-        const pctInProgress = Math.min(100 - pctDone, Math.round(((p.tasks_count - p.completed_tasks) / Math.max(1, p.tasks_count)) * 50));
-        document.getElementById('centerSegGreen').style.width = pctDone + '%';
-        document.getElementById('centerSegBlue').style.width = pctInProgress + '%';
-      }
-
-      // Permissions
-      const isAdmin = !!u.isAdmin;
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = isAdmin ? '' : 'none';
-      });
-
-      // Google Calendar link
-      const icsUrl = window.location.origin + '/portal/api/calendar.ics';
-      const gcalInput = document.getElementById('gcalFeedUrlInput');
-      if (gcalInput) gcalInput.value = icsUrl;
-
-      // Populate elements
-      renderAssigneesList();
-      renderMemberFilterDropdown();
-      renderKanban();
-      renderAllProjectsGrid();
-      renderPopoverProjects();
-      renderTasksTable();
-      renderExpensesTable();
-      renderMembersTable();
-    }
-
-    function renderAssigneesList() {
-      const container = document.getElementById('bannerAssigneesList');
-      if (!container) return;
-      const members = globalData.members || [];
-      const tasks = globalData.tasks || [];
-      const activeFilter = document.getElementById('memberFilterSelect')?.value || '';
-
-      container.innerHTML = members.map(m => {
-        const memTasks = tasks.filter(t => t.assigned_phone === m.phone);
-        const total = memTasks.length;
-        const done = memTasks.filter(t => t.status === 'done' || t.progress >= 100).length;
-        const isSelected = activeFilter === m.phone;
-        
-        return '<div class="compact-assignee-chip ' + (isSelected ? 'active' : '') + '" data-phone="' + m.phone + '" onclick="filterByMember(this.dataset.phone)" title="' + escapeHtml(m.name) + ' (' + m.role + ') - ' + done + '/' + total + ' việc xong">' +
-          '<div class="chip-avatar">' + escapeHtml(m.name.charAt(0)) + '</div>' +
-          '<span class="chip-name">' + escapeHtml(m.name) + '</span>' +
-          '<span class="chip-stats">' + done + '/' + total + '</span>' +
-        '</div>';
-      }).join('');
-    }
-
-    function filterByMember(phone) {
-      const sel = document.getElementById('memberFilterSelect');
-      if (sel) {
-        sel.value = (sel.value === phone) ? '' : phone;
-        renderKanban();
-        renderAssigneesList();
-      }
-    }
-
-    function renderMemberFilterDropdown() {
-      const sel = document.getElementById('memberFilterSelect');
-      if (!sel) return;
-      const current = sel.value;
-      const members = globalData.members || [];
-      sel.innerHTML = '<option value="">Tất cả nhân sự (' + members.length + ')</option>' +
-        members.map(m => '<option value="' + m.phone + '"' + (m.phone === current ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>').join('');
-    }
-
-    /* KANBAN BOARD RENDER (HORIZONTAL COLUMNS) */
-    function renderKanban() {
-      const container = document.getElementById('kanbanBoardContainer');
-      if (!container) return;
-      const stages = globalData.stages || [];
-      const allTasks = globalData.tasks || [];
-      const memberFilter = document.getElementById('memberFilterSelect')?.value || '';
-      const searchQuery = (document.getElementById('taskSearchInput')?.value || '').toLowerCase().trim();
-      const isViewer = globalData.currentUser?.isViewer;
-
-      let filteredTasks = allTasks;
-      if (memberFilter) filteredTasks = filteredTasks.filter(t => t.assigned_phone === memberFilter);
-      if (searchQuery) filteredTasks = filteredTasks.filter(t => t.title.toLowerCase().includes(searchQuery) || (t.description && t.description.toLowerCase().includes(searchQuery)));
-
-      container.innerHTML = stages.map(s => {
-        const stageTasks = filteredTasks.filter(t => t.stage_id === s.id);
-        
-        return '<div class="kanban-col-container">' +
-          '<div class="kanban-col-header">' +
-            '<div class="col-title-group">' +
-              '<div class="col-step-circle">' + s.step_order + '</div>' +
-              '<div class="col-title" title="' + escapeHtml(s.title) + '">' + escapeHtml(s.title) + '</div>' +
-            '</div>' +
-            '<span class="col-count-pill">' + stageTasks.length + ' việc</span>' +
-          '</div>' +
-          '<div class="kanban-dropzone-crextio" data-stage-id="' + s.id + '" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">' +
-            stageTasks.map(t => {
-              const deadlineStr = t.deadline ? t.deadline.slice(5, 16).replace('T', ' ') : '';
-              return '<div class="task-card-crextio" draggable="' + (!isViewer) + '" ondragstart="drag(event)" data-task-id="' + t.id + '">' +
-                '<div class="task-card-header">' +
-                  '<div class="task-assignee-badge">' +
-                    '<div class="chip-avatar" style="width:22px; height:22px; font-size:10px;">' + escapeHtml((t.assigned_name || 'U').charAt(0)) + '</div>' +
-                    '<span style="font-size:12px; font-weight:700;">' + escapeHtml(t.assigned_name || 'Chưa gán') + '</span>' +
-                  '</div>' +
-                  (deadlineStr ? '<span class="task-deadline-pill">⏳ ' + deadlineStr + '</span>' : '') +
-                '</div>' +
-                '<div class="task-title">' + escapeHtml(t.title) + '</div>' +
-                (t.description ? '<div class="task-desc">' + escapeHtml(t.description) + '</div>' : '') +
-                '<div class="crextio-seg-bar" style="margin-bottom:8px;">' +
-                  '<div class="seg-green" style="width:' + (t.progress || 0) + '%;"></div>' +
-                  '<div class="seg-gray"></div>' +
-                '</div>' +
-                '<div class="task-card-footer">' +
-                  (t.gcal_link ? '<a href="' + t.gcal_link + '" target="_blank" class="action-pill-btn blue" title="Thêm vào Google Calendar">📅 Lịch</a>' : '') +
-                  (!isViewer ? '<button class="action-pill-btn green" onclick="sendZaloRemind(' + t.id + ')" title="Gửi nhắc Zalo">🔔 Nhắc</button>' : '') +
-                  (!isViewer ? '<button class="action-pill-btn" onclick="openEditTaskModal(' + t.id + ')" title="Sửa chi tiết">✏️ Sửa</button>' : '') +
-                '</div>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-
-    // Drag & Drop
-    let draggedTaskId = null;
-    function drag(e) {
-      draggedTaskId = e.target.closest('.task-card-crextio').dataset.taskId;
-      e.target.classList.add('dragging');
-    }
-    function dragOver(e) {
-      e.preventDefault();
-      const zone = e.target.closest('.kanban-dropzone-crextio');
-      if (zone) zone.classList.add('drag-over');
-    }
-    function dragLeave(e) {
-      const zone = e.target.closest('.kanban-dropzone-crextio');
-      if (zone) zone.classList.remove('drag-over');
-    }
-    async function drop(e) {
-      e.preventDefault();
-      const zone = e.target.closest('.kanban-dropzone-crextio');
-      if (!zone || !draggedTaskId) return;
-      zone.classList.remove('drag-over');
-      const newStageId = zone.dataset.stageId;
-
-      try {
-        const res = await fetch('/portal/api/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: Number(draggedTaskId), stage_id: Number(newStageId) })
-        });
-        if (res.ok) {
-          showToast('Đã chuyển giai đoạn công việc thành công');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error('Lỗi di chuyển task:', err);
-      }
-    }
-
-    /* ALL PROJECTS GRID (TAB 1) - BẤM VÀO LÀ CHUYỂN SANG BẢNG TIẾN ĐỘ NGAY */
-    function renderAllProjectsGrid() {
-      const grid = document.getElementById('allProjectsGrid');
-      if (!grid) return;
-      const projects = globalData.projects || [];
-      const currentPid = globalData.activeProject?.id;
-
-      grid.innerHTML = projects.map(p => {
-        const isCurrent = p.id === currentPid;
-        return '<div class="project-card-interactive ' + (isCurrent ? 'active' : '') + '" onclick="selectProject(' + p.id + ')">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-            '<span class="project-code-badge">#PRJ-' + String(p.id).padStart(2, '0') + '</span>' +
-            '<span class="badge-percent-pill" style="font-size:12px;">' + (p.overall_progress || 0) + '%</span>' +
-          '</div>' +
-          '<h4 style="font-size:17px; font-weight:800; color:var(--text-main); margin-top:2px;">' + escapeHtml(p.name) + '</h4>' +
-          '<p style="font-size:12.5px; color:var(--text-muted); line-height:1.4;">' + escapeHtml(p.description || 'Chưa có mô tả') + '</p>' +
-          '<div class="crextio-seg-bar" style="height:7px;">' +
-            '<div class="seg-green" style="width:' + (p.overall_progress || 0) + '%;"></div>' +
-            '<div class="seg-gray"></div>' +
-          '</div>' +
-          '<div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:var(--text-muted);">' +
-            '<span>' + (p.tasks_count || 0) + ' công việc</span>' +
-            '<span style="color:var(--brand-primary); font-family:JetBrains Mono;">' + formatVnd(p.budget || 0) + '</span>' +
-          '</div>' +
-          '<button class="crextio-btn primary" style="width:100%; justify-content:center; margin-top:6px; font-size:13px;" onclick="event.stopPropagation(); selectProject(' + p.id + ')">📊 Mở Bảng Tiến Độ Dự Án →</button>' +
-        '</div>';
-      }).join('');
-    }
-
-    /* POPOVER PROJECT LIST */
-    function renderPopoverProjects(query = '') {
-      const list = document.getElementById('popoverProjectList');
-      if (!list) return;
-      const q = (query || '').toLowerCase().trim();
-      let projects = globalData.projects || [];
-      const countEl = document.getElementById('popoverAllCount');
-      if (countEl) countEl.textContent = projects.length;
-
-      if (popoverFilter === 'active') projects = projects.filter(p => p.status === 'active');
-      if (popoverFilter === 'completed') projects = projects.filter(p => p.status === 'completed');
-      if (q) projects = projects.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)));
-
-      const currentPid = globalData.activeProject?.id;
-      list.innerHTML = projects.map(p => {
-        const isCurrent = p.id === currentPid;
-        return '<div class="popover-project-item ' + (isCurrent ? 'active' : '') + '" onclick="selectProject(' + p.id + ')">' +
-          '<div>' +
-            '<div style="font-size:13.5px; font-weight:700; color:var(--text-main);">' + escapeHtml(p.name) + '</div>' +
-            '<div style="font-size:11.5px; color:var(--text-muted);">' + (p.tasks_count || 0) + ' việc • ' + formatVnd(p.budget || 0) + '</div>' +
-          '</div>' +
-          '<span class="badge-percent-pill">' + (p.overall_progress || 0) + '%</span>' +
-        '</div>';
-      }).join('');
-    }
-
-    /* TASKS TABLE RENDER */
-    function renderTasksTable() {
-      const tbody = document.getElementById('tasksTableBody');
-      if (!tbody) return;
-      const tasks = globalData.tasks || [];
-      const isViewer = globalData.currentUser?.isViewer;
-
-      tbody.innerHTML = tasks.map(t => {
-        return '<tr>' +
-          '<td style="font-weight:700;">' + escapeHtml(t.title) + '</td>' +
-          '<td>' + escapeHtml(t.stage_title || '') + '</td>' +
-          '<td>' + escapeHtml(t.assigned_name || 'Chưa gán') + '</td>' +
-          '<td>' + (t.deadline ? t.deadline.slice(0, 16).replace('T', ' ') : '—') + '</td>' +
-          '<td><span class="badge-percent-pill">' + (t.progress || 0) + '%</span></td>' +
-          '<td style="font-family:JetBrains Mono;">' + formatVnd(t.expenses_sum || 0) + '</td>' +
-          '<td>' +
-            (!isViewer ? '<button class="action-pill-btn" onclick="openEditTaskModal(' + t.id + ')">Sửa</button>' : '—') +
-          '</td>' +
-        '</tr>';
-      }).join('');
-    }
-
-    /* EXPENSES TABLE RENDER */
-    function renderExpensesTable() {
-      const tbody = document.getElementById('expensesTableBody');
-      if (!tbody) return;
-      const expenses = globalData.expenses || [];
-      tbody.innerHTML = expenses.map(e => {
-        return '<tr>' +
-          '<td>' + (e.created_at ? e.created_at.slice(0, 10) : '—') + '</td>' +
-          '<td style="font-weight:700;">' + escapeHtml(e.description) + '</td>' +
-          '<td>' + escapeHtml(e.task_title || 'Chi phí chung') + '</td>' +
-          '<td style="font-family:JetBrains Mono; font-weight:700; color:var(--brand-primary);">' + formatVnd(e.amount) + '</td>' +
-          '<td>' + escapeHtml(e.created_by_name || 'Quản trị viên') + '</td>' +
-        '</tr>';
-      }).join('');
-    }
-
-    /* MEMBERS TABLE RENDER */
-    function renderMembersTable() {
-      const tbody = document.getElementById('membersTableBody');
-      if (!tbody) return;
-      const members = globalData.members || [];
-      const isViewer = globalData.currentUser?.isViewer;
-
-      tbody.innerHTML = members.map(m => {
-        return '<tr>' +
-          '<td style="font-weight:700;">' + escapeHtml(m.name) + '</td>' +
-          '<td>' + escapeHtml(m.phone) + '</td>' +
-          '<td>' + escapeHtml(m.email || '—') + '</td>' +
-          '<td><span class="action-pill-btn blue">' + escapeHtml(m.role) + '</span></td>' +
-          '<td><span style="color:var(--brand-success); font-weight:700;">' + (m.thread_id ? '🟢 Đã kết nối' : '⚪ Chưa kết nối') + '</span></td>' +
-          '<td>' +
-            (!isViewer && m.phone !== 'admin' ? '<button class="action-pill-btn" data-phone="' + m.phone + '" onclick="changeMemberRole(this.dataset.phone)">Đổi Quyền</button>' : '—') +
-          '</td>' +
-        '</tr>';
-      }).join('');
-    }
-
-    /* ACTIONS & MODAL CONTROLS */
-    function openModal(id) {
-      const m = document.getElementById(id);
-      if (m) m.style.display = 'flex';
-    }
-
-    function closeModal(id) {
-      const m = document.getElementById(id);
-      if (m) m.style.display = 'none';
-    }
-
-    function openAddTaskModal() {
-      document.getElementById('taskModalTitle').textContent = 'Thêm Công Việc Mới';
-      document.getElementById('editTaskId').value = '';
-      document.getElementById('taskTitleInput').value = '';
-      document.getElementById('taskDescInput').value = '';
-      document.getElementById('taskDeadlineInput').value = '';
-      document.getElementById('taskProgressInput').value = '0';
-
-      const sSel = document.getElementById('taskStageSelect');
-      sSel.innerHTML = (globalData.stages || []).map(s => '<option value="' + s.id + '">' + escapeHtml(s.title) + '</option>').join('');
-
-      const aSel = document.getElementById('taskAssigneeSelect');
-      aSel.innerHTML = '<option value="">-- Chưa phân công --</option>' +
-        (globalData.members || []).map(m => '<option value="' + m.phone + '">' + escapeHtml(m.name) + '</option>').join('');
-
-      document.getElementById('taskModal').style.display = 'flex';
-    }
-
-    function openEditTaskModal(taskId) {
-      const t = (globalData.tasks || []).find(x => x.id === taskId);
-      if (!t) return;
-      document.getElementById('taskModalTitle').textContent = 'Sửa Chi Tiết Công Việc';
-      document.getElementById('editTaskId').value = t.id;
-      document.getElementById('taskTitleInput').value = t.title || '';
-      document.getElementById('taskDescInput').value = t.description || '';
-      document.getElementById('taskDeadlineInput').value = t.deadline ? t.deadline.slice(0, 16) : '';
-      document.getElementById('taskProgressInput').value = t.progress || 0;
-
-      const sSel = document.getElementById('taskStageSelect');
-      sSel.innerHTML = (globalData.stages || []).map(s => '<option value="' + s.id + '"' + (s.id === t.stage_id ? ' selected' : '') + '>' + escapeHtml(s.title) + '</option>').join('');
-
-      const aSel = document.getElementById('taskAssigneeSelect');
-      aSel.innerHTML = '<option value="">-- Chưa phân công --</option>' +
-        (globalData.members || []).map(m => '<option value="' + m.phone + '"' + (m.phone === t.assigned_phone ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>').join('');
-
-      document.getElementById('taskModal').style.display = 'flex';
-    }
-
-    async function saveTaskModal() {
-      const id = document.getElementById('editTaskId').value;
-      const title = document.getElementById('taskTitleInput').value.trim();
-      if (!title) { alert('Vui lòng nhập tên công việc'); return; }
-
-      const body = {
-        title,
-        description: document.getElementById('taskDescInput').value.trim(),
-        stage_id: Number(document.getElementById('taskStageSelect').value),
-        assigned_phone: document.getElementById('taskAssigneeSelect').value || null,
-        deadline: document.getElementById('taskDeadlineInput').value || null,
-        progress: Number(document.getElementById('taskProgressInput').value) || 0,
-        project_id: globalData.activeProject?.id
-      };
-      if (id) body.id = Number(id);
-
-      try {
-        const res = await fetch('/portal/api/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (res.ok) {
-          closeModal('taskModal');
-          showToast('Đã lưu công việc thành công');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function openAddProjectModal() {
-      document.getElementById('newProjectName').value = '';
-      document.getElementById('newProjectDesc').value = '';
-      document.getElementById('newProjectBudget').value = '';
-      document.getElementById('projectModal').style.display = 'flex';
-    }
-
-    async function saveNewProject() {
-      const name = document.getElementById('newProjectName').value.trim();
-      if (!name) { alert('Vui lòng nhập tên dự án'); return; }
-
-      try {
-        const res = await fetch('/portal/api/projects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            description: document.getElementById('newProjectDesc').value.trim(),
-            budget: Number(document.getElementById('newProjectBudget').value) || 0
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          closeModal('projectModal');
-          showToast('Đã tạo dự án mới!');
-          selectProject(data.id);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function openAddStageModal() {
-      document.getElementById('newStageTitle').value = '';
-      document.getElementById('newStageDesc').value = '';
-      document.getElementById('stageModal').style.display = 'flex';
-    }
-
-    async function saveNewStage() {
-      const title = document.getElementById('newStageTitle').value.trim();
-      if (!title) { alert('Vui lòng nhập tên giai đoạn'); return; }
-
-      try {
-        const res = await fetch('/portal/api/stages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            description: document.getElementById('newStageDesc').value.trim(),
-            project_id: globalData.activeProject?.id
-          })
-        });
-        if (res.ok) {
-          closeModal('stageModal');
-          showToast('Đã thêm bước mới thành công');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function openAddExpenseModal() {
-      document.getElementById('expenseDesc').value = '';
-      document.getElementById('expenseAmount').value = '';
-      const tSel = document.getElementById('expenseTaskSelect');
-      tSel.innerHTML = '<option value="">-- Khoản chi chung dự án --</option>' +
-        (globalData.tasks || []).map(t => '<option value="' + t.id + '">' + escapeHtml(t.title) + '</option>').join('');
-      document.getElementById('expenseModal').style.display = 'flex';
-    }
-
-    async function saveExpense() {
-      const description = document.getElementById('expenseDesc').value.trim();
-      const amount = Number(document.getElementById('expenseAmount').value) || 0;
-      if (!description || amount <= 0) { alert('Vui lòng nhập nội dung và số tiền hợp lệ'); return; }
-
-      try {
-        const res = await fetch('/portal/api/expenses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            description,
-            amount,
-            project_id: globalData.activeProject?.id,
-            task_id: document.getElementById('expenseTaskSelect').value ? Number(document.getElementById('expenseTaskSelect').value) : null
-          })
-        });
-        if (res.ok) {
-          closeModal('expenseModal');
-          showToast('Đã ghi nhận chi phí');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function openAddMemberModal() {
-      document.getElementById('newMemberName').value = '';
-      document.getElementById('newMemberPhone').value = '';
-      document.getElementById('newMemberEmail').value = '';
-      document.getElementById('memberModal').style.display = 'flex';
-    }
-
-    async function saveNewMember() {
-      const name = document.getElementById('newMemberName').value.trim();
-      const phone = document.getElementById('newMemberPhone').value.trim();
-      if (!name || !phone) { alert('Vui lòng nhập tên và số điện thoại'); return; }
-
-      try {
-        const res = await fetch('/portal/api/members', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            phone,
-            email: document.getElementById('newMemberEmail').value.trim(),
-            role: document.getElementById('newMemberRole').value
-          })
-        });
-        if (res.ok) {
-          closeModal('memberModal');
-          showToast('Đã thêm thành viên mới');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    async function changeMemberRole(phone) {
-      const newRole = prompt('Nhập vai trò mới (admin, manager, member, viewer):', 'member');
-      if (!newRole) return;
-      try {
-        const res = await fetch('/portal/api/members/role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, role: newRole })
-        });
-        if (res.ok) {
-          showToast('Đã cập nhật vai trò');
-          loadPortalData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    async function sendZaloRemind(taskId) {
-      try {
-        const res = await fetch('/portal/api/remind/' + taskId, { method: 'POST' });
-        const data = await res.json();
-        if (data.ok) showToast('Đã gửi tin nhắn nhắc Zalo!');
-        else alert('Không thể gửi nhắc: ' + (data.error || 'Chưa liên kết tài khoản'));
-      } catch (err) {
-        alert('Lỗi gửi nhắc Zalo');
-      }
-    }
-
-    async function triggerManualSyncReminders() {
-      try {
-        const res = await fetch('/portal/api/sync-reminders', { method: 'POST' });
-        const data = await res.json();
-        showToast('Đã quét xong: gửi ' + (data.sent || 0) + ' thông báo');
-      } catch (err) {
-        alert('Lỗi kích hoạt quét');
-      }
-    }
-
-    async function sendTestZaloMsg() {
-      const phone = document.getElementById('zaloTestPhone').value.trim();
-      const message = document.getElementById('zaloTestMsg').value.trim();
-      if (!phone) { alert('Vui lòng nhập số điện thoại'); return; }
-      try {
-        const res = await fetch('/portal/api/zalo/send-test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, message })
-        });
-        const data = await res.json();
-        if (data.ok) showToast('Đã gửi tin nhắn Zalo thành công!');
-        else alert('Lỗi gửi Zalo: ' + (data.error || 'Chưa liên kết tài khoản Zalo'));
-      } catch (err) {
-        alert('Lỗi gửi tin nhắn');
-      }
-    }
-
-    function copyIcalFeedUrl() {
-      const val = document.getElementById('gcalFeedUrlInput')?.value;
-      if (val) {
-        navigator.clipboard.writeText(val);
-        showToast('Đã sao chép link iCal Feed!');
-      }
-    }
-
-    function openSwitchAccountModal() {
-      const list = document.getElementById('switchAccountList');
-      const members = globalData.members || [];
-      const currentPhone = globalData.currentUser?.phone || 'admin';
-
-      list.innerHTML = members.map(m => {
-        const isCurrent = m.phone === currentPhone;
-        return '<div class="popover-project-item ' + (isCurrent ? 'active' : '') + '" data-phone="' + m.phone + '" onclick="switchAccount(this.dataset.phone)">' +
-          '<div>' +
-            '<div style="font-weight:700;">' + escapeHtml(m.name) + ' (' + m.role + ')</div>' +
-            '<div style="font-size:11.5px; color:var(--text-muted);">' + m.phone + '</div>' +
-          '</div>' +
-          (isCurrent ? '<span style="color:var(--brand-primary); font-weight:800; font-size:12px;">Đang chọn</span>' : '') +
-        '</div>';
-      }).join('');
-
-      document.getElementById('switchAccountModal').style.display = 'flex';
-    }
-
-    function switchAccount(phone) {
-      localStorage.setItem('pm_user_phone', phone);
-      closeModal('switchAccountModal');
-      loadPortalData();
-      showToast('Đã chuyển sang tài khoản ' + phone);
-    }
-
-    // =========================================================================
-    // WORK TRACKER (INDEPENDENT MASTER TIMELINE & GANTT)
-    // =========================================================================
-    let trackerState = {
-      settings: { project_start_date: '2026-11-09', today_date: '2026-11-10', title: 'THEO DÕI TIẾN ĐỘ CÔNG VIỆC', weeks_count: 7 },
-      members: [],
-      tasks: []
-    };
-    let currentTrackerMemberFilter = 'all';
-
-    async function loadWorkTrackerData() {
-      try {
-        const res = await fetch('/portal/api/work-tracker');
-        const data = await res.json();
-        if (data.ok) {
-          trackerState = data;
-          renderTrackerControls();
-          renderTrackerGantt();
-          renderTrackerTasksTable();
-        } else {
-          showToast('Lỗi tải dữ liệu tiến độ: ' + (data.error || ''));
-        }
-      } catch (err) {
-        console.error('Error loading work tracker:', err);
-      }
-    }
-
-    function renderTrackerControls() {
-      const s = trackerState.settings;
-      const startInp = document.getElementById('trackerProjectStartDate');
-      const todayInp = document.getElementById('trackerTodayDate');
-      if (startInp) startInp.value = s.project_start_date || '2026-11-09';
-      if (todayInp) todayInp.value = s.today_date || '2026-11-10';
-
-      // Legend
-      const legendEl = document.getElementById('trackerMemberLegend');
-      if (legendEl) {
-        legendEl.innerHTML = trackerState.members.map(function(m) {
-          return '<div style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:6px; background:' + m.color_hex + '; color:' + getContrastYIQ(m.color_hex) + '; font-size:11.5px; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,0.1);">' +
-            '<span>●</span> ' + escapeHtml(m.name) +
-          '</div>';
-        }).join('');
-      }
-
-      // Filter buttons
-      const filterEl = document.getElementById('trackerFilterButtons');
-      if (filterEl) {
-        filterEl.innerHTML = trackerState.members.map(function(m) {
-          const isActive = currentTrackerMemberFilter === String(m.id) ? 'active' : '';
-          return '<button class="tracker-filter-pill ' + isActive + '" onclick="filterTrackerMember(' + m.id + ', this)">' +
-            escapeHtml(m.name) +
-          '</button>';
-        }).join('');
-      }
-    }
-
-    function filterTrackerMember(memId, btn) {
-      currentTrackerMemberFilter = String(memId);
-      document.querySelectorAll('.tracker-filter-pill').forEach(function(b) { b.classList.remove('active'); });
-      const allBtn = document.getElementById('trackerFilterAllBtn');
-      if (memId === 'all') {
-        if (allBtn) allBtn.classList.add('active');
-      } else {
-        if (btn) btn.classList.add('active');
-        if (allBtn) allBtn.classList.remove('active');
-      }
-      renderTrackerGantt();
-      renderTrackerTasksTable();
-    }
-
-    function getContrastYIQ(hexcolor){
-      if (!hexcolor) return '#0F172A';
-      hexcolor = hexcolor.replace('#', '');
-      if (hexcolor.length === 3) hexcolor = hexcolor.split('').map(function(c) { return c + c; }).join('');
-      const r = parseInt(hexcolor.substr(0,2),16) || 0;
-      const g = parseInt(hexcolor.substr(2,2),16) || 0;
-      const b = parseInt(hexcolor.substr(4,2),16) || 0;
-      const yiq = ((r*299)+(g*587)+(b*114))/1000;
-      return (yiq >= 140) ? '#0F172A' : '#FFFFFF';
-    }
-
-    function parseDateUtc(dateStr) {
-      if (!dateStr) return new Date();
-      const parts = dateStr.split('-');
-      return new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-    }
-
-    function formatDateUtc(d) {
-      const y = d.getUTCFullYear();
-      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(d.getUTCDate()).padStart(2, '0');
-      return y + '-' + m + '-' + day;
-    }
-
-    function formatDisplayDate(dateStr) {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length < 3) return dateStr;
-      return parts[2] + '/' + parts[1] + '/' + parts[0];
-    }
-
-    function renderTrackerGantt() {
-      const container = document.getElementById('ganttChartContainer');
-      if (!container) return;
-
-      const startDateStr = trackerState.settings.project_start_date || '2026-11-09';
-      const todayDateStr = trackerState.settings.today_date || '2026-11-10';
-      const startDate = parseDateUtc(startDateStr);
-      const totalDays = 49; // 7 weeks * 7 days
-
-      const days = [];
-      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-      for (let i = 0; i < totalDays; i++) {
-        const d = new Date(startDate.getTime() + i * 86400000);
-        const iso = formatDateUtc(d);
-        const dayOfWeek = d.getUTCDay();
-        days.push({
-          index: i,
-          dateObj: d,
-          isoStr: iso,
-          dayNum: String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0'),
-          weekdayName: dayNames[dayOfWeek],
-          isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-          isToday: iso === todayDateStr
-        });
-      }
-
-      const filteredTasks = trackerState.tasks.filter(function(t) {
-        if (currentTrackerMemberFilter === 'all') return true;
-        return String(t.assigned_member_id) === currentTrackerMemberFilter;
-      });
-
-      const memberMap = {};
-      trackerState.members.forEach(function(m) { memberMap[m.id] = m; });
-
-      let html = '<table class="gantt-table">';
-      html += '<colgroup>';
-      html += '<col style="width:280px; min-width:280px;">';
-      for (let i = 0; i < totalDays; i++) {
-        html += '<col style="width:34px; min-width:34px;">';
-      }
-      html += '</colgroup>';
-
-      // Row 1: 7 Weeks Header
-      html += '<thead><tr>';
-      html += '<th rowspan="3" class="gantt-th-sticky">' +
-        '<div style="font-size:12.5px; font-weight:800; color:var(--text-main); text-transform:uppercase; letter-spacing:0.5px;">Công việc / Thành viên</div>' +
-        '<div style="font-size:11px; color:var(--text-muted); font-weight:normal; margin-top:2px;">Bấm ô để chỉnh sửa</div>' +
-      '</th>';
-      for (let w = 0; w < 7; w++) {
-        const weekStartDate = days[w * 7].dayNum;
-        html += '<th colspan="7" class="gantt-week-header">Tuần ' + (w + 1) + ' (' + weekStartDate + ')</th>';
-      }
-      html += '</tr>';
-
-      // Row 2: Date Header (DD)
-      html += '<tr>';
-      for (let i = 0; i < totalDays; i++) {
-        const d = days[i];
-        const isTodayClass = d.isToday ? 'gantt-col-today' : '';
-        html += '<th class="gantt-date-header ' + isTodayClass + '" title="' + d.isoStr + '">' + d.dayNum.split('/')[0] + '</th>';
-      }
-      html += '</tr>';
-
-      // Row 3: Day of Week Header (T2..CN)
-      html += '<tr>';
-      for (let i = 0; i < totalDays; i++) {
-        const d = days[i];
-        const isTodayClass = d.isToday ? 'gantt-col-today' : '';
-        const weekendClass = d.isWeekend ? 'gantt-col-weekend' : '';
-        html += '<th class="gantt-day-header ' + weekendClass + ' ' + isTodayClass + '" title="' + d.isoStr + '">' + d.weekdayName + '</th>';
-      }
-      html += '</tr></thead>';
-
-      // Table Body
-      html += '<tbody>';
-      if (filteredTasks.length === 0) {
-        html += '<tr><td colspan="' + (totalDays + 1) + '" style="padding:28px; text-align:center; color:var(--text-muted);">Không có công việc nào phù hợp với bộ lọc.</td></tr>';
-      } else {
-        filteredTasks.forEach(function(task, idx) {
-          const mem = memberMap[task.assigned_member_id] || { name: 'Chưa giao', color_hex: '#94A3B8' };
-          html += '<tr>';
-          // Sticky Task Title Cell
-          html += '<td class="gantt-td-sticky" onclick="openEditTrackerTaskModal(' + task.id + ')" title="' + escapeHtml(task.title) + ' (Bấm để sửa)" style="cursor:pointer;">' +
-            '<div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">' +
-              '<span style="font-weight:700; color:var(--text-main); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
-                (idx + 1) + '. ' + escapeHtml(task.title) +
-              '</span>' +
-              '<span style="display:inline-block; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; background:' + mem.color_hex + '; color:' + getContrastYIQ(mem.color_hex) + '; flex-shrink:0;">' +
-                escapeHtml(mem.name) +
-              '</span>' +
-            '</div>' +
-          '</td>';
-
-          // 49 day cells
-          for (let i = 0; i < totalDays; i++) {
-            const d = days[i];
-            const isTodayClass = d.isToday ? 'gantt-col-today' : '';
-            const weekendClass = d.isWeekend ? 'gantt-col-weekend' : '';
-            const isInTaskRange = (task.start_date && task.end_date && d.isoStr >= task.start_date && d.isoStr <= task.end_date);
-
-            if (isInTaskRange) {
-              const isStart = d.isoStr === task.start_date;
-              const isEnd = d.isoStr === task.end_date;
-              const borderRadius = (isStart ? '6px' : '0') + ' ' + (isEnd ? '6px' : '0') + ' ' + (isEnd ? '6px' : '0') + ' ' + (isStart ? '6px' : '0');
-              
-              html += '<td class="gantt-bar-cell ' + isTodayClass + '" onclick="openEditTrackerTaskModal(' + task.id + ')" title="' + escapeHtml(task.title) + ' - ' + mem.name + ' (' + formatDisplayDate(task.start_date) + ' đến ' + formatDisplayDate(task.end_date) + ')">' +
-                '<div style="background:' + mem.color_hex + '; height:24px; margin:0 1px; border-radius:' + borderRadius + '; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.15);">' +
-                  (isStart ? '<span style="font-size:9.5px; font-weight:800; color:' + getContrastYIQ(mem.color_hex) + '; white-space:nowrap; overflow:hidden; padding:0 3px;">' + Math.round((task.progress || 0) * 100) + '%</span>' : '') +
-                '</div>' +
-              '</td>';
-            } else {
-              html += '<td class="' + weekendClass + ' ' + isTodayClass + '"></td>';
-            }
-          }
-          html += '</tr>';
-        });
-      }
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    }
-
-    function renderTrackerTasksTable() {
-      const tbody = document.getElementById('trackerTasksTableBody');
-      const badge = document.getElementById('trackerTaskCountBadge');
-      if (!tbody) return;
-
-      const memberMap = {};
-      trackerState.members.forEach(function(m) { memberMap[m.id] = m; });
-
-      const filteredTasks = trackerState.tasks.filter(function(t) {
-        if (currentTrackerMemberFilter === 'all') return true;
-        return String(t.assigned_member_id) === currentTrackerMemberFilter;
-      });
-
-      if (badge) badge.textContent = filteredTasks.length + ' công việc';
-
-      if (filteredTasks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">Chưa có công việc nào trong danh sách. Bấm "+ Thêm Dòng Công Việc" để bắt đầu!</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = filteredTasks.map(function(t, idx) {
-        const mem = memberMap[t.assigned_member_id] || { name: 'Chưa giao', color_hex: '#94A3B8' };
-        const pct = Math.round((t.progress || 0) * 100);
-        let statusBadge = '';
-        if (t.status === 'completed') {
-          statusBadge = '<span class="status-badge done">Hoàn thành</span>';
-        } else if (t.status === 'in_progress') {
-          statusBadge = '<span class="status-badge doing">Đang làm</span>';
-        } else {
-          statusBadge = '<span class="status-badge todo">Chưa làm</span>';
-        }
-
-        return '<tr>' +
-          '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
-          '<td style="font-weight:700; color:var(--text-main);">' + escapeHtml(t.title) + '</td>' +
-          '<td>' +
-            '<span style="display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:5px; background:' + mem.color_hex + '; color:' + getContrastYIQ(mem.color_hex) + '; font-size:11px; font-weight:700;">' +
-              '● ' + escapeHtml(mem.name) +
-            '</span>' +
-          '</td>' +
-          '<td style="font-family:JetBrains Mono, monospace; font-size:12px; color:var(--text-muted);">' + formatDisplayDate(t.start_date) + '</td>' +
-          '<td style="font-family:JetBrains Mono, monospace; font-size:12px; color:var(--text-muted);">' + formatDisplayDate(t.end_date) + '</td>' +
-          '<td style="text-align:center; font-weight:700; color:var(--text-main);">' + (t.duration_days || 0) + '</td>' +
-          '<td>' +
-            '<div style="display:flex; align-items:center; gap:8px;">' +
-              '<div style="flex:1; height:7px; background:#E2E8F0; border-radius:999px; overflow:hidden;">' +
-                '<div style="width:' + pct + '%; height:100%; background:' + mem.color_hex + ';"></div>' +
-              '</div>' +
-              '<span style="font-size:11.5px; font-weight:700; min-width:32px;">' + pct + '%</span>' +
-            '</div>' +
-          '</td>' +
-          '<td>' + statusBadge + '</td>' +
-          '<td style="font-size:12px; color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + escapeHtml(t.notes || '') + '">' +
-            escapeHtml(t.notes || '—') +
-          '</td>' +
-          '<td style="text-align:center;" class="col-actions">' +
-            '<div style="display:inline-flex; gap:6px;">' +
-              '<button class="crextio-btn secondary" style="padding:4px 8px; font-size:11px;" onclick="openEditTrackerTaskModal(' + t.id + ')" title="Chỉnh sửa">Sửa</button>' +
-              '<button class="crextio-btn danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTrackerTask(' + t.id + ')" title="Xóa">Xóa</button>' +
-            '</div>' +
-          '</td>' +
-        '</tr>';
-      }).join('');
-    }
-
-    function calculateTrackerDuration() {
-      const s = document.getElementById('trackerTaskStartDate').value;
-      const e = document.getElementById('trackerTaskEndDate').value;
-      const dur = document.getElementById('trackerTaskDuration');
-      if (s && e) {
-        const d1 = parseDateUtc(s);
-        const d2 = parseDateUtc(e);
-        const diff = Math.round((d2 - d1) / 86400000) + 1;
-        dur.value = diff > 0 ? diff : 0;
-      } else {
-        dur.value = 0;
-      }
-    }
-
-    function openAddTrackerTaskModal() {
-      document.getElementById('trackerTaskModalTitle').textContent = 'Thêm Công Việc Mới';
-      document.getElementById('trackerTaskId').value = '';
-      document.getElementById('trackerTaskTitle').value = '';
-      
-      const memberSelect = document.getElementById('trackerTaskMember');
-      memberSelect.innerHTML = trackerState.members.map(function(m) {
-        return '<option value="' + m.id + '">' + escapeHtml(m.name) + ' (' + escapeHtml(m.color_name || m.color_hex) + ')</option>';
-      }).join('');
-
-      document.getElementById('trackerTaskStatus').value = 'pending';
-      const defaultStart = trackerState.settings.project_start_date || '2026-11-09';
-      document.getElementById('trackerTaskStartDate').value = defaultStart;
-      document.getElementById('trackerTaskEndDate').value = defaultStart;
-      calculateTrackerDuration();
-
-      document.getElementById('trackerTaskProgress').value = 0;
-      document.getElementById('trackerProgressVal').textContent = '0%';
-      document.getElementById('trackerTaskNotes').value = '';
-      document.getElementById('trackerDeleteTaskBtn').style.display = 'none';
-
-      openModal('trackerTaskModal');
-    }
-
-    function openEditTrackerTaskModal(taskId) {
-      const task = trackerState.tasks.find(function(t) { return t.id === Number(taskId); });
-      if (!task) return;
-
-      document.getElementById('trackerTaskModalTitle').textContent = 'Chỉnh Sửa Công Việc';
-      document.getElementById('trackerTaskId').value = task.id;
-      document.getElementById('trackerTaskTitle').value = task.title;
-
-      const memberSelect = document.getElementById('trackerTaskMember');
-      memberSelect.innerHTML = trackerState.members.map(function(m) {
-        const isSelected = task.assigned_member_id === m.id ? 'selected' : '';
-        return '<option value="' + m.id + '" ' + isSelected + '>' + escapeHtml(m.name) + ' (' + escapeHtml(m.color_name || m.color_hex) + ')</option>';
-      }).join('');
-
-      document.getElementById('trackerTaskStatus').value = task.status || 'pending';
-      document.getElementById('trackerTaskStartDate').value = task.start_date || '';
-      document.getElementById('trackerTaskEndDate').value = task.end_date || '';
-      calculateTrackerDuration();
-
-      const pct = Math.round((task.progress || 0) * 100);
-      document.getElementById('trackerTaskProgress').value = pct;
-      document.getElementById('trackerProgressVal').textContent = pct + '%';
-      document.getElementById('trackerTaskNotes').value = task.notes || '';
-      document.getElementById('trackerDeleteTaskBtn').style.display = 'block';
-
-      openModal('trackerTaskModal');
-    }
-
-    async function submitTrackerTask() {
-      const id = document.getElementById('trackerTaskId').value;
-      const title = document.getElementById('trackerTaskTitle').value.trim();
-      if (!title) {
-        alert('Vui lòng nhập tên công việc!');
-        return;
-      }
-      const assigned_member_id = Number(document.getElementById('trackerTaskMember').value);
-      const start_date = document.getElementById('trackerTaskStartDate').value;
-      const end_date = document.getElementById('trackerTaskEndDate').value;
-      const duration_days = Number(document.getElementById('trackerTaskDuration').value) || 0;
-      const progress = Number(document.getElementById('trackerTaskProgress').value) / 100;
-      const status = document.getElementById('trackerTaskStatus').value;
-      const notes = document.getElementById('trackerTaskNotes').value.trim();
-
-      const payload = {
-        id: id ? Number(id) : undefined,
-        title: title,
-        assigned_member_id: assigned_member_id,
-        start_date: start_date,
-        end_date: end_date,
-        duration_days: duration_days,
-        progress: progress,
-        status: status,
-        notes: notes
-      };
-
-      try {
-        const res = await fetch('/portal/api/work-tracker/task', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const d = await res.json();
-        if (d.ok) {
-          closeModal('trackerTaskModal');
-          showToast(id ? 'Đã cập nhật công việc!' : 'Đã thêm công việc mới!');
-          await loadWorkTrackerData();
-        } else {
-          alert('Lỗi: ' + (d.error || 'Không thể lưu công việc'));
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Lỗi kết nối máy chủ');
-      }
-    }
-
-    function confirmDeleteTrackerTask() {
-      const id = document.getElementById('trackerTaskId').value;
-      if (!id) return;
-      deleteTrackerTask(Number(id));
-    }
-
-    async function deleteTrackerTask(taskId) {
-      if (!confirm('Bạn có chắc chắn muốn xóa công việc này khỏi bảng theo dõi tiến độ?')) return;
-      try {
-        const res = await fetch('/portal/api/work-tracker/task/' + taskId, { method: 'DELETE' });
-        const d = await res.json();
-        if (d.ok) {
-          closeModal('trackerTaskModal');
-          showToast('Đã xóa công việc!');
-          await loadWorkTrackerData();
-        } else {
-          alert('Lỗi xóa công việc: ' + (d.error || ''));
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    async function saveTrackerDates() {
-      const project_start_date = document.getElementById('trackerProjectStartDate').value;
-      const today_date = document.getElementById('trackerTodayDate').value;
-      try {
-        const res = await fetch('/portal/api/work-tracker/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ project_start_date: project_start_date, today_date: today_date })
-        });
-        const d = await res.json();
-        if (d.ok) {
-          showToast('Đã cập nhật ngày mốc dự án & hôm nay!');
-          await loadWorkTrackerData();
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function openTrackerMemberModal() {
-      const container = document.getElementById('trackerMemberListForm');
-      if (!container) return;
-
-      container.innerHTML = trackerState.members.map(function(m) {
-        return '<div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px;" data-member-id="' + m.id + '">' +
-          '<span style="font-weight:700; width:24px; color:var(--text-muted);">' + m.member_order + '.</span>' +
-          '<div style="flex:1;">' +
-            '<input type="text" class="crextio-input member-name-input" value="' + escapeHtml(m.name) + '" placeholder="Tên thành viên" style="padding:6px 10px; font-size:13px; font-weight:700;">' +
-          '</div>' +
-          '<div style="width:130px;">' +
-            '<input type="text" class="crextio-input member-colorname-input" value="' + escapeHtml(m.color_name || '') + '" placeholder="Tên màu (Hồng, Cam...)" style="padding:6px 10px; font-size:12px;">' +
-          '</div>' +
-          '<div style="width:50px; display:flex; align-items:center; justify-content:center;">' +
-            '<input type="color" class="member-color-input" value="' + m.color_hex + '" style="width:36px; height:36px; border:none; border-radius:6px; cursor:pointer; background:none;">' +
-          '</div>' +
-        '</div>';
-      }).join('');
-
-      openModal('trackerMemberModal');
-    }
-
-    async function submitTrackerMembers() {
-      const rows = document.querySelectorAll('#trackerMemberListForm [data-member-id]');
-      const members = [];
-      rows.forEach(function(r) {
-        const id = Number(r.getAttribute('data-member-id'));
-        const name = r.querySelector('.member-name-input').value.trim();
-        const color_name = r.querySelector('.member-colorname-input').value.trim();
-        const color_hex = r.querySelector('.member-color-input').value;
-        if (name) {
-          members.push({ id: id, name: name, color_name: color_name, color_hex: color_hex });
-        }
-      });
-
-      try {
-        const res = await fetch('/portal/api/work-tracker/members', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ members: members })
-        });
-        const d = await res.json();
-        if (d.ok) {
-          closeModal('trackerMemberModal');
-          showToast('Đã lưu thông tin 6 thành viên!');
-          await loadWorkTrackerData();
-        } else {
-          alert('Lỗi lưu: ' + (d.error || ''));
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function printWorkTracker() {
-      // If not on tracker tab, switch to it
-      const trackerTab = document.getElementById('tab-tracker');
-      if (trackerTab && !trackerTab.classList.contains('active')) {
-        switchTab('tracker');
-      }
-
-      // Update date info on the print header
-      const now = new Date();
-      const printDateStr = String(now.getDate()).padStart(2, '0') + '/' + 
-                           String(now.getMonth() + 1).padStart(2, '0') + '/' + 
-                           now.getFullYear() + ' ' + 
-                           String(now.getHours()).padStart(2, '0') + ':' + 
-                           String(now.getMinutes()).padStart(2, '0');
-      
-      const pDate = document.getElementById('printDateStr');
-      if (pDate) pDate.textContent = printDateStr;
-
-      const pStart = document.getElementById('printStartDateStr');
-      const startInpVal = document.getElementById('trackerProjectStartDate');
-      const startVal = (startInpVal && startInpVal.value) || (trackerState && trackerState.settings && trackerState.settings.project_start_date);
-      if (pStart && startVal) pStart.textContent = formatDisplayDate(startVal);
-
-      const pToday = document.getElementById('printTodayDateStr');
-      const todayInpVal = document.getElementById('trackerTodayDate');
-      const todayVal = (todayInpVal && todayInpVal.value) || (trackerState && trackerState.settings && trackerState.settings.today_date);
-      if (pToday && todayVal) pToday.textContent = formatDisplayDate(todayVal);
-
-      // Trigger browser native print dialog
-      setTimeout(function() {
-        window.print();
-      }, 150);
-    }
-
-    // Formatters
-    function formatVnd(val) {
-      return (Number(val) || 0).toLocaleString('vi-VN') + ' đ';
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    // Close Popover on Outside Click
-    window.addEventListener('click', () => {
-      closeProjectPopover();
-    });
-
-    // Initialize
-    window.addEventListener('DOMContentLoaded', () => {
-      loadPortalData();
-    });
-  </script>
-</body>
-</html>`);
-  })
+  // Trang Giao Diện Portal (Workspace Hiện Đại)
+  .get("/", (c) => c.html(renderPortalHtml()))
 
   // API Đăng nhập / Kiểm tra mã PIN bảo mật
   .post("/api/login", async (c) => {
@@ -3520,13 +147,47 @@ export const portalRoutes = new Hono()
       const stages_count = (db.prepare("SELECT count(*) as c FROM pm_stages WHERE project_id = ?").get(p.id) as { c: number })?.c || 0;
       const expenses_sum = (db.prepare("SELECT COALESCE(SUM(amount), 0) as s FROM pm_expenses WHERE project_id = ?").get(p.id) as { s: number })?.s || 0;
 
+      const pCosts = db
+        .prepare("SELECT item_name, vendor_name, cost_amount, quantity, markup_factor, payment_status FROM pm_project_costs WHERE project_id = ? ORDER BY id ASC")
+        .all(p.id) as Array<{
+          item_name: string;
+          vendor_name: string;
+          cost_amount: number;
+          quantity: number;
+          markup_factor: number;
+          payment_status: string;
+        }>;
+      let total_cost = 0;
+      let total_quote = 0;
+      const itemNames: string[] = [];
+      const vendors = new Set<string>();
+      for (const cItem of pCosts) {
+        const qty = Math.max(1, Number(cItem.quantity) || 1);
+        const uCost = Number(cItem.cost_amount) || 0;
+        const markup = Number(cItem.markup_factor) || 1.5;
+        total_cost += uCost * qty;
+        total_quote += Math.round(uCost * markup) * qty;
+        if (cItem.item_name) itemNames.push(cItem.item_name);
+        if (cItem.vendor_name) vendors.add(cItem.vendor_name);
+      }
+      const items_preview = itemNames.slice(0, 2).join(", ") + (itemNames.length > 2 ? ` (+${itemNames.length - 2})` : "");
+      const vendors_preview = Array.from(vendors).slice(0, 2).join(", ") + (vendors.size > 2 ? ` (+${vendors.size - 2})` : "");
+      const paidCount = pCosts.filter(c => String(c.payment_status || "").includes("100%")).length;
+      const payment_summary = pCosts.length > 0 ? `${paidCount}/${pCosts.length} Đã TT` : "Chưa có khoản chi";
+
       return {
         ...p,
         tasks_count,
         completed_tasks,
         overall_progress,
         stages_count,
-        expenses_sum
+        expenses_sum,
+        total_cost,
+        total_quote,
+        cost_items_count: pCosts.length,
+        items_preview,
+        vendors_preview,
+        payment_summary
       };
     });
 
@@ -3668,6 +329,514 @@ export const portalRoutes = new Hono()
     return c.json({ ok: true, id: proj.id });
   })
 
+  // API Tạo dự án Khởi Minh Gift theo quy trình chuẩn + Tự tính SLA từ Ngày Tạm Ứng
+  .post("/api/projects/km-gift-template", async (c) => {
+    const body = await c.req.json<{
+      name: string;
+      businessUnit?: string;
+      flowType?: KmGiftFlowType;
+      depositDate?: string;
+      budget?: number;
+    }>();
+
+    if (!body.name?.trim()) return c.json({ ok: false, error: "Vui lòng nhập tên dự án" }, 400);
+    const flowType: KmGiftFlowType = body.flowType === "ready_stock" ? "ready_stock" : "customised";
+    const businessUnit = body.businessUnit?.trim() || "KM Gift";
+    const depositDate = body.depositDate?.trim() || new Date().toISOString().slice(0, 10);
+
+    const proj = db
+      .prepare(
+        `INSERT INTO pm_projects (name, description, budget, status, business_unit, flow_type, deposit_date)
+         VALUES (?, ?, ?, 'active', ?, ?, ?) RETURNING id`,
+      )
+      .get(
+        body.name.trim(),
+        `Quy trình ${businessUnit} (${flowType === "ready_stock" ? "Hàng có sẵn" : "Customised / Không có sẵn"})`,
+        Number(body.budget) || 0,
+        businessUnit,
+        flowType,
+        depositDate,
+      ) as { id: number };
+
+    const schedule = calculateKmGiftSchedule({ flowType, depositDate });
+    const stageStmt = db.prepare(
+      `INSERT INTO pm_stages (project_id, step_order, title, description, sla_days, phase, start_date, end_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    );
+    const taskStmt = db.prepare(
+      `INSERT INTO pm_tasks (project_id, stage_id, title, description, deadline, progress, status, checklist)
+       VALUES (?, ?, ?, ?, ?, 0, 'pending', ?)`,
+    );
+
+    for (const st of schedule) {
+      const stageRow = stageStmt.get(
+        proj.id,
+        st.stepOrder,
+        st.title,
+        `SLA chuẩn: ${st.slaDays} ngày`,
+        st.slaDays,
+        st.phase,
+        st.startDate,
+        st.endDate,
+      ) as { id: number };
+      const checklistJson = JSON.stringify(
+        st.defaultChecklist.map((txt, idx) => ({
+          id: `${proj.id}_${st.stepOrder}_${idx + 1}`,
+          text: txt,
+          done: false,
+        })),
+      );
+      taskStmt.run(
+        proj.id,
+        stageRow.id,
+        st.defaultTaskTitle,
+        `Mốc SLA: ${st.startDate} → ${st.endDate} (${st.slaDays} ngày)`,
+        st.endDate,
+        checklistJson,
+      );
+    }
+
+    return c.json({ ok: true, id: proj.id });
+  })
+
+  // API Tính lại toàn bộ deadline giai đoạn & công việc khi đổi Ngày Tạm Ứng hoặc SLA từng bước
+  .post("/api/projects/:id/recalculate-sla", async (c) => {
+    const projectId = Number(c.req.param("id"));
+    const body = await c.req.json<{
+      depositDate?: string;
+      flowType?: KmGiftFlowType;
+      stageSlaUpdates?: Array<{ id: number; slaDays: number }>;
+    }>();
+
+    const proj = db.prepare("SELECT * FROM pm_projects WHERE id = ?").get(projectId) as
+      | { id: number; deposit_date?: string; flow_type?: string }
+      | undefined;
+    if (!proj) return c.json({ ok: false, error: "Không tìm thấy dự án" }, 404);
+
+    const nextDeposit = body.depositDate ?? proj.deposit_date ?? new Date().toISOString().slice(0, 10);
+    const nextFlow: KmGiftFlowType =
+      body.flowType === "ready_stock" || (body.flowType === undefined && proj.flow_type === "ready_stock")
+        ? "ready_stock"
+        : "customised";
+
+    db.prepare("UPDATE pm_projects SET deposit_date = ?, flow_type = ? WHERE id = ?").run(
+      nextDeposit,
+      nextFlow,
+      projectId,
+    );
+
+    if (Array.isArray(body.stageSlaUpdates)) {
+      const updSla = db.prepare("UPDATE pm_stages SET sla_days = ? WHERE id = ? AND project_id = ?");
+      for (const u of body.stageSlaUpdates) {
+        updSla.run(Math.max(0, Number(u.slaDays) || 0), u.id, projectId);
+      }
+    }
+
+    const stages = db
+      .prepare("SELECT * FROM pm_stages WHERE project_id = ? ORDER BY step_order ASC, id ASC")
+      .all(projectId) as Array<{ id: number; step_order: number; title: string; sla_days?: number; phase?: string }>;
+
+    // Cascade dates based on each stage's phase & sla_days
+    const preAndDeposit = stages.filter((s) => s.phase === "pre_deposit" || s.phase === "deposit");
+    const postDeposit = stages.filter((s) => s.phase !== "pre_deposit" && s.phase !== "deposit");
+
+    const updates: Array<{ id: number; startDate: string; endDate: string; slaDays: number }> = [];
+
+    let cursorBack = nextDeposit;
+    for (let i = preAndDeposit.length - 1; i >= 0; i--) {
+      const st = preAndDeposit[i]!;
+      const sla = Number(st.sla_days) || 0;
+      const endDate = cursorBack;
+      const startDate = addDaysIso(endDate, -sla);
+      updates.push({ id: st.id, startDate, endDate, slaDays: sla });
+      cursorBack = startDate;
+    }
+
+    let cursorForward = nextDeposit;
+    for (const st of postDeposit) {
+      const sla = Number(st.sla_days) || 0;
+      const startDate = cursorForward;
+      const endDate = addDaysIso(startDate, sla);
+      updates.push({ id: st.id, startDate, endDate, slaDays: sla });
+      cursorForward = endDate;
+    }
+
+    const updStageStmt = db.prepare(
+      "UPDATE pm_stages SET start_date = ?, end_date = ?, description = ? WHERE id = ?",
+    );
+    const updTaskStmt = db.prepare(
+      "UPDATE pm_tasks SET deadline = ? WHERE stage_id = ? AND project_id = ?",
+    );
+
+    for (const u of updates) {
+      updStageStmt.run(u.startDate, u.endDate, `SLA: ${u.slaDays} ngày (${u.startDate} → ${u.endDate})`, u.id);
+      updTaskStmt.run(u.endDate, u.id, projectId);
+    }
+
+    return c.json({ ok: true, depositDate: nextDeposit, stages: updates });
+  })
+
+  // --- API CHI PHÍ HẠNG MỤC & TẠO BÁO GIÁ TỰ ĐỘNG (COST x HỆ SỐ) ---
+  .get("/api/projects/:id/costs", (c) => {
+    const projectId = Number(c.req.param("id"));
+    const costs = db
+      .prepare(
+        `SELECT pc.*, s.title as stage_title
+         FROM pm_project_costs pc
+         LEFT JOIN pm_stages s ON pc.stage_id = s.id
+         WHERE pc.project_id = ?
+         ORDER BY pc.id ASC`,
+      )
+      .all(projectId) as Array<{
+        id: number;
+        project_id: number;
+        stage_id: number | null;
+        stage_title?: string;
+        category: string;
+        item_name: string;
+        vendor_name: string;
+        cost_amount: number;
+        quantity: number;
+        unit: string;
+        duration_days: number;
+        markup_factor: number;
+        description_specs: string;
+        payment_status: string;
+        contract_ref: string;
+      }>;
+
+    const quotation = (db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
+      | {
+          project_id: number;
+          customer_name: string;
+          customer_rep: string;
+          quote_date: string;
+          title: string;
+          client_tier: string;
+          default_markup: number;
+          vat_percent: number;
+          notes: string;
+        }
+      | undefined) ?? {
+      project_id: projectId,
+      customer_name: "",
+      customer_rep: "",
+      quote_date: new Date().toISOString().slice(0, 10),
+      title: "BÁO GIÁ SẢN PHẨM & DỊCH VỤ",
+      client_tier: "Doanh nghiệp",
+      default_markup: 1.5,
+      vat_percent: 8,
+      notes:
+        "Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội.",
+    };
+
+    let totalCost = 0;
+    let totalQuoteExclVat = 0;
+    const enriched = costs.map((item) => {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const unitCost = Number(item.cost_amount) || 0;
+      const factor = Number(item.markup_factor) || quotation.default_markup || 1.5;
+      const lineCost = unitCost * qty;
+      const quoteUnitPrice = Math.round(unitCost * factor);
+      const quoteLineTotal = quoteUnitPrice * qty;
+      totalCost += lineCost;
+      totalQuoteExclVat += quoteLineTotal;
+      return {
+        ...item,
+        line_cost: lineCost,
+        quote_unit_price: quoteUnitPrice,
+        quote_line_total: quoteLineTotal,
+      };
+    });
+
+    const vatPct = Number(quotation.vat_percent) || 0;
+    const vatAmount = Math.round((totalQuoteExclVat * vatPct) / 100);
+    const totalQuoteInclVat = totalQuoteExclVat + vatAmount;
+    const estimatedProfit = totalQuoteExclVat - totalCost;
+    const profitMarginPct = totalQuoteExclVat > 0 ? Math.round((estimatedProfit / totalQuoteExclVat) * 100) : 0;
+
+    return c.json({
+      ok: true,
+      costs: enriched,
+      quotation,
+      summary: {
+        totalCost,
+        totalQuoteExclVat,
+        vatAmount,
+        totalQuoteInclVat,
+        estimatedProfit,
+        profitMarginPct,
+      },
+    });
+  })
+
+  .post("/api/projects/:id/costs", async (c) => {
+    const projectId = Number(c.req.param("id"));
+    const body = await c.req.json<{
+      id?: number;
+      stage_id?: number | null;
+      category?: string;
+      item_name: string;
+      vendor_name?: string;
+      cost_amount?: number;
+      quantity?: number;
+      unit?: string;
+      duration_days?: number;
+      markup_factor?: number;
+      description_specs?: string;
+      payment_status?: string;
+      contract_ref?: string;
+    }>();
+
+    if (!body.item_name?.trim()) return c.json({ ok: false, error: "Thiếu tên hạng mục" }, 400);
+
+    if (body.id) {
+      db.prepare(
+        `UPDATE pm_project_costs
+         SET stage_id = ?, category = ?, item_name = ?, vendor_name = ?, cost_amount = ?, quantity = ?, unit = ?, duration_days = ?, markup_factor = ?, description_specs = ?, payment_status = ?, contract_ref = ?
+         WHERE id = ? AND project_id = ?`,
+      ).run(
+        body.stage_id ?? null,
+        body.category || "Sản xuất",
+        body.item_name.trim(),
+        body.vendor_name || "",
+        Number(body.cost_amount) || 0,
+        Math.max(1, Number(body.quantity) || 1),
+        body.unit || "bộ",
+        Number(body.duration_days) || 0,
+        Number(body.markup_factor) || 1.5,
+        body.description_specs || "",
+        body.payment_status || "Chưa thanh toán",
+        body.contract_ref || "",
+        body.id,
+        projectId,
+      );
+      return c.json({ ok: true, id: body.id });
+    }
+
+    const row = db
+      .prepare(
+        `INSERT INTO pm_project_costs
+          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      )
+      .get(
+        projectId,
+        body.stage_id ?? null,
+        body.category || "Sản xuất",
+        body.item_name.trim(),
+        body.vendor_name || "",
+        Number(body.cost_amount) || 0,
+        Math.max(1, Number(body.quantity) || 1),
+        body.unit || "bộ",
+        Number(body.duration_days) || 0,
+        Number(body.markup_factor) || 1.5,
+        body.description_specs || "",
+        body.payment_status || "Chưa thanh toán",
+        body.contract_ref || "",
+      ) as { id: number };
+
+    return c.json({ ok: true, id: row.id });
+  })
+
+  .delete("/api/projects/costs/:costId", (c) => {
+    const costId = Number(c.req.param("costId"));
+    db.prepare("DELETE FROM pm_project_costs WHERE id = ?").run(costId);
+    return c.json({ ok: true });
+  })
+
+  .post("/api/projects/:id/quotation", async (c) => {
+    const projectId = Number(c.req.param("id"));
+    const body = await c.req.json<{
+      customer_name?: string;
+      customer_rep?: string;
+      quote_date?: string;
+      title?: string;
+      client_tier?: string;
+      default_markup?: number;
+      vat_percent?: number;
+      notes?: string;
+      applyMarkupToAll?: boolean;
+    }>();
+
+    const defaultMarkup = Number(body.default_markup) || 1.5;
+    db.prepare(
+      `INSERT INTO pm_quotations (project_id, customer_name, customer_rep, quote_date, title, client_tier, default_markup, vat_percent, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(project_id) DO UPDATE SET
+         customer_name = excluded.customer_name,
+         customer_rep = excluded.customer_rep,
+         quote_date = excluded.quote_date,
+         title = excluded.title,
+         client_tier = excluded.client_tier,
+         default_markup = excluded.default_markup,
+         vat_percent = excluded.vat_percent,
+         notes = excluded.notes,
+         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+    ).run(
+      projectId,
+      body.customer_name || "",
+      body.customer_rep || "",
+      body.quote_date || new Date().toISOString().slice(0, 10),
+      body.title || "BÁO GIÁ SẢN PHẨM & DỊCH VỤ",
+      body.client_tier || "Doanh nghiệp",
+      defaultMarkup,
+      body.vat_percent ?? 8,
+      body.notes || "",
+    );
+
+    if (body.applyMarkupToAll) {
+      db.prepare("UPDATE pm_project_costs SET markup_factor = ? WHERE project_id = ?").run(defaultMarkup, projectId);
+    }
+
+    return c.json({ ok: true });
+  })
+
+  .get("/api/projects/:id/quotation/print", (c) => {
+    const projectId = Number(c.req.param("id"));
+    const proj = db.prepare("SELECT * FROM pm_projects WHERE id = ?").get(projectId) as
+      | { id: number; name: string; business_unit?: string }
+      | undefined;
+    if (!proj) return c.text("Không tìm thấy dự án", 404);
+
+    const costs = db
+      .prepare("SELECT * FROM pm_project_costs WHERE project_id = ? ORDER BY id ASC")
+      .all(projectId) as Array<{
+      id: number;
+      item_name: string;
+      cost_amount: number;
+      quantity: number;
+      unit: string;
+      duration_days: number;
+      markup_factor: number;
+      description_specs: string;
+    }>;
+
+    const q = (db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
+      | {
+          customer_name: string;
+          customer_rep: string;
+          quote_date: string;
+          title: string;
+          default_markup: number;
+          vat_percent: number;
+          notes: string;
+        }
+      | undefined) ?? {
+      customer_name: "Quý Khách hàng",
+      customer_rep: "",
+      quote_date: new Date().toISOString().slice(0, 10),
+      title: `BÁO GIÁ ${proj.name.toUpperCase()}`,
+      default_markup: 1.5,
+      vat_percent: 8,
+      notes:
+        "Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội.",
+    };
+
+    const escHtml = (s: unknown) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    let subTotal = 0;
+    const rowsHtml = costs
+      .map((item, idx) => {
+        const qty = Math.max(1, Number(item.quantity) || 1);
+        const unitPrice = Math.round((Number(item.cost_amount) || 0) * (Number(item.markup_factor) || q.default_markup || 1.5));
+        const lineTotal = unitPrice * qty;
+        subTotal += lineTotal;
+        const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
+        return `<tr>
+          <td style="text-align:center;">${idx + 1}</td>
+          <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
+          <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
+          <td style="text-align:center;">${qty.toLocaleString("vi-VN")}</td>
+          <td style="text-align:right; font-family:monospace;">${unitPrice.toLocaleString("vi-VN")}</td>
+          <td style="text-align:right; font-family:monospace; font-weight:700;">${lineTotal.toLocaleString("vi-VN")}</td>
+          <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
+        </tr>`;
+      })
+      .join("");
+
+    const vatPct = Number(q.vat_percent) || 0;
+    const vatAmt = Math.round((subTotal * vatPct) / 100);
+    const grandTotal = subTotal + vatAmt;
+    const notesHtml = escHtml(q.notes).replace(/\n/g, "<br>");
+
+    return c.html(`<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>${escHtml(q.title)} - Khởi Minh CST</title>
+  <style>
+    @page { size: A4 portrait; margin: 14mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; margin: 0; padding: 24px; background: #F8FAFC; }
+    .sheet { max-width: 840px; margin: 0 auto; background: #fff; padding: 32px 36px; border: 1px solid #E2E8F0; border-radius: 8px; }
+    .header { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #2563EB; padding-bottom: 16px; margin-bottom: 20px; }
+    .co-name { font-size: 15px; font-weight: 800; color: #2563EB; margin-bottom: 6px; }
+    .co-meta { font-size: 12px; color: #475569; line-height: 1.55; }
+    .cust-box { font-size: 12.5px; color: #0F172A; line-height: 1.65; min-width: 240px; }
+    h1 { text-align: center; font-size: 19px; font-weight: 800; margin: 10px 0 6px; color: #0F172A; }
+    .intro { font-size: 13px; color: #334155; margin-bottom: 16px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 13px; }
+    th { background: #EFF6FF; color: #0F172A; font-weight: 700; border: 1px solid #CBD5E1; padding: 9px 10px; text-align: left; }
+    td { border: 1px solid #CBD5E1; padding: 9px 10px; vertical-align: top; }
+    .totals { width: 340px; margin-left: auto; font-size: 13.5px; margin-bottom: 20px; }
+    .totals td { border: none; padding: 5px 8px; }
+    .totals tr.grand td { border-top: 2px solid #2563EB; font-weight: 800; font-size: 15px; color: #2563EB; padding-top: 8px; }
+    .notes { font-size: 12.5px; color: #334155; background: #F8FAFC; padding: 12px 14px; border-radius: 6px; border: 1px solid #E2E8F0; line-height: 1.6; }
+    .print-bar { text-align: right; margin-bottom: 14px; }
+    .btn { background: #2563EB; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    @media print { body { background: #fff; padding: 0; } .sheet { border: none; padding: 0; } .print-bar { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="print-bar"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá Gửi Khách</button></div>
+    <div class="header">
+      <div>
+        <div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div>
+        <div class="co-meta">
+          VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>
+          Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội<br>
+          Liên hệ: 079.338.1666
+        </div>
+      </div>
+      <div class="cust-box">
+        <div><strong>Khách hàng:</strong> ${escHtml(q.customer_name || "Quý Đối tác")}</div>
+        <div><strong>Đại diện:</strong> ${escHtml(q.customer_rep || "-")}</div>
+        <div><strong>Ngày báo giá:</strong> ${escHtml(q.quote_date)}</div>
+      </div>
+    </div>
+    <h1>${escHtml(q.title)} (CHƯA BAO GỒM ${vatPct}% VAT)</h1>
+    <div class="intro">Kính gửi: ${escHtml(q.customer_name || "Quý Đối tác")}, Chúng tôi xin gửi đến Quý Đối tác bảng báo giá chi tiết như sau:</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:42px; text-align:center;">No.</th>
+          <th>MÔ TẢ HẠNG MỤC &amp; QUY CÁCH</th>
+          <th style="width:65px; text-align:center;">ĐƠN VỊ</th>
+          <th style="width:65px; text-align:center;">SL</th>
+          <th style="width:110px; text-align:right;">ĐƠN GIÁ (VND)</th>
+          <th style="width:120px; text-align:right;">THÀNH TIỀN</th>
+          <th style="width:110px;">GHI CHÚ</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml || '<tr><td colspan="7" style="text-align:center; color:#64748B;">Chưa có hạng mục nào</td></tr>'}</tbody>
+    </table>
+    <table class="totals">
+      <tr><td>Cộng tiền hàng (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${subTotal.toLocaleString("vi-VN")} ₫</td></tr>
+      <tr><td>Thuế GTGT (${vatPct}%):</td><td style="text-align:right;">${vatAmt.toLocaleString("vi-VN")} ₫</td></tr>
+      <tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">${grandTotal.toLocaleString("vi-VN")} ₫</td></tr>
+    </table>
+    <div class="notes"><strong>Ghi chú &amp; Điều khoản:</strong><br>${notesHtml}</div>
+  </div>
+</body>
+</html>`);
+  })
+
   // API Tạo công việc mới
   .post("/api/tasks", async (c) => {
     const { project_id, stage_id, title, description, assigned_phone, deadline, progress } = await c.req.json<{
@@ -3793,6 +962,18 @@ export const portalRoutes = new Hono()
     `).run(JSON.stringify(items), newProgress, newProgress, id);
 
     return c.json({ ok: true, checklist: items, progress: newProgress });
+  })
+
+  // API Người phụ trách báo tiến độ cho Bot -> Bot đối chiếu đầu mục con & tự kéo thanh tiến độ
+  .post("/api/tasks/:id/bot-report", async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = await c.req.json<{ reportText: string; senderName?: string }>();
+    const res = applyBotProgressReport({
+      taskId: id,
+      reportText: body.reportText || "",
+      senderName: body.senderName,
+    });
+    return c.json(res, res.ok ? 200 : 400);
   })
 
   // API Ghi nhận chi phí gắn liền trực tiếp với công việc
@@ -4129,7 +1310,7 @@ export const portalRoutes = new Hono()
   // API Phục vụ Trang Trình Chiếu Slide Thuyết Trình Khởi Minh
   .get("/pitch", (c) => {
     try {
-      const html = fs.readFileSync("/Users/m1/Desktop/Slide_Khoi_Minh/index.html", "utf-8");
+      const html = fs.readFileSync(path.join(process.cwd(), "presentation", "index.html"), "utf-8");
       return c.html(html);
     } catch {
       return c.text("Chưa tìm thấy file slide thuyết trình.");
@@ -4150,6 +1331,210 @@ export const portalRoutes = new Hono()
       return c.text("Ảnh không tồn tại", 404);
     } catch {
       return c.text("Lỗi đọc ảnh", 500);
+    }
+  })
+
+  // --- API TÀI KHOẢN CÁ NHÂN, QUÉT LỊCH SỬ, AI PHÂN LOẠI & GOOGLE DRIVE ---
+  .get("/api/personal-status", (c) => {
+    const active = findActivePersonalAccount();
+    const drive = getDriveSettings();
+    return c.json({
+      ok: true,
+      personalAccount: active ? { accountId: active.accountId, name: active.name, connected: true } : { connected: false },
+      drive: {
+        rootFolderName: drive.root_folder_name,
+        rootFolderId: drive.root_folder_id,
+        hasToken: Boolean(drive.access_token || drive.refresh_token),
+        autoSync: Boolean(drive.auto_sync),
+        defaultGroupId: drive.default_group_id,
+      },
+    });
+  })
+
+  .get("/api/zalo-groups", async (c) => {
+    try {
+      const data = await listPersonalZaloGroups();
+      return c.json({ ok: true, ...data });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "Chưa kết nối tài khoản Zalo cá nhân", groups: [] }, 400);
+    }
+  })
+
+  .get("/api/zalo-groups/:groupId/members", async (c) => {
+    try {
+      const groupId = c.req.param("groupId");
+      const members = await getZaloGroupMembers(groupId);
+      return c.json({ ok: true, members });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "Không lấy được danh sách thành viên", members: [] }, 400);
+    }
+  })
+
+  .post("/api/scan-history", async (c) => {
+    try {
+      const body = await c.req.json<{
+        groupId: string;
+        groupName?: string;
+        count?: number;
+        classify?: boolean;
+        syncDrive?: boolean;
+      }>();
+      if (!body.groupId) return c.json({ ok: false, error: "Thiếu groupId" }, 400);
+
+      const scan = await scanGroupHistoryForAssets({
+        groupId: body.groupId,
+        groupName: body.groupName,
+        count: body.count ?? 60,
+      });
+
+      let classify = { processed: 0, classified: 0 };
+      if (body.classify !== false) {
+        try {
+          classify = await classifyPendingAssetsWithAI(30);
+        } catch (err: any) {
+          return c.json({ ok: true, scan, classify, warning: `Đã quét lịch sử nhưng AI phân loại lỗi: ${err?.message}` });
+        }
+      }
+
+      let synced = 0;
+      if (body.syncDrive) {
+        const rows = db
+          .prepare("SELECT id FROM pm_collected_assets WHERE status = 'classified' LIMIT 30")
+          .all() as { id: number }[];
+        for (const r of rows) {
+          const res = await syncAssetToDrive(r.id);
+          if (res.ok) synced++;
+        }
+      }
+
+      return c.json({ ok: true, scan, classify, synced });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "Lỗi quét lịch sử nhóm" }, 500);
+    }
+  })
+
+  .get("/api/assets", (c) => {
+    const project = c.req.query("project") || "";
+    const type = c.req.query("type") || "";
+    const status = c.req.query("status") || "";
+
+    const where: string[] = [];
+    const args: string[] = [];
+    if (project) {
+      where.push("project_name = ?");
+      args.push(project);
+    }
+    if (type) {
+      where.push("asset_type = ?");
+      args.push(type);
+    }
+    if (status) {
+      where.push("status = ?");
+      args.push(status);
+    }
+
+    const sql = `SELECT * FROM pm_collected_assets ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY sent_at DESC, id DESC LIMIT 200`;
+    const assets = db.prepare(sql).all(...args) as CollectedAssetRow[];
+    const projects = db
+      .prepare("SELECT project_name, COUNT(*) as count FROM pm_collected_assets GROUP BY project_name ORDER BY count DESC")
+      .all() as { project_name: string; count: number }[];
+    return c.json({ ok: true, assets, projects });
+  })
+
+  .patch("/api/assets/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = await c.req.json<{ project_name?: string; title?: string }>();
+    db.prepare(
+      `UPDATE pm_collected_assets
+       SET project_name = COALESCE(?, project_name),
+           title = COALESCE(?, title),
+           status = CASE WHEN status = 'pending' THEN 'classified' ELSE status END
+       WHERE id = ?`,
+    ).run(body.project_name || null, body.title || null, id);
+    return c.json({ ok: true });
+  })
+
+  .post("/api/ai-classify", async (c) => {
+    try {
+      const result = await classifyPendingAssetsWithAI(30);
+      return c.json({ ok: true, ...result });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "AI phân loại thất bại" }, 500);
+    }
+  })
+
+  .post("/api/drive/settings", async (c) => {
+    const body = await c.req.json<{
+      root_folder_name?: string;
+      root_folder_id?: string;
+      access_token?: string;
+      refresh_token?: string;
+      client_id?: string;
+      client_secret?: string;
+      auto_sync?: number;
+      default_group_id?: string;
+    }>();
+    const updated = updateDriveSettings(body);
+    return c.json({
+      ok: true,
+      drive: {
+        rootFolderName: updated.root_folder_name,
+        rootFolderId: updated.root_folder_id,
+        hasToken: Boolean(updated.access_token || updated.refresh_token),
+        autoSync: Boolean(updated.auto_sync),
+        defaultGroupId: updated.default_group_id,
+      },
+    });
+  })
+
+  .post("/api/drive/sync", async (c) => {
+    try {
+      const body = await c.req.json<{ assetId?: number }>().catch(() => ({} as { assetId?: number }));
+      if (body.assetId) {
+        const res = await syncAssetToDrive(body.assetId);
+        return c.json(res, res.ok ? 200 : 400);
+      }
+
+      const rows = db
+        .prepare("SELECT id FROM pm_collected_assets WHERE status IN ('classified', 'pending', 'error') LIMIT 30")
+        .all() as { id: number }[];
+      let synced = 0;
+      let failed = 0;
+      let lastError = "";
+      for (const r of rows) {
+        const res = await syncAssetToDrive(r.id);
+        if (res.ok) synced++;
+        else {
+          failed++;
+          lastError = res.error || lastError;
+        }
+      }
+      return c.json({ ok: failed === 0 || synced > 0, synced, failed, lastError });
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "Lỗi đồng bộ Drive" }, 500);
+    }
+  })
+
+  .post("/api/remind-group", async (c) => {
+    try {
+      const body = await c.req.json<{
+        groupId: string;
+        memberName: string;
+        memberUid?: string;
+        text: string;
+      }>();
+      if (!body.groupId || !body.text) {
+        return c.json({ ok: false, error: "Cần chọn nhóm và nhập nội dung nhắc việc" }, 400);
+      }
+      const res = await sendGroupMentionReminder({
+        groupId: body.groupId,
+        memberName: body.memberName || "",
+        memberUid: body.memberUid,
+        text: body.text,
+      });
+      return c.json(res, res.ok ? 200 : 400);
+    } catch (err: any) {
+      return c.json({ ok: false, error: err?.message || "Gửi nhắc việc nhóm thất bại" }, 500);
     }
   });
 
