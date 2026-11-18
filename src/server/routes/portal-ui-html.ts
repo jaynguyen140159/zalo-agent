@@ -762,7 +762,7 @@ export function renderPortalHtml(): string {
         </div>
         <div class="topbar-actions" id="topbar-actions">
           <button class="btn btn-soft" id="btn-admin-auth" onclick="openAdminLoginModal()">🔐 Đăng nhập Admin</button>
-          <a href="../" onclick="window.open(location.hostname.indexOf('github.io') !== -1 ? '../' : '/portal/pitch', '_blank'); return false;" class="btn btn-soft">📽️ Xem Slide</a>
+          <a href="/zalo-agent/presentation/" onclick="window.open(location.hostname.indexOf('github.io') !== -1 ? '/zalo-agent/presentation/' : '/portal/pitch', '_blank'); return false;" class="btn btn-soft">📽️ Xem Slide</a>
           <button class="btn btn-primary" onclick="window.print()">🖨️ Xuất PDF / In</button>
         </div>
       </header>
