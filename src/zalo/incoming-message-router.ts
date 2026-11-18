@@ -20,6 +20,7 @@ import { sendDeliveredReceipt } from "./message-receipts.js";
 import { processBatch } from "./message-turn-processor.js";
 import { reportPayloadAnomalies } from "./payload-anomaly-watch.js";
 import { ganAnhVaoHistory, ghiTinDenVaoHistory } from "./record-incoming-message.js";
+import { parseForwardCommand, xuLyLenhChuyenTiepBot } from "../zalo-bot/bot-message-forwarder.js";
 import { parseIncomingMessage } from "./zalo-message-parser.js";
 
 const log = createLogger("message-router");
@@ -57,6 +58,38 @@ export function routeIncomingMessage(
     });
     if (msg.isGroup && !hasDisplayName(config.id, msg.threadId)) {
       void resolveGroupName(config.id, api, msg.threadId);
+    }
+  }
+
+  // Hỗ trợ chuyển tiếp tin nhắn & bóc nội dung khi ấn Trả lời (Reply) trên kênh Zalo cá nhân (kể cả tin của chính mình)
+  if (
+    msg.threadId &&
+    !msg.text.startsWith("📨 [") &&
+    !msg.text.startsWith("✅ ") &&
+    !msg.text.startsWith("⚠️ ")
+  ) {
+    if (msg.isSelf && msg.isGroup) {
+      recordThreadActivity({
+        accountId: config.id,
+        threadId: msg.threadId,
+        threadType: msg.threadType,
+        displayName: "",
+        lastSenderName: msg.senderName || "Tôi",
+      });
+      if (!hasDisplayName(config.id, msg.threadId)) {
+        void resolveGroupName(config.id, api, msg.threadId);
+      }
+    }
+    if (parseForwardCommand(msg.text)) {
+      log.info(
+        { accountId: config.id, threadId: msg.threadId, isSelf: msg.isSelf, text: msg.text },
+        "Nhận lệnh chuyển tiếp trên kênh Zalo cá nhân",
+      );
+      try {
+        ghiTinDenVaoHistory(config.id, msg, { luuAnhNgay: true });
+      } catch {}
+      void xuLyLenhChuyenTiepBot(config.id, kenhCaNhan(api), msg);
+      return;
     }
   }
 

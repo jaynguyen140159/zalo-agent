@@ -1,4 +1,4 @@
-import { layBotTokenGiaiMa } from "../config/account-store.js";
+import { layBotTokenGiaiMa, listAccounts } from "../config/account-store.js";
 import { db } from "../conversation/database.js";
 import { createLogger } from "../shared/logger.js";
 import type { KenhLuot } from "../zalo/kenh-luot.js";
@@ -52,7 +52,6 @@ function stripBotMentionPrefix(text: string): string {
 }
 
 function stripAnyLeadingMentions(text: string): string {
-  // Bỏ mọi đoạn @Tên ở đầu câu nếu sau đó vẫn còn nội dung thường
   return (text || "").replace(/^\s*(?:@[^\n@]+\s+)+/, "").trim();
 }
 
@@ -68,6 +67,22 @@ function truncatePreview(text: string, maxLen = 70): string {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return "";
   return clean.length > maxLen ? `${clean.slice(0, maxLen - 1)}…` : clean;
+}
+
+/**
+ * Bóc nội dung tin nhắn gốc khi người dùng ấn "Trả lời (Reply)" trên Zalo Cá Nhân (`zca-js`).
+ */
+export function extractQuotedMessageFromRaw(
+  msg: Pick<ParsedMessage, "rawData">,
+): { senderName: string; content: string } | null {
+  const raw = msg.rawData as Record<string, unknown> | undefined;
+  const q = raw?.quote as Record<string, unknown> | undefined;
+  if (!q || typeof q !== "object") return null;
+  const rawContent = q.msg ?? q.content;
+  const content = typeof rawContent === "string" ? rawContent.trim() : "";
+  if (!content) return null;
+  const senderName = String(q.fromD || q.uidFrom || "Thành viên").trim() || "Thành viên";
+  return { senderName, content };
 }
 
 export function inferGroupDisplayName(params: {
@@ -118,14 +133,21 @@ export function inferGroupDisplayName(params: {
 }
 
 export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] {
-  const rows = db
+  const personalIds = listAccounts()
+    .filter((a) => a.loai === "ca_nhan")
+    .map((a) => a.id);
+
+  // Gộp cả kênh Zalo cá nhân và Bot để người dùng nhìn thấy đầy đủ các nhóm dù gọi từ đâu
+  const queryIds = Array.from(new Set([accountId, "bot-tro-ly-jay", ...personalIds]));
+  const placeholders = queryIds.map(() => "?").join(", ");
+  const rawRows = db
     .prepare(
       `SELECT account_id, thread_id, thread_type, display_name, last_sender_name, last_message_at
        FROM threads
-       WHERE account_id = ?
+       WHERE account_id IN (${placeholders})
        ORDER BY thread_type DESC, last_message_at DESC`,
     )
-    .all(accountId) as Array<{
+    .all(...queryIds) as Array<{
     account_id: string;
     thread_id: string;
     thread_type: number;
@@ -133,6 +155,22 @@ export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] 
     last_sender_name: string | null;
     last_message_at: string | null;
   }>;
+
+  // Khử trùng lặp theo thread_id (ưu tiên row có display_name đẹp hoặc đúng accountId)
+  const deduped = new Map<string, (typeof rawRows)[number]>();
+  for (const r of rawRows) {
+    const prev = deduped.get(r.thread_id);
+    if (!prev) {
+      deduped.set(r.thread_id, r);
+      continue;
+    }
+    const prevHasRealName = Boolean(prev.display_name?.trim() && !/^Nhóm Zalo \d+$/i.test(prev.display_name));
+    const curHasRealName = Boolean(r.display_name?.trim() && !/^Nhóm Zalo \d+$/i.test(r.display_name));
+    if (!prevHasRealName && curHasRealName) {
+      deduped.set(r.thread_id, r);
+    }
+  }
+  const rows = Array.from(deduped.values());
 
   const stmtMembers = db.prepare(
     `SELECT DISTINCT sender_name
@@ -156,10 +194,10 @@ export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] 
     let memberNames: string[] = [];
     let recentTexts: string[] = [];
     try {
-      memberNames = (stmtMembers.all(accountId, r.thread_id) as Array<{ sender_name: string }>).map(
+      memberNames = (stmtMembers.all(r.account_id, r.thread_id) as Array<{ sender_name: string }>).map(
         (m) => m.sender_name,
       );
-      recentTexts = (stmtRecentTexts.all(accountId, r.thread_id) as Array<{ content: string }>).map(
+      recentTexts = (stmtRecentTexts.all(r.account_id, r.thread_id) as Array<{ content: string }>).map(
         (m) => m.content,
       );
     } catch {
@@ -206,11 +244,12 @@ export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] 
 export function renameBotThread(accountId: string, threadId: string, newName: string): void {
   const clean = newName.trim();
   if (!clean) return;
-  db.prepare("UPDATE threads SET display_name = ? WHERE account_id = ? AND thread_id = ?").run(
-    clean,
-    accountId,
-    threadId,
-  );
+  const res = db
+    .prepare("UPDATE threads SET display_name = ? WHERE account_id = ? AND thread_id = ?")
+    .run(clean, accountId, threadId);
+  if (Number(res.changes || 0) === 0) {
+    db.prepare("UPDATE threads SET display_name = ? WHERE thread_id = ?").run(clean, threadId);
+  }
 }
 
 export type ParsedForwardCommand =
@@ -237,8 +276,6 @@ function stripLeadingMentionsBeforeCommand(rawText: string): string {
 }
 
 function extractInlineMentionForward(rawText: string): ParsedForwardCommand | null {
-  // Trường hợp user gõ nội dung trước @Bot chuyển sang <Nhóm>:
-  // VD: "Xong c nhắn lại là c trình + cất hộ em lun r cocn jjj @Bot Trợ Lý Jay chuyển sang nhóm test"
   const inlineMatch = rawText.match(
     /^([\s\S]+?)\s+@[^\n@]+?\s+(?:chuy[eểế]n\s+ti[eế]p\s+(?:tin\s*(?:nh[aắ]n)?\s*(?:n[aà]y|tr[eê]n)?\s+)?(?:sang|t[oớ]i|v[aà]o|cho)|chuy[eểế]n\s+(?:sang|t[oớ]i|v[aà]o|cho)|fw)\s+([^:\n]+?)(?:\s*:\s*([\s\S]+))?$/i,
   );
@@ -267,7 +304,6 @@ function extractBatchRenames(cleaned: string): Array<{ targetQuery: string; newN
   const renames: Array<{ targetQuery: string; newName: string }> = [];
   const seen = new Set<string>();
 
-  // Dạng: "nhóm zalo 1 không ( KM-3 ANH CHỊ EM )" hoặc "nhóm 1 (Tên Nhóm)"
   const parenRegex = /(?:^|[\s\n])nh[oó]m\s+(?:zalo\s*)?(\d+)[^\n():]{0,30}\(\s*([^\n()]{2,60})\s*\)/gi;
   for (const m of cleaned.matchAll(parenRegex)) {
     const q = m[1]?.trim();
@@ -278,7 +314,6 @@ function extractBatchRenames(cleaned: string): Array<{ targetQuery: string; newN
     }
   }
 
-  // Dạng: "đặt tên nhóm 1: A" / "nhóm 2 là Nhóm Test" / "đổi tên nhóm 2 thành B"
   const lineRegex = /(?:^|[\n,;])\s*(?:(?:b[aạ]n\s+)?(?:[đd][aặ]t|[đd][oổ]i|setup)\s+t[eê]n\s+(?:c[uủ]a\s+)?)?nh[oó]m\s+(?:zalo\s*)?(\d+)\s*(?::|l[aà]|th[aà]nh|=)\s*([^\n,;()]{2,60})/gi;
   for (const m of cleaned.matchAll(lineRegex)) {
     const q = m[1]?.trim();
@@ -292,18 +327,9 @@ function extractBatchRenames(cleaned: string): Array<{ targetQuery: string; newN
   return renames;
 }
 
-/**
- * Nhận diện và tách lệnh chuyển tiếp tin nhắn cho Zalo Bot:
- * - "ds nhóm" / "danh sách nhóm" / "nhóm zalo 1 là gì"
- * - "đặt tên nhóm: ..." / "đổi tên nhóm 2 thành ..." / setup nhiều nhóm
- * - "Xong c nhắn lại ... @Bot chuyển sang nhóm test" (nội dung đứng TRƯỚC @Bot)
- * - "@Bot chuyển tiếp sang Nhóm Test nhé" (lấy tin trước đó hoặc hướng dẫn)
- * - "chuyển sang Nhóm Test: Nội dung..."
- */
 export function parseForwardCommand(rawText?: string): ParsedForwardCommand | null {
   if (!rawText) return null;
 
-  // Kiểm tra dạng <nội dung> @Bot chuyển sang <Nhóm> trước
   const inlineCmd = extractInlineMentionForward(rawText.trim());
   if (inlineCmd) return inlineCmd;
 
@@ -326,7 +352,6 @@ export function parseForwardCommand(rawText?: string): ParsedForwardCommand | nu
     return { kind: "list" };
   }
 
-  // Hỗ trợ khai báo/setup nhiều nhóm trong 1 câu (VD tin #48 của anh Huy)
   const batchRenames = extractBatchRenames(cleaned);
   if (batchRenames.length > 0) {
     return {
@@ -350,7 +375,6 @@ export function parseForwardCommand(rawText?: string): ParsedForwardCommand | nu
     return { kind: "rename", newName: /^nh[oó]m\b/i.test(raw) ? raw : `Nhóm ${raw}` };
   }
 
-  // Dạng có nội dung sau dấu ":" hoặc xuống dòng hoặc "-"
   const fwMatch = cleaned.match(
     /^(?:chuy[eểế]n\s+ti[eế]p|chuyen\s+tiep|chuy[eểế]n\s+sang|chuyen\s+sang|chuy[eểế]n\s+t[oớ]i|chuyen\s+toi|chuy[eểế]n|chuyen|fw)\s+([^:\n]+?)\s*(?::|\n|-|–)\s*([\s\S]+)$/i,
   );
@@ -362,7 +386,6 @@ export function parseForwardCommand(rawText?: string): ParsedForwardCommand | nu
     };
   }
 
-  // Dạng "chuyển/chuyến tiếp tin nhắn này sang <Đích>"
   const forwardThisMsgMatch = cleaned.match(
     /^(?:chuy[eểế]n\s*(?:ti[eế]p)?|fw)\s+(?:tin\s*(?:nh[aắ]n)?\s*(?:n[aà]y|v[uừ]a\s*r[oồ]i|tr[eê]n)|n[oộ]i\s+dung\s+n[aà]y)\s+(?:sang|t[oớ]i|v[aà]o|cho)\s+([^:\n]+?)(?:\s*:\s*([\s\S]+))?$/i,
   );
@@ -376,7 +399,6 @@ export function parseForwardCommand(rawText?: string): ParsedForwardCommand | nu
     };
   }
 
-  // Dạng không có ":" như "chuyển tiếp sang Nhóm Test nhé"
   const forwardToOnlyMatch = cleaned.match(
     /^(?:chuy[eểế]n\s*(?:ti[eế]p)?|fw)\s+(?:sang|t[oớ]i|v[aà]o|cho)\s+([^:\n]+)$/i,
   );
@@ -468,26 +490,51 @@ export async function forwardViaBotClient(params: {
   imageUrls?: string[];
   kenh?: KenhLuot;
 }): Promise<{ sentCount: number; failedCount: number; errors: string[] }> {
-  const token = layBotTokenGiaiMa(params.accountId);
-  const botClient = token ? taoZaloBotClient({ token }) : null;
+  const botToken = layBotTokenGiaiMa("bot-tro-ly-jay") || layBotTokenGiaiMa(params.accountId);
+  const botClient = botToken ? taoZaloBotClient({ token: botToken }) : null;
   let sentCount = 0;
   let failedCount = 0;
   const errors: string[] = [];
 
   for (const tid of params.targetThreadIds) {
     try {
-      if (params.kenh) {
-        const row = db
-          .prepare("SELECT thread_type FROM threads WHERE account_id = ? AND thread_id = ?")
-          .get(params.accountId, tid) as { thread_type?: number } | undefined;
-        await params.kenh.duongGui(tid, row?.thread_type ?? 1)({ text: params.text });
+      const isBotThread = tid.startsWith("zgr-");
+      const row = db
+        .prepare("SELECT account_id, thread_type FROM threads WHERE thread_id = ? ORDER BY last_message_at DESC LIMIT 1")
+        .get(tid) as { account_id?: string; thread_type?: number } | undefined;
+      const tType = row?.thread_type ?? 1;
+
+      if (isBotThread || (!params.kenh && row?.account_id === "bot-tro-ly-jay")) {
+        if (params.kenh && params.accountId === "bot-tro-ly-jay") {
+          await params.kenh.duongGui(tid, tType)({ text: params.text });
+        } else if (botClient) {
+          await botClient.sendMessage(tid, params.text, null);
+        } else {
+          throw new Error("Chưa cấu hình token Zalo Bot");
+        }
+      } else if (params.kenh && (params.accountId !== "bot-tro-ly-jay" || !tid.startsWith("zgr-"))) {
+        if (params.accountId !== "bot-tro-ly-jay") {
+          await params.kenh.duongGui(tid, tType)({ text: params.text });
+        } else {
+          // Đích là nhóm/người dùng thuộc kênh Zalo cá nhân, đang gọi từ Bot hoặc Portal
+          const { getRunningAccountKenh } = await import("../zalo/account-manager.js");
+          const personalAcc = listAccounts().find((a) => a.loai === "ca_nhan");
+          const personalKenh = personalAcc ? getRunningAccountKenh(personalAcc.id) : undefined;
+          if (personalKenh) {
+            await personalKenh.duongGui(tid, tType)({ text: params.text });
+          } else if (botClient && row?.account_id === "bot-tro-ly-jay") {
+            await botClient.sendMessage(tid, params.text, null);
+          } else {
+            throw new Error("Tài khoản Zalo cá nhân chưa kết nối để gửi tới nhóm này");
+          }
+        }
       } else if (botClient) {
         await botClient.sendMessage(tid, params.text, null);
       } else {
         throw new Error(`Chưa có token cho tài khoản ${params.accountId}`);
       }
 
-      if (botClient && params.imageUrls && params.imageUrls.length > 0) {
+      if (botClient && isBotThread && params.imageUrls && params.imageUrls.length > 0) {
         for (const imgUrl of params.imageUrls) {
           if (/^https?:\/\//i.test(imgUrl)) {
             await botClient.sendPhoto(tid, imgUrl).catch(() => {});
@@ -526,10 +573,10 @@ export function formatBotTargetsListMessage(targets: BotTargetThread[]): string 
 
   return (
     `📋 [DANH SÁCH NHÓM & NGƯỜI NHẬN CỦA BOT]\n${lines}\n\n` +
-    `👉 Cách chuyển tiếp nhanh trong nhóm (chỉ 1 tin là chạy):\n` +
-    `• Copy/dán nội dung trước @Bot: "<nội dung tin> @Bot Trợ Lý Jay chuyển sang Nhóm Test"\n` +
-    `• Hoặc gõ trực tiếp: "chuyển sang Nhóm Test: <nội dung cần gửi>"\n` +
-    `*(Lưu ý của Zalo Bot: trong nhóm, Zalo chỉ chuyển cho Bot những tin có gắn @Bot Trợ Lý Jay.)*\n\n` +
+    `👉 Cách chuyển tiếp nhanh trong nhóm:\n` +
+    `• Khi kết nối Zalo Cá Nhân (tab Cài đặt): ấn Trả lời (Reply) tin cần chuyển rồi gõ "chuyển sang Nhóm Test"\n` +
+    `• Với Zalo Bot: dán nội dung trước @Bot: "<nội dung tin> @Bot Trợ Lý Jay chuyển sang Nhóm Test"\n` +
+    `• Hoặc gõ trực tiếp: "chuyển sang Nhóm Test: <nội dung cần gửi>"\n\n` +
     `👉 Đổi tên nhóm bất kỳ lúc nào:\n` +
     `• đặt tên nhóm 1: Tên mới`
   );
@@ -624,21 +671,36 @@ export async function xuLyLenhChuyenTiepBot(
   let bodyToForward = cmd.bodyText;
   let originalSender = msg.senderName || "Thành viên";
   if (cmd.useLastMessage || !bodyToForward) {
-    const prev = findPreviousUserMessage(accountId, msg.threadId, msg.text || "");
-    if (!prev) {
-      await kenh
-        .duongGui(msg.threadId, msg.threadType)({
-          text:
-            `⚠️ Trong nhóm Zalo, Bot chỉ đọc được tin có tag @Bot nên chưa thấy nội dung tin bạn muốn chuyển.\n` +
-            `👉 Hãy dán nội dung cần chuyển ngay trước @Bot, ví dụ:\n` +
-            `"Nội dung tin cần chuyển @Bot Trợ Lý Jay chuyển sang ${matched[0]!.displayName}"\n` +
-            `hoặc: "Chuyển sang ${matched[0]!.displayName}: Nội dung tin cần chuyển"`,
-        })
-        .catch(() => {});
-      return true;
+    // Ưu tiên 1: lấy nội dung tin nhắn gốc được ấn Trả lời (Reply / quote) trên kênh Zalo cá nhân
+    const quoted = extractQuotedMessageFromRaw(msg);
+    if (quoted) {
+      bodyToForward = quoted.content;
+      originalSender = quoted.senderName;
+    } else {
+      // Nếu đang ở kênh Bot và có tài khoản cá nhân đang chạy cùng nhóm, nhường kênh cá nhân xử lý quote
+      if (accountId === "bot-tro-ly-jay") {
+        try {
+          const { isAccountRunning } = await import("../zalo/account-manager.js");
+          const hasPersonalRunning = listAccounts().some((a) => a.loai === "ca_nhan" && isAccountRunning(a.id));
+          if (hasPersonalRunning) return true;
+        } catch {}
+      }
+
+      const prev = findPreviousUserMessage(accountId, msg.threadId, msg.text || "");
+      if (!prev) {
+        await kenh
+          .duongGui(msg.threadId, msg.threadType)({
+            text:
+              `⚠️ Trong nhóm Zalo, Bot chỉ đọc được tin có tag @Bot nên chưa thấy nội dung tin bạn vừa ấn Trả lời.\n` +
+              `👉 Kết nối thêm Zalo Cá Nhân bằng mã QR trong Portal (tab Cài đặt kết nối) để ấn Trả lời (Reply) là tự chuyển, HOẶC dán nội dung trước @Bot:\n` +
+              `"Nội dung tin cần chuyển @Bot Trợ Lý Jay chuyển sang ${matched[0]!.displayName}"`,
+          })
+          .catch(() => {});
+        return true;
+      }
+      bodyToForward = prev.content;
+      originalSender = prev.senderName;
     }
-    bodyToForward = prev.content;
-    originalSender = prev.senderName;
   }
 
   const sourceLabel =

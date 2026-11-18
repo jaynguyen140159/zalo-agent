@@ -2,7 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { Hono } from "hono";
 import { db } from "../../conversation/database.js";
-import { layBotTokenGiaiMa } from "../../config/account-store.js";
+import {
+  createAccount,
+  getAccount,
+  layBotTokenGiaiMa,
+  listAccounts,
+  updateAccount,
+} from "../../config/account-store.js";
+import { stopAccount } from "../../zalo/account-manager.js";
+import { getQrLoginStatus, startQrLogin } from "../../zalo/qr-login-manager.js";
 import { taoLinkGoogleCalendarWeb, taoIcalFeed } from "../../google/google-calendar-service.js";
 import { quetVaGuiNhacViecTuDong } from "../../notification/auto-reminder-worker.js";
 import { getSmtpConfig, guiEmailNhacViec } from "../../notification/email-service.js";
@@ -1612,6 +1620,57 @@ export const portalRoutes = new Hono()
   .delete("/api/bot-forwarding/rules/:id", (c) => {
     const id = Number(c.req.param("id"));
     db.prepare("DELETE FROM pm_bot_forward_rules WHERE id = ?").run(id);
+    return c.json({ ok: true });
+  })
+
+  // --- QUẢN LÝ & ĐĂNG NHẬP QR TÀI KHOẢN ZALO CÁ NHÂN NGAY TRÊN PORTAL ---
+  .post("/api/personal-zalo/qr-start", (c) => {
+    let acc = listAccounts().find((a) => a.loai === "ca_nhan");
+    if (!acc) {
+      const id = getAccount("zalo-ca-nhan") ? `zalo-ca-nhan-${Date.now()}` : "zalo-ca-nhan";
+      acc = createAccount({ id, label: "Zalo Cá Nhân", agentId: "tro-ly-nhac-viec" });
+      acc =
+        updateAccount(acc.id, {
+          enabled: true,
+          respondToGroups: true,
+          groupRequireMention: true,
+          groupPassiveListen: true,
+          allowlist: { mode: "all", userIds: [] },
+        }) ?? acc;
+    } else if (!acc.enabled) {
+      acc = updateAccount(acc.id, { enabled: true }) ?? acc;
+    }
+    startQrLogin(acc.id);
+    return c.json({ ok: true, accountId: acc.id, ...getQrLoginStatus(acc.id) });
+  })
+
+  .get("/api/personal-zalo/qr-status", (c) => {
+    const acc = listAccounts().find((a) => a.loai === "ca_nhan");
+    const active = findActivePersonalAccount();
+    if (!acc) {
+      return c.json({
+        ok: true,
+        status: active ? "success" : "idle",
+        personalAccount: active
+          ? { accountId: active.accountId, name: active.name, connected: true }
+          : { connected: false },
+      });
+    }
+    return c.json({
+      ok: true,
+      accountId: acc.id,
+      ...getQrLoginStatus(acc.id),
+      personalAccount: active
+        ? { accountId: active.accountId, name: active.name, connected: true }
+        : { connected: false },
+    });
+  })
+
+  .post("/api/personal-zalo/disconnect", (c) => {
+    const acc = listAccounts().find((a) => a.loai === "ca_nhan");
+    if (acc) {
+      stopAccount(acc.id);
+    }
     return c.json({ ok: true });
   });
 

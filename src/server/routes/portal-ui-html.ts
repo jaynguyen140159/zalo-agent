@@ -743,7 +743,7 @@ export function renderPortalHtml(): string {
       </nav>
 
       <div class="sidebar-footer">
-        <div class="status-line">
+        <div class="status-line" style="cursor:pointer;" title="Bấm để mở phần Quét mã QR Zalo Cá Nhân" onclick="switchTab('settings')">
           <span><span class="dot" id="dot-zalo"></span>Zalo cá nhân</span>
           <strong id="lbl-zalo">Đang kiểm tra...</strong>
         </div>
@@ -1228,6 +1228,38 @@ export function renderPortalHtml(): string {
 
         <!-- TAB 4: CÀI ĐẶT KẾT NỐI -->
         <section class="panel" id="panel-settings">
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">📱 Kết nối Tài khoản Zalo Cá Nhân (Quét mã QR)</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                  Kết nối tài khoản Zalo cá nhân để ấn <strong>Trả lời (Reply)</strong> trực tiếp vào tin nhắn trong nhóm là chuyển tiếp được sang nhóm khác (không cần copy/paste), đồng thời bật quét kho tài liệu &amp; @mention thành viên nhóm.
+                </div>
+              </div>
+              <span class="badge muted" id="settings-personal-status-badge">Đang kiểm tra...</span>
+            </div>
+            <div class="card-body">
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="btn-start-zalo-qr" onclick="startPersonalZaloQr()">📷 Lấy mã QR đăng nhập Zalo</button>
+                <button class="btn btn-soft" id="btn-disconnect-zalo" style="display:none; color:#dc2626;" onclick="disconnectPersonalZalo()">🔌 Ngắt kết nối Zalo cá nhân</button>
+                <span style="font-size:12px; color:var(--text-muted);">Trạng thái Zalo Bot: <strong style="color:var(--primary);">Bot Trợ Lý Jay đang hoạt động</strong></span>
+              </div>
+              <div id="personal-qr-box" style="display:none; margin-top:16px; padding:16px; border:1px dashed var(--border); border-radius:10px; background:var(--bg-canvas); align-items:center; gap:18px; flex-wrap:wrap;">
+                <div id="personal-qr-img-wrap" style="width:200px; height:200px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:8px; background:#fff;">
+                  <span style="font-size:12px; color:var(--text-muted);">Đang tạo mã QR...</span>
+                </div>
+                <div style="flex:1; min-width:220px;">
+                  <div id="personal-qr-msg" style="font-size:13.5px; font-weight:700; color:var(--text-main); margin-bottom:6px;">Đang khởi tạo phiên đăng nhập QR...</div>
+                  <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+                    1. Mở ứng dụng <strong>Zalo</strong> trên điện thoại.<br>
+                    2. Chọn biểu tượng <strong>Quét mã QR</strong> ở góc trên bên phải.<br>
+                    3. Quét mã và bấm <strong>Đăng nhập / Xác nhận</strong> trên điện thoại.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header">
               <div class="card-title">Cấu hình Google Drive &amp; Nhóm mặc định</div>
@@ -1984,13 +2016,25 @@ export function renderPortalHtml(): string {
         var data = await res.json();
         var dotZ = document.getElementById('dot-zalo');
         var lblZ = document.getElementById('lbl-zalo');
+        var stBadge = document.getElementById('settings-personal-status-badge');
+        var discBtn = document.getElementById('btn-disconnect-zalo');
         if (data.personalAccount && data.personalAccount.connected) {
           dotZ.className = 'dot on';
           lblZ.textContent = data.personalAccount.name || 'Đã kết nối';
+          if (stBadge) {
+            stBadge.className = 'badge';
+            stBadge.textContent = 'Đã kết nối: ' + (data.personalAccount.name || 'Zalo Cá Nhân');
+          }
+          if (discBtn) discBtn.style.display = 'inline-flex';
           loadZaloGroups();
         } else {
           dotZ.className = 'dot warn';
           lblZ.textContent = 'Chưa đăng nhập';
+          if (stBadge) {
+            stBadge.className = 'badge muted';
+            stBadge.textContent = 'Chưa kết nối';
+          }
+          if (discBtn) discBtn.style.display = 'none';
         }
 
         var dotD = document.getElementById('dot-drive');
@@ -2550,6 +2594,79 @@ export function renderPortalHtml(): string {
       } else {
         showToast('Lỗi lưu cấu hình', true);
       }
+    }
+
+    var qrPollTimer = null;
+
+    async function startPersonalZaloQr() {
+      var box = document.getElementById('personal-qr-box');
+      var wrap = document.getElementById('personal-qr-img-wrap');
+      var msgEl = document.getElementById('personal-qr-msg');
+      if (box) box.style.display = 'flex';
+      if (wrap) wrap.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">Đang tạo mã QR...</span>';
+      if (msgEl) msgEl.textContent = 'Đang khởi tạo phiên đăng nhập QR...';
+      try {
+        var res = await fetch('/portal/api/personal-zalo/qr-start', { method: 'POST' });
+        var data = await res.json();
+        renderPersonalQrState(data);
+        if (qrPollTimer) clearInterval(qrPollTimer);
+        qrPollTimer = setInterval(pollPersonalZaloQr, 1500);
+      } catch (e) {
+        if (msgEl) msgEl.textContent = 'Không khởi tạo được phiên QR: ' + (e && e.message ? e.message : e);
+      }
+    }
+
+    async function pollPersonalZaloQr() {
+      try {
+        var res = await fetch('/portal/api/personal-zalo/qr-status');
+        var data = await res.json();
+        renderPersonalQrState(data);
+        if (data.status === 'success' || data.status === 'error' || data.status === 'declined' || data.status === 'timeout') {
+          if (qrPollTimer) {
+            clearInterval(qrPollTimer);
+            qrPollTimer = null;
+          }
+          if (data.status === 'success') {
+            showToast('Đã kết nối tài khoản Zalo cá nhân thành công!');
+            loadPersonalStatus();
+            loadBotForwarding();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function renderPersonalQrState(data) {
+      var wrap = document.getElementById('personal-qr-img-wrap');
+      var msgEl = document.getElementById('personal-qr-msg');
+      if (!data) return;
+      if (data.qrDataUri && wrap) {
+        wrap.innerHTML = '<img src="' + esc(data.qrDataUri) + '" alt="Zalo QR" style="width:190px; height:190px; object-fit:contain; border-radius:6px;">';
+      }
+      if (!msgEl) return;
+      if (data.status === 'starting') {
+        msgEl.textContent = 'Đang lấy mã QR từ máy chủ Zalo...';
+      } else if (data.status === 'waiting_scan') {
+        msgEl.textContent = 'Mã QR đã sẵn sàng! Hãy mở Zalo trên điện thoại để quét.';
+      } else if (data.status === 'scanned') {
+        msgEl.textContent = 'Đã quét mã! Hãy bấm nút Xác nhận / Đăng nhập trên điện thoại.';
+      } else if (data.status === 'success') {
+        msgEl.textContent = '✅ Đã kết nối Zalo cá nhân thành công!';
+        if (wrap) wrap.innerHTML = '<span style="font-size:32px;">✅</span>';
+      } else if (data.status === 'declined') {
+        msgEl.textContent = 'Bạn đã từ chối đăng nhập trên điện thoại. Bấm Lấy mã QR để thử lại.';
+      } else if (data.status === 'timeout') {
+        msgEl.textContent = 'Mã QR đã hết hạn (3 phút). Bấm Lấy mã QR để tạo mã mới.';
+      } else if (data.status === 'error') {
+        msgEl.textContent = 'Lỗi kết nối QR: ' + (data.error || 'Không xác định');
+      }
+    }
+
+    async function disconnectPersonalZalo() {
+      await fetch('/portal/api/personal-zalo/disconnect', { method: 'POST' });
+      showToast('Đã ngắt kết nối tài khoản Zalo cá nhân');
+      var box = document.getElementById('personal-qr-box');
+      if (box) box.style.display = 'none';
+      loadPersonalStatus();
     }
 
     // Init

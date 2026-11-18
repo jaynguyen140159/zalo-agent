@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  extractQuotedMessageFromRaw,
   formatBotTargetsListMessage,
   inferGroupDisplayName,
   parseForwardCommand,
@@ -153,5 +154,23 @@ describe("bot-message-forwarder", () => {
     assert.ok(rendered.includes("👥 Thành viên: Huy Nguyễn, Info - Khởi Minh"));
     assert.ok(rendered.includes("💬 Tin gần nhất:"));
     assert.equal(rendered.includes("zgr-a0378ef36c9c85c2dc8d"), false);
+  });
+
+  it("bóc được nội dung tin nhắn gốc từ khung trích dẫn (quote) khi ấn Trả lời trên Zalo cá nhân", () => {
+    const q1 = extractQuotedMessageFromRaw({
+      rawData: {
+        quote: {
+          ownerId: "123",
+          fromD: "Project Manager - Khởi Minh",
+          msg: "Xong c nhắn lại là c trình + cất hộ em lun r",
+        },
+      },
+    });
+    assert.deepEqual(q1, {
+      senderName: "Project Manager - Khởi Minh",
+      content: "Xong c nhắn lại là c trình + cất hộ em lun r",
+    });
+
+    assert.equal(extractQuotedMessageFromRaw({ rawData: {} }), null);
   });
 });
