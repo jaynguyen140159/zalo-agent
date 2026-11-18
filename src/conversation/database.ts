@@ -4,7 +4,7 @@ import path from "node:path";
 // mọi store (history/thread/contact/usage) - node:sqlite là sync nên không cần pool.
 import { DatabaseSync } from "node:sqlite";
 import { dataDir } from "../config/env.js";
-import { calculateKmGiftSchedule, KM_GIFT_CUSTOMISED_FLOW } from "../drive/km-gift-sla.js";
+import { addDaysIso, calculateKmGiftSchedule, KM_GIFT_CUSTOMISED_FLOW } from "../drive/km-gift-sla.js";
 import { taoBangKnowledgeBase } from "../knowledge/kb-schema.js";
 import { taoBangMcp } from "../mcp/mcp-schema.js";
 import { taoBangFriendRequests } from "./friend-schema.js";
@@ -1096,6 +1096,57 @@ function taoBangWorkTracker(database: DatabaseSync): void {
   );
   for (const [tid, alias] of Object.entries(knownGroupAliases)) {
     updKnownGroupName.run(alias, tid);
+  }
+
+  // Migration các trường mới cho Quản lý Dự án, Chi phí, Hợp đồng & Báo giá KM Gift
+  const ensureColumn = (tableName: string, colName: string, colDef: string) => {
+    const existingCols = new Set(
+      (database.prepare(`PRAGMA table_info(${tableName})`).all() as { name: string }[]).map((r) => r.name),
+    );
+    if (!existingCols.has(colName)) {
+      database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${colDef}`);
+    }
+  };
+
+  ensureColumn("pm_projects", "contract_code", "TEXT DEFAULT ''");
+
+  ensureColumn("pm_project_costs", "attachment_name", "TEXT DEFAULT ''");
+  ensureColumn("pm_project_costs", "attachment_data", "TEXT DEFAULT ''");
+  ensureColumn("pm_project_costs", "show_in_quote", "INTEGER DEFAULT 1");
+
+  ensureColumn("pm_quotations", "customer_tax_code", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "contact_name", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "contact_phone", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "payment_terms", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "bank_info", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "bank_qr_url", "TEXT DEFAULT ''");
+  ensureColumn("pm_quotations", "display_mode", "TEXT DEFAULT 'all'");
+
+  // Chuyển các dự án đang bị SLA tính lùi ngược (start_date < deposit_date) sang tính xuôi về sau
+  const projsWithDeposit = database
+    .prepare("SELECT id, deposit_date FROM pm_projects WHERE deposit_date IS NOT NULL AND deposit_date != ''")
+    .all() as Array<{ id: number; deposit_date: string }>;
+  const updStageFwd = database.prepare(
+    "UPDATE pm_stages SET start_date = ?, end_date = ?, description = ? WHERE id = ?",
+  );
+  const updTaskFwd = database.prepare(
+    "UPDATE pm_tasks SET deadline = ? WHERE stage_id = ? AND project_id = ?",
+  );
+  for (const pr of projsWithDeposit) {
+    const stRows = database
+      .prepare("SELECT id, step_order, title, sla_days, start_date FROM pm_stages WHERE project_id = ? ORDER BY step_order ASC, id ASC")
+      .all(pr.id) as Array<{ id: number; step_order: number; title: string; sla_days?: number; start_date?: string }>;
+    if (stRows.length > 0 && stRows[0]!.start_date && stRows[0]!.start_date < pr.deposit_date) {
+      let cur = pr.deposit_date;
+      for (const s of stRows) {
+        const sla = Number(s.sla_days) || 0;
+        const startD = cur;
+        const endD = addDaysIso(startD, sla);
+        updStageFwd.run(startD, endD, `SLA: ${sla} ngày (${startD} → ${endD})`, s.id);
+        updTaskFwd.run(endD, s.id, pr.id);
+        cur = endD;
+      }
+    }
   }
 }
 

@@ -193,6 +193,14 @@ export const portalRoutes = new Hono()
         if (cItem.item_name) itemNames.push(cItem.item_name);
         if (cItem.vendor_name) vendors.add(cItem.vendor_name);
       }
+      const qMeta = db
+        .prepare("SELECT vat_percent FROM pm_quotations WHERE project_id = ?")
+        .get(p.id) as { vat_percent?: number } | undefined;
+      const vatPct = Number(qMeta?.vat_percent ?? 8);
+      const vat_amount = Math.round((total_quote * vatPct) / 100);
+      // Lợi nhuận = Tổng doanh thu - thuế GTGT (8%) - tổng chi phí
+      const estimated_profit = total_quote - vat_amount - total_cost;
+
       const items_preview = itemNames.slice(0, 2).join(", ") + (itemNames.length > 2 ? ` (+${itemNames.length - 2})` : "");
       const vendors_preview = Array.from(vendors).slice(0, 2).join(", ") + (vendors.size > 2 ? ` (+${vendors.size - 2})` : "");
       const paidCount = pCosts.filter(c => String(c.payment_status || "").includes("100%")).length;
@@ -207,6 +215,10 @@ export const portalRoutes = new Hono()
         expenses_sum,
         total_cost,
         total_quote,
+        total_revenue: total_quote,
+        vat_percent: vatPct,
+        vat_amount,
+        estimated_profit,
         cost_items_count: pCosts.length,
         items_preview,
         vendors_preview,
@@ -459,24 +471,10 @@ export const portalRoutes = new Hono()
       .prepare("SELECT * FROM pm_stages WHERE project_id = ? ORDER BY step_order ASC, id ASC")
       .all(projectId) as Array<{ id: number; step_order: number; title: string; sla_days?: number; phase?: string }>;
 
-    // Cascade dates based on each stage's phase & sla_days
-    const preAndDeposit = stages.filter((s) => s.phase === "pre_deposit" || s.phase === "deposit");
-    const postDeposit = stages.filter((s) => s.phase !== "pre_deposit" && s.phase !== "deposit");
-
+    // Tính SLA xuôi về sau từ ngày bắt đầu / ký HĐ / tạm ứng
     const updates: Array<{ id: number; startDate: string; endDate: string; slaDays: number }> = [];
-
-    let cursorBack = nextDeposit;
-    for (let i = preAndDeposit.length - 1; i >= 0; i--) {
-      const st = preAndDeposit[i]!;
-      const sla = Number(st.sla_days) || 0;
-      const endDate = cursorBack;
-      const startDate = addDaysIso(endDate, -sla);
-      updates.push({ id: st.id, startDate, endDate, slaDays: sla });
-      cursorBack = startDate;
-    }
-
     let cursorForward = nextDeposit;
-    for (const st of postDeposit) {
+    for (const st of stages) {
       const sla = Number(st.sla_days) || 0;
       const startDate = cursorForward;
       const endDate = addDaysIso(startDate, sla);
@@ -500,11 +498,33 @@ export const portalRoutes = new Hono()
   })
 
   // --- API CHI PHÍ HẠNG MỤC & TẠO BÁO GIÁ TỰ ĐỘNG (COST x HỆ SỐ) ---
+  .patch("/api/projects/:id", async (c) => {
+    const projectId = Number(c.req.param("id"));
+    const body = await c.req.json<{ contract_code?: string; name?: string; budget?: number }>();
+    if (body.contract_code !== undefined) {
+      db.prepare("UPDATE pm_projects SET contract_code = ? WHERE id = ?").run(body.contract_code.trim(), projectId);
+    }
+    if (body.name !== undefined && body.name.trim()) {
+      db.prepare("UPDATE pm_projects SET name = ? WHERE id = ?").run(body.name.trim(), projectId);
+    }
+    if (body.budget !== undefined) {
+      db.prepare("UPDATE pm_projects SET budget = ? WHERE id = ?").run(Number(body.budget) || 0, projectId);
+    }
+    return c.json({ ok: true });
+  })
+
   .get("/api/projects/:id/costs", (c) => {
     const projectId = Number(c.req.param("id"));
+    const proj = db.prepare("SELECT id, name, contract_code FROM pm_projects WHERE id = ?").get(projectId) as
+      | { id: number; name: string; contract_code?: string }
+      | undefined;
     const costs = db
       .prepare(
-        `SELECT pc.*, s.title as stage_title
+        `SELECT pc.id, pc.project_id, pc.stage_id, s.title as stage_title, pc.category, pc.item_name,
+                pc.vendor_name, pc.cost_amount, pc.quantity, pc.unit, pc.duration_days, pc.markup_factor,
+                pc.description_specs, pc.payment_status, pc.contract_ref, pc.attachment_name,
+                CASE WHEN pc.attachment_data IS NOT NULL AND pc.attachment_data != '' THEN 1 ELSE 0 END as has_attachment,
+                COALESCE(pc.show_in_quote, 1) as show_in_quote
          FROM pm_project_costs pc
          LEFT JOIN pm_stages s ON pc.stage_id = s.id
          WHERE pc.project_id = ?
@@ -526,31 +546,37 @@ export const portalRoutes = new Hono()
         description_specs: string;
         payment_status: string;
         contract_ref: string;
+        attachment_name: string;
+        has_attachment: number;
+        show_in_quote: number;
       }>;
 
-    const quotation = (db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
-      | {
-          project_id: number;
-          customer_name: string;
-          customer_rep: string;
-          quote_date: string;
-          title: string;
-          client_tier: string;
-          default_markup: number;
-          vat_percent: number;
-          notes: string;
-        }
-      | undefined) ?? {
+    const rawQ = db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
+      | Record<string, any>
+      | undefined;
+    const quotation = {
       project_id: projectId,
-      customer_name: "",
-      customer_rep: "",
-      quote_date: new Date().toISOString().slice(0, 10),
-      title: "BÁO GIÁ SẢN PHẨM & DỊCH VỤ",
-      client_tier: "Doanh nghiệp",
-      default_markup: 1.5,
-      vat_percent: 8,
-      notes:
-        "Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội.",
+      customer_name: String(rawQ?.customer_name || ""),
+      customer_tax_code: String(rawQ?.customer_tax_code || ""),
+      contact_name: String(rawQ?.contact_name || ""),
+      contact_phone: String(rawQ?.contact_phone || ""),
+      customer_rep: String(rawQ?.customer_rep || ""),
+      quote_date: String(rawQ?.quote_date || new Date().toISOString().slice(0, 10)),
+      title: String(rawQ?.title || "BÁO GIÁ SẢN PHẨM & DỊCH VỤ"),
+      client_tier: String(rawQ?.client_tier || "Doanh nghiệp"),
+      default_markup: Number(rawQ?.default_markup || 1.5),
+      vat_percent: rawQ?.vat_percent !== undefined && rawQ?.vat_percent !== null ? Number(rawQ.vat_percent) : 8,
+      notes: String(rawQ?.notes || ""),
+      payment_terms: String(
+        rawQ?.payment_terms ||
+          "Tạm ứng 50% giá trị đơn hàng ngay sau khi ký HĐ/xác nhận đặt hàng và thanh toán 50% còn lại sau khi nghiệm thu bàn giao.",
+      ),
+      bank_info: String(
+        rawQ?.bank_info ||
+          "Chủ TK: CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH\nSTK: 0793381666 — Ngân hàng TMCP Á Châu (ACB)",
+      ),
+      bank_qr_url: String(rawQ?.bank_qr_url || ""),
+      display_mode: String(rawQ?.display_mode || "all"),
     };
 
     let totalCost = 0;
@@ -575,15 +601,18 @@ export const portalRoutes = new Hono()
     const vatPct = Number(quotation.vat_percent) || 0;
     const vatAmount = Math.round((totalQuoteExclVat * vatPct) / 100);
     const totalQuoteInclVat = totalQuoteExclVat + vatAmount;
-    const estimatedProfit = totalQuoteExclVat - totalCost;
+    // Lợi nhuận = Tổng doanh thu - thuế GTGT (8%) - tổng chi phí
+    const estimatedProfit = totalQuoteExclVat - vatAmount - totalCost;
     const profitMarginPct = totalQuoteExclVat > 0 ? Math.round((estimatedProfit / totalQuoteExclVat) * 100) : 0;
 
     return c.json({
       ok: true,
+      contract_code: proj?.contract_code || "",
       costs: enriched,
       quotation,
       summary: {
         totalCost,
+        totalRevenue: totalQuoteExclVat,
         totalQuoteExclVat,
         vatAmount,
         totalQuoteInclVat,
@@ -591,6 +620,28 @@ export const portalRoutes = new Hono()
         profitMarginPct,
       },
     });
+  })
+
+  .get("/api/projects/costs/:costId/attachment", (c) => {
+    const costId = Number(c.req.param("costId"));
+    const row = db
+      .prepare("SELECT attachment_name, attachment_data FROM pm_project_costs WHERE id = ?")
+      .get(costId) as { attachment_name?: string; attachment_data?: string } | undefined;
+    if (!row?.attachment_data) {
+      return c.text("Không tìm thấy chứng từ đính kèm", 404);
+    }
+    const fileName = row.attachment_name || `chung-tu-${costId}`;
+    const m = row.attachment_data.match(/^data:([^;]+);base64,(.+)$/);
+    if (m) {
+      const buf = Buffer.from(m[2]!, "base64");
+      return new Response(buf, {
+        headers: {
+          "Content-Type": m[1] || "application/octet-stream",
+          "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+        },
+      });
+    }
+    return c.text("Định dạng file đính kèm không hợp lệ", 400);
   })
 
   .post("/api/projects/:id/costs", async (c) => {
@@ -609,14 +660,29 @@ export const portalRoutes = new Hono()
       description_specs?: string;
       payment_status?: string;
       contract_ref?: string;
+      attachment_name?: string;
+      attachment_data?: string;
+      show_in_quote?: number;
     }>();
 
     if (!body.item_name?.trim()) return c.json({ ok: false, error: "Thiếu tên hạng mục" }, 400);
 
     if (body.id) {
+      const existing = db
+        .prepare("SELECT attachment_name, attachment_data, show_in_quote FROM pm_project_costs WHERE id = ? AND project_id = ?")
+        .get(body.id, projectId) as
+        | { attachment_name?: string; attachment_data?: string; show_in_quote?: number }
+        | undefined;
+      const attName = body.attachment_name !== undefined ? body.attachment_name : existing?.attachment_name || "";
+      const attData = body.attachment_data !== undefined ? body.attachment_data : existing?.attachment_data || "";
+      const showQuote =
+        body.show_in_quote !== undefined ? (Number(body.show_in_quote) ? 1 : 0) : existing?.show_in_quote ?? 1;
+
       db.prepare(
         `UPDATE pm_project_costs
-         SET stage_id = ?, category = ?, item_name = ?, vendor_name = ?, cost_amount = ?, quantity = ?, unit = ?, duration_days = ?, markup_factor = ?, description_specs = ?, payment_status = ?, contract_ref = ?
+         SET stage_id = ?, category = ?, item_name = ?, vendor_name = ?, cost_amount = ?, quantity = ?, unit = ?,
+             duration_days = ?, markup_factor = ?, description_specs = ?, payment_status = ?, contract_ref = ?,
+             attachment_name = ?, attachment_data = ?, show_in_quote = ?
          WHERE id = ? AND project_id = ?`,
       ).run(
         body.stage_id ?? null,
@@ -631,6 +697,9 @@ export const portalRoutes = new Hono()
         body.description_specs || "",
         body.payment_status || "Chưa thanh toán",
         body.contract_ref || "",
+        attName,
+        attData,
+        showQuote,
         body.id,
         projectId,
       );
@@ -640,8 +709,8 @@ export const portalRoutes = new Hono()
     const row = db
       .prepare(
         `INSERT INTO pm_project_costs
-          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref, attachment_name, attachment_data, show_in_quote)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       )
       .get(
         projectId,
@@ -657,6 +726,9 @@ export const portalRoutes = new Hono()
         body.description_specs || "",
         body.payment_status || "Chưa thanh toán",
         body.contract_ref || "",
+        body.attachment_name || "",
+        body.attachment_data || "",
+        body.show_in_quote !== undefined ? (Number(body.show_in_quote) ? 1 : 0) : 1,
       ) as { id: number };
 
     return c.json({ ok: true, id: row.id });
@@ -671,7 +743,11 @@ export const portalRoutes = new Hono()
   .post("/api/projects/:id/quotation", async (c) => {
     const projectId = Number(c.req.param("id"));
     const body = await c.req.json<{
+      contract_code?: string;
       customer_name?: string;
+      customer_tax_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
       customer_rep?: string;
       quote_date?: string;
       title?: string;
@@ -679,15 +755,39 @@ export const portalRoutes = new Hono()
       default_markup?: number;
       vat_percent?: number;
       notes?: string;
+      payment_terms?: string;
+      bank_info?: string;
+      bank_qr_url?: string;
+      display_mode?: string;
       applyMarkupToAll?: boolean;
     }>();
 
-    const defaultMarkup = Number(body.default_markup) || 1.5;
+    if (body.contract_code !== undefined) {
+      db.prepare("UPDATE pm_projects SET contract_code = ? WHERE id = ?").run(body.contract_code.trim(), projectId);
+    }
+
+    const existing = db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
+      | Record<string, any>
+      | undefined;
+
+    const defaultMarkup = Number(body.default_markup) || Number(existing?.default_markup) || 1.5;
+    const customerRepCombined =
+      body.customer_rep !== undefined
+        ? body.customer_rep
+        : [body.contact_name || "", body.contact_phone || ""].filter(Boolean).join(" - ");
+
     db.prepare(
-      `INSERT INTO pm_quotations (project_id, customer_name, customer_rep, quote_date, title, client_tier, default_markup, vat_percent, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO pm_quotations (
+         project_id, customer_name, customer_tax_code, contact_name, contact_phone, customer_rep,
+         quote_date, title, client_tier, default_markup, vat_percent, notes,
+         payment_terms, bank_info, bank_qr_url, display_mode
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(project_id) DO UPDATE SET
          customer_name = excluded.customer_name,
+         customer_tax_code = excluded.customer_tax_code,
+         contact_name = excluded.contact_name,
+         contact_phone = excluded.contact_phone,
          customer_rep = excluded.customer_rep,
          quote_date = excluded.quote_date,
          title = excluded.title,
@@ -695,17 +795,28 @@ export const portalRoutes = new Hono()
          default_markup = excluded.default_markup,
          vat_percent = excluded.vat_percent,
          notes = excluded.notes,
+         payment_terms = excluded.payment_terms,
+         bank_info = excluded.bank_info,
+         bank_qr_url = excluded.bank_qr_url,
+         display_mode = excluded.display_mode,
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     ).run(
       projectId,
-      body.customer_name || "",
-      body.customer_rep || "",
-      body.quote_date || new Date().toISOString().slice(0, 10),
-      body.title || "BÁO GIÁ SẢN PHẨM & DỊCH VỤ",
-      body.client_tier || "Doanh nghiệp",
+      body.customer_name ?? existing?.customer_name ?? "",
+      body.customer_tax_code ?? existing?.customer_tax_code ?? "",
+      body.contact_name ?? existing?.contact_name ?? "",
+      body.contact_phone ?? existing?.contact_phone ?? "",
+      customerRepCombined,
+      body.quote_date ?? existing?.quote_date ?? new Date().toISOString().slice(0, 10),
+      body.title ?? existing?.title ?? "BÁO GIÁ SẢN PHẨM & DỊCH VỤ",
+      body.client_tier ?? existing?.client_tier ?? "Doanh nghiệp",
       defaultMarkup,
-      body.vat_percent ?? 8,
-      body.notes || "",
+      body.vat_percent ?? existing?.vat_percent ?? 8,
+      body.notes ?? existing?.notes ?? "",
+      body.payment_terms ?? existing?.payment_terms ?? "",
+      body.bank_info ?? existing?.bank_info ?? "",
+      body.bank_qr_url ?? existing?.bank_qr_url ?? "",
+      body.display_mode ?? existing?.display_mode ?? "all",
     );
 
     if (body.applyMarkupToAll) {
@@ -717,8 +828,9 @@ export const portalRoutes = new Hono()
 
   .get("/api/projects/:id/quotation/print", (c) => {
     const projectId = Number(c.req.param("id"));
+    const isDownloadDoc = c.req.query("download") === "doc";
     const proj = db.prepare("SELECT * FROM pm_projects WHERE id = ?").get(projectId) as
-      | { id: number; name: string; business_unit?: string }
+      | { id: number; name: string; business_unit?: string; contract_code?: string }
       | undefined;
     if (!proj) return c.text("Không tìm thấy dự án", 404);
 
@@ -733,27 +845,33 @@ export const portalRoutes = new Hono()
       duration_days: number;
       markup_factor: number;
       description_specs: string;
+      show_in_quote?: number;
     }>;
 
-    const q = (db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
-      | {
-          customer_name: string;
-          customer_rep: string;
-          quote_date: string;
-          title: string;
-          default_markup: number;
-          vat_percent: number;
-          notes: string;
-        }
-      | undefined) ?? {
-      customer_name: "Quý Khách hàng",
-      customer_rep: "",
-      quote_date: new Date().toISOString().slice(0, 10),
-      title: `BÁO GIÁ ${proj.name.toUpperCase()}`,
-      default_markup: 1.5,
-      vat_percent: 8,
-      notes:
-        "Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội.",
+    const qRaw = db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
+      | Record<string, any>
+      | undefined;
+    const q = {
+      customer_name: String(qRaw?.customer_name || "Quý Đối tác"),
+      customer_tax_code: String(qRaw?.customer_tax_code || ""),
+      contact_name: String(qRaw?.contact_name || ""),
+      contact_phone: String(qRaw?.contact_phone || ""),
+      customer_rep: String(qRaw?.customer_rep || ""),
+      quote_date: String(qRaw?.quote_date || new Date().toISOString().slice(0, 10)),
+      title: String(qRaw?.title || `BÁO GIÁ ${proj.name.toUpperCase()}`),
+      default_markup: Number(qRaw?.default_markup || 1.5),
+      vat_percent: qRaw?.vat_percent !== undefined && qRaw?.vat_percent !== null ? Number(qRaw.vat_percent) : 8,
+      notes: String(qRaw?.notes || ""),
+      payment_terms: String(
+        qRaw?.payment_terms ||
+          "Tạm ứng 50% giá trị đơn hàng ngay sau khi đặt hàng và thanh toán phần còn lại sau khi nghiệm thu bàn giao.",
+      ),
+      bank_info: String(
+        qRaw?.bank_info ||
+          "Chủ TK: CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH\nSTK: 0793381666 — Ngân hàng TMCP Á Châu (ACB)",
+      ),
+      bank_qr_url: String(qRaw?.bank_qr_url || ""),
+      display_mode: String(c.req.query("mode") || qRaw?.display_mode || "all"),
     };
 
     const escHtml = (s: unknown) =>
@@ -764,31 +882,87 @@ export const portalRoutes = new Hono()
         .replace(/"/g, "&quot;");
 
     let subTotal = 0;
-    const rowsHtml = costs
-      .map((item, idx) => {
-        const qty = Math.max(1, Number(item.quantity) || 1);
-        const unitPrice = Math.round((Number(item.cost_amount) || 0) * (Number(item.markup_factor) || q.default_markup || 1.5));
-        const lineTotal = unitPrice * qty;
-        subTotal += lineTotal;
-        const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
-        return `<tr>
-          <td style="text-align:center;">${idx + 1}</td>
-          <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
-          <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
-          <td style="text-align:center;">${qty.toLocaleString("vi-VN")}</td>
-          <td style="text-align:right; font-family:monospace;">${unitPrice.toLocaleString("vi-VN")}</td>
-          <td style="text-align:right; font-family:monospace; font-weight:700;">${lineTotal.toLocaleString("vi-VN")}</td>
-          <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
+    const calculatedItems = costs.map((item) => {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const unitPrice = Math.round((Number(item.cost_amount) || 0) * (Number(item.markup_factor) || q.default_markup || 1.5));
+      const lineTotal = unitPrice * qty;
+      subTotal += lineTotal;
+      return { ...item, qty, unitPrice, lineTotal };
+    });
+
+    let rowsHtml = "";
+    if (q.display_mode === "hidden") {
+      // Báo giá ẩn chi tiết: chỉ hiện 1 dòng tổng hợp gói dịch vụ hoặc các mục cho phép hiện
+      const visibleItems = calculatedItems.filter((it) => Number(it.show_in_quote ?? 1) === 1);
+      const hiddenTotal = calculatedItems
+        .filter((it) => Number(it.show_in_quote ?? 1) === 0)
+        .reduce((s, x) => s + x.lineTotal, 0);
+      if (visibleItems.length === 0 || hiddenTotal === 0 && calculatedItems.length > 0 && visibleItems.length === calculatedItems.length) {
+        rowsHtml = `<tr>
+          <td style="text-align:center;">1</td>
+          <td><strong>Trọn gói triển khai dự án: ${escHtml(proj.name)}</strong><div style="font-size:12px; color:#475569; margin-top:4px;">Bao gồm toàn bộ hạng mục thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td>
+          <td style="text-align:center;">gói</td>
+          <td style="text-align:center;">1</td>
+          <td style="text-align:right; font-family:monospace;">${subTotal.toLocaleString("vi-VN")}</td>
+          <td style="text-align:right; font-family:monospace; font-weight:700;">${subTotal.toLocaleString("vi-VN")}</td>
+          <td style="font-size:12px; color:#475569;">Theo tiến độ HĐ</td>
         </tr>`;
-      })
-      .join("");
+      } else {
+        rowsHtml = visibleItems
+          .map((item, idx) => {
+            const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
+            return `<tr>
+              <td style="text-align:center;">${idx + 1}</td>
+              <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
+              <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
+              <td style="text-align:center;">${item.qty.toLocaleString("vi-VN")}</td>
+              <td style="text-align:right; font-family:monospace;">${item.unitPrice.toLocaleString("vi-VN")}</td>
+              <td style="text-align:right; font-family:monospace; font-weight:700;">${item.lineTotal.toLocaleString("vi-VN")}</td>
+              <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
+            </tr>`;
+          })
+          .join("");
+        if (hiddenTotal > 0) {
+          rowsHtml += `<tr>
+            <td style="text-align:center;">${visibleItems.length + 1}</td>
+            <td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td>
+            <td style="text-align:center;">gói</td>
+            <td style="text-align:center;">1</td>
+            <td style="text-align:right; font-family:monospace;">${hiddenTotal.toLocaleString("vi-VN")}</td>
+            <td style="text-align:right; font-family:monospace; font-weight:700;">${hiddenTotal.toLocaleString("vi-VN")}</td>
+            <td style="font-size:12px; color:#475569;"></td>
+          </tr>`;
+        }
+      }
+    } else {
+      rowsHtml = calculatedItems
+        .map((item, idx) => {
+          const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
+          return `<tr>
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
+            <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
+            <td style="text-align:center;">${item.qty.toLocaleString("vi-VN")}</td>
+            <td style="text-align:right; font-family:monospace;">${item.unitPrice.toLocaleString("vi-VN")}</td>
+            <td style="text-align:right; font-family:monospace; font-weight:700;">${item.lineTotal.toLocaleString("vi-VN")}</td>
+            <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
+          </tr>`;
+        })
+        .join("");
+    }
 
     const vatPct = Number(q.vat_percent) || 0;
     const vatAmt = Math.round((subTotal * vatPct) / 100);
     const grandTotal = subTotal + vatAmt;
-    const notesHtml = escHtml(q.notes).replace(/\n/g, "<br>");
+    const contactDisplay = [q.contact_name, q.contact_phone].filter(Boolean).join(" — ") || q.customer_rep || "-";
+    const paymentTermsHtml = escHtml(q.payment_terms).replace(/\n/g, "<br>");
+    const bankInfoHtml = escHtml(q.bank_info).replace(/\n/g, "<br>");
+    const notesHtml = q.notes ? `<div style="margin-top:8px;"><strong>Ghi chú thêm:</strong> ${escHtml(q.notes).replace(/\n/g, "<br>")}</div>` : "";
+    const qrImgHtml = q.bank_qr_url
+      ? `<div style="text-align:center;"><img src="${escHtml(q.bank_qr_url)}" alt="QR Thanh toán" style="width:110px; height:110px; object-fit:contain; border:1px solid #CBD5E1; border-radius:6px; background:#fff; padding:4px;"></div>`
+      : "";
 
-    return c.html(`<!DOCTYPE html>
+    const htmlDoc = `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -796,11 +970,11 @@ export const portalRoutes = new Hono()
   <style>
     @page { size: A4 portrait; margin: 14mm; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; margin: 0; padding: 24px; background: #F8FAFC; }
-    .sheet { max-width: 840px; margin: 0 auto; background: #fff; padding: 32px 36px; border: 1px solid #E2E8F0; border-radius: 8px; }
+    .sheet { max-width: 860px; margin: 0 auto; background: #fff; padding: 32px 36px; border: 1px solid #E2E8F0; border-radius: 8px; }
     .header { display: flex; justify-content: space-between; gap: 20px; border-bottom: 2px solid #2563EB; padding-bottom: 16px; margin-bottom: 20px; }
     .co-name { font-size: 15px; font-weight: 800; color: #2563EB; margin-bottom: 6px; }
     .co-meta { font-size: 12px; color: #475569; line-height: 1.55; }
-    .cust-box { font-size: 12.5px; color: #0F172A; line-height: 1.65; min-width: 240px; }
+    .cust-box { font-size: 12.5px; color: #0F172A; line-height: 1.65; min-width: 260px; }
     h1 { text-align: center; font-size: 19px; font-weight: 800; margin: 10px 0 6px; color: #0F172A; }
     .intro { font-size: 13px; color: #334155; margin-bottom: 16px; text-align: center; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 13px; }
@@ -809,15 +983,16 @@ export const portalRoutes = new Hono()
     .totals { width: 340px; margin-left: auto; font-size: 13.5px; margin-bottom: 20px; }
     .totals td { border: none; padding: 5px 8px; }
     .totals tr.grand td { border-top: 2px solid #2563EB; font-weight: 800; font-size: 15px; color: #2563EB; padding-top: 8px; }
-    .notes { font-size: 12.5px; color: #334155; background: #F8FAFC; padding: 12px 14px; border-radius: 6px; border: 1px solid #E2E8F0; line-height: 1.6; }
-    .print-bar { text-align: right; margin-bottom: 14px; }
-    .btn { background: #2563EB; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .pay-box { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; font-size: 12.5px; color: #334155; background: #F8FAFC; padding: 14px 16px; border-radius: 6px; border: 1px solid #E2E8F0; line-height: 1.6; }
+    .print-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px; }
+    .btn { background: #2563EB; color: #fff; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 13px; }
+    .btn-soft { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
     @media print { body { background: #fff; padding: 0; } .sheet { border: none; padding: 0; } .print-bar { display: none; } }
   </style>
 </head>
 <body>
   <div class="sheet">
-    <div class="print-bar"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá Gửi Khách</button></div>
+    ${isDownloadDoc ? "" : `<div class="print-bar"><a class="btn btn-soft" href="?download=doc&mode=${encodeURIComponent(q.display_mode)}">💾 Lưu file Báo Giá (.doc)</a><button class="btn" onclick="window.print()">🖨️ In / Xuất PDF</button></div>`}
     <div class="header">
       <div>
         <div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div>
@@ -828,13 +1003,15 @@ export const portalRoutes = new Hono()
         </div>
       </div>
       <div class="cust-box">
-        <div><strong>Khách hàng:</strong> ${escHtml(q.customer_name || "Quý Đối tác")}</div>
-        <div><strong>Đại diện:</strong> ${escHtml(q.customer_rep || "-")}</div>
+        <div><strong>Khách hàng:</strong> ${escHtml(q.customer_name)}</div>
+        ${q.customer_tax_code ? `<div><strong>MST:</strong> ${escHtml(q.customer_tax_code)}</div>` : ""}
+        <div><strong>Đại diện:</strong> ${escHtml(contactDisplay)}</div>
+        ${proj.contract_code ? `<div><strong>Mã HĐ dự án:</strong> ${escHtml(proj.contract_code)}</div>` : ""}
         <div><strong>Ngày báo giá:</strong> ${escHtml(q.quote_date)}</div>
       </div>
     </div>
     <h1>${escHtml(q.title)} (CHƯA BAO GỒM ${vatPct}% VAT)</h1>
-    <div class="intro">Kính gửi: ${escHtml(q.customer_name || "Quý Đối tác")}, Chúng tôi xin gửi đến Quý Đối tác bảng báo giá chi tiết như sau:</div>
+    <div class="intro">Kính gửi: ${escHtml(q.customer_name)}, Chúng tôi xin gửi đến Quý Đối tác bảng báo giá chi tiết như sau:</div>
     <table>
       <thead>
         <tr>
@@ -850,14 +1027,33 @@ export const portalRoutes = new Hono()
       <tbody>${rowsHtml || '<tr><td colspan="7" style="text-align:center; color:#64748B;">Chưa có hạng mục nào</td></tr>'}</tbody>
     </table>
     <table class="totals">
-      <tr><td>Cộng tiền hàng (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${subTotal.toLocaleString("vi-VN")} ₫</td></tr>
+      <tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${subTotal.toLocaleString("vi-VN")} ₫</td></tr>
       <tr><td>Thuế GTGT (${vatPct}%):</td><td style="text-align:right;">${vatAmt.toLocaleString("vi-VN")} ₫</td></tr>
       <tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">${grandTotal.toLocaleString("vi-VN")} ₫</td></tr>
     </table>
-    <div class="notes"><strong>Ghi chú &amp; Điều khoản:</strong><br>${notesHtml}</div>
+    <div class="pay-box">
+      <div style="flex:1;">
+        <div><strong>Điều khoản thanh toán:</strong><br>${paymentTermsHtml}</div>
+        <div style="margin-top:8px;"><strong>Thông tin tài khoản thanh toán:</strong><br>${bankInfoHtml}</div>
+        ${notesHtml}
+      </div>
+      ${qrImgHtml}
+    </div>
   </div>
 </body>
-</html>`);
+</html>`;
+
+    if (isDownloadDoc) {
+      const safeName = (proj.name || `du-an-${projectId}`).replace(/[^a-zA-Z0-9\u00C0-\u1EF9_-]+/g, "-");
+      return new Response(`\ufeff${htmlDoc}`, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/msword; charset=utf-8",
+          "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`BaoGia-${safeName}.doc`)}`,
+        },
+      });
+    }
+    return c.html(htmlDoc);
   })
 
   // API Tạo công việc mới
@@ -979,10 +1175,10 @@ export const portalRoutes = new Hono()
       UPDATE pm_tasks
       SET checklist = ?,
           progress = ?,
-          status = CASE WHEN ? >= 100 THEN 'completed' ELSE 'in_progress' END,
+          status = CASE WHEN ? >= 100 THEN 'completed' WHEN ? > 0 THEN 'in_progress' ELSE 'pending' END,
           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
       WHERE id = ?
-    `).run(JSON.stringify(items), newProgress, newProgress, id);
+    `).run(JSON.stringify(items), newProgress, newProgress, newProgress, id);
 
     return c.json({ ok: true, checklist: items, progress: newProgress });
   })

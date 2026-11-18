@@ -781,19 +781,19 @@ export function renderPortalHtml(): string {
                 <div class="kpi-sub" id="bu-kpi-label">Khởi Minh Gift</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-label">Tổng Cost đầu vào</div>
-                <div class="kpi-val" id="bu-kpi-cost" style="font-size:20px;">0 ₫</div>
-                <div class="kpi-sub">Tổng hợp từ các hạng mục chi phí</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-label">Tổng Báo giá (Chưa VAT)</div>
+                <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
                 <div class="kpi-val" id="bu-kpi-quote" style="font-size:20px; color:var(--primary);">0 ₫</div>
-                <div class="kpi-sub">Công thức: Cost × Hệ số từng dự án</div>
+                <div class="kpi-sub">Tổng thành tiền báo khách</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-label">Lợi nhuận dự kiến</div>
+                <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
+                <div class="kpi-val" id="bu-kpi-cost" style="font-size:20px;">0 ₫</div>
+                <div class="kpi-sub">Chi phí NCC / Freelancer đã gồm thuế</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Lợi nhuận ròng dự kiến</div>
                 <div class="kpi-val" id="bu-kpi-profit" style="font-size:20px; color:#059669;">0 ₫</div>
-                <div class="kpi-sub">Chênh lệch Báo giá - Cost</div>
+                <div class="kpi-sub">= Doanh thu - Thuế GTGT (8%) - Chi phí</div>
               </div>
             </div>
 
@@ -802,7 +802,7 @@ export function renderPortalHtml(): string {
                 <div>
                   <div class="card-title" id="master-bu-title">Bảng Tổng Hợp Dự Án — Khởi Minh Gift</div>
                   <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                    Bấm vào một dự án bất kỳ để mở công cụ tính SLA theo ngày tạm ứng &amp; lập bảng báo giá gửi khách.
+                    Bấm vào một dự án bất kỳ để mở công cụ tính SLA xuôi, quản lý chứng từ &amp; lập báo giá gửi khách.
                   </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -831,7 +831,7 @@ export function renderPortalHtml(): string {
                     </select>
                   </div>
                   <div class="field">
-                    <label>Ngày ký HĐ / Tạm ứng (Mốc tính SLA)</label>
+                    <label>Ngày bắt đầu / Mốc tính SLA</label>
                     <input class="input" type="date" id="new-km-deposit" value="2026-11-10">
                   </div>
                   <div style="display:flex; gap:8px;">
@@ -845,18 +845,20 @@ export function renderPortalHtml(): string {
                   <thead>
                     <tr>
                       <th style="width:42px;">STT</th>
-                      <th>Khách hàng / Dự án</th>
-                      <th>Hạng mục triển khai</th>
-                      <th>Freelancer / NCC</th>
-                      <th>Ký HĐ/TƯ &amp; Luồng</th>
-                      <th style="text-align:right;">Tổng Cost</th>
-                      <th style="text-align:right;">Báo giá</th>
+                      <th style="min-width:130px;">Mã Hợp đồng</th>
+                      <th style="min-width:190px;">Khách hàng / Dự án</th>
+                      <th style="min-width:240px;">Hạng mục triển khai</th>
+                      <th style="min-width:150px;">Freelancer / NCC</th>
+                      <th>Mốc SLA &amp; Luồng</th>
+                      <th style="text-align:right;">Tổng Chi phí</th>
+                      <th style="text-align:right;">Tổng Doanh thu</th>
+                      <th style="text-align:right;">Lợi nhuận (Sau VAT)</th>
                       <th>Tiến độ</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody id="master-projects-tbody">
-                    <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
+                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -888,11 +890,11 @@ export function renderPortalHtml(): string {
             <div id="project-sla-bar" class="sla-bar" style="display:none;">
               <div class="sla-controls">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <span style="font-size:13px; font-weight:700; color:var(--text-main);">⏱️ Ngày ký HĐ / Tạm ứng:</span>
+                  <span style="font-size:13px; font-weight:700; color:var(--text-main);">📅 Ngày bắt đầu / Mốc tính SLA (Tính xuôi):</span>
                   <input type="date" class="input" id="sla-deposit-date" style="height:34px; width:150px;" onchange="recalculateProjectSla()">
                   <span id="sla-flow-badge" class="badge"></span>
                 </div>
-                <button class="btn btn-primary btn-sm" onclick="recalculateProjectSla()">⚡ Tính lại toàn bộ deadline SLA</button>
+                <button class="btn btn-primary btn-sm" onclick="recalculateProjectSla()">⚡ Tính lại SLA xuôi về sau</button>
               </div>
               <div class="sla-strip" id="sla-strip"></div>
             </div>
@@ -918,47 +920,59 @@ export function renderPortalHtml(): string {
             <div id="project-costs-view" style="display:none; padding:20px;">
               <div class="kpi-grid" style="margin-bottom:16px;">
                 <div class="kpi-card">
-                  <div class="kpi-label">Tổng Cost nội bộ</div>
+                  <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
                   <div class="kpi-val" id="cost-kpi-total" style="font-size:20px;">0 ₫</div>
-                  <div class="kpi-sub">Chi phí Freelancer / Xưởng / NCC</div>
+                  <div class="kpi-sub">Chi phí NCC / Xưởng / Freelancer</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Báo giá (Chưa VAT)</div>
+                  <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
                   <div class="kpi-val" id="cost-kpi-quote" style="font-size:20px; color:var(--primary);">0 ₫</div>
-                  <div class="kpi-sub">Tổng (Cost × Hệ số)</div>
+                  <div class="kpi-sub">Tổng thành tiền báo khách</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Tổng thanh toán (Gồm VAT)</div>
+                  <div class="kpi-label">Thuế GTGT &amp; Tổng thu</div>
                   <div class="kpi-val" id="cost-kpi-vat" style="font-size:20px;">0 ₫</div>
-                  <div class="kpi-sub" id="cost-kpi-vat-sub">VAT 8%</div>
+                  <div class="kpi-sub" id="cost-kpi-vat-sub">VAT 8%: 0 ₫</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Lợi nhuận gộp dự kiến</div>
+                  <div class="kpi-label">Lợi nhuận ròng dự kiến</div>
                   <div class="kpi-val" id="cost-kpi-profit" style="font-size:20px; color:#059669;">0 ₫</div>
-                  <div class="kpi-sub" id="cost-kpi-margin">Biên lợi nhuận: 0%</div>
+                  <div class="kpi-sub" id="cost-kpi-margin">= Doanh thu - VAT - Chi phí</div>
                 </div>
               </div>
 
               <div style="background:var(--aux-tint); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                  <div style="font-size:14px; font-weight:700; color:var(--text-main);">Thông tin Báo giá &amp; Hệ số theo Tệp khách hàng</div>
+                  <div style="font-size:14px; font-weight:700; color:var(--text-main);">Thông tin Khách hàng, Hợp đồng &amp; Cấu hình Báo giá (Tự động lưu)</div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-soft btn-sm" onclick="saveQuotationMeta(false)">💾 Lưu thông tin báo giá</button>
-                    <button class="btn btn-primary btn-sm" onclick="openPrintableQuotation()">📄 Xem &amp; Xuất PDF Báo Giá Khách Hàng</button>
+                    <button class="btn btn-soft btn-sm" onclick="downloadQuotationDoc()">💾 Lưu file Báo Giá (.doc)</button>
+                    <button class="btn btn-primary btn-sm" onclick="openPrintableQuotation()">📄 Xem &amp; In PDF Báo Giá</button>
                   </div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; align-items:end; margin-bottom:12px;">
                   <div class="field">
-                    <label>Khách hàng</label>
-                    <input class="input" id="q-cust-name" placeholder="VD: Đại học Quốc Gia">
+                    <label>Mã Hợp đồng dự án</label>
+                    <input class="input" id="q-contract-code" placeholder="VD: 01/2026/HĐKT-KM" onchange="saveQuotationMeta(false)">
                   </div>
                   <div class="field">
-                    <label>Đại diện &amp; SĐT</label>
-                    <input class="input" id="q-cust-rep" placeholder="VD: Anh Long - 0909...">
+                    <label>Tên doanh nghiệp (Khách hàng)</label>
+                    <input class="input" id="q-cust-name" placeholder="VD: Công ty TNHH ABC / ĐHQG" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Mã số thuế (MST)</label>
+                    <input class="input" id="q-cust-tax" placeholder="VD: 0109xxxxxx" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Họ và tên đại diện</label>
+                    <input class="input" id="q-contact-name" placeholder="VD: Anh Long" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Số điện thoại (SĐT)</label>
+                    <input class="input" id="q-contact-phone" placeholder="VD: 0909xxxxxx" onchange="saveQuotationMeta(false)">
                   </div>
                   <div class="field">
                     <label>Tệp khách hàng</label>
-                    <select class="select" id="q-client-tier" onchange="applyTierPreset()">
+                    <select class="select" id="q-client-tier" onchange="applyTierPreset(); saveQuotationMeta(false);">
                       <option value="Khách lẻ">Khách lẻ (Hệ số x1.7)</option>
                       <option value="Doanh nghiệp">Doanh nghiệp (Hệ số x1.5)</option>
                       <option value="Đối tác / Đại lý">Đối tác / Đại lý (Hệ số x1.35)</option>
@@ -968,40 +982,101 @@ export function renderPortalHtml(): string {
                   <div class="field">
                     <label>Hệ số chung (Markup)</label>
                     <div style="display:flex; gap:6px;">
-                      <input class="input" type="number" step="0.05" min="1" id="q-default-markup" value="1.5" style="width:85px;">
+                      <input class="input" type="number" step="0.05" min="1" id="q-default-markup" value="1.5" style="width:76px;" onchange="saveQuotationMeta(false)">
                       <button class="btn btn-soft btn-sm" style="height:38px;" onclick="saveQuotationMeta(true)">Áp dụng tất cả</button>
                     </div>
                   </div>
                   <div class="field">
                     <label>VAT (%)</label>
-                    <input class="input" type="number" step="1" min="0" max="20" id="q-vat-percent" value="8" style="width:80px;">
+                    <input class="input" type="number" step="1" min="0" max="20" id="q-vat-percent" value="8" style="width:76px;" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Dạng hiển thị báo giá</label>
+                    <select class="select" id="q-display-mode" onchange="saveQuotationMeta(false)">
+                      <option value="all">Hiển thị tất cả các hạng mục</option>
+                      <option value="hidden">Báo giá ẩn chi tiết (Gộp gói)</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; padding-top:10px; border-top:1px dashed var(--border);">
+                  <div class="field">
+                    <label>Điều khoản thanh toán (hiện trên Báo giá)</label>
+                    <textarea class="textarea" id="q-payment-terms" rows="2" placeholder="VD: Tạm ứng 50% sau khi ký HĐ, 50% sau bàn giao..." onchange="saveQuotationMeta(false)"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Thông tin STK &amp; Ngân hàng thanh toán</label>
+                    <textarea class="textarea" id="q-bank-info" rows="2" placeholder="Chủ TK / Số tài khoản / Ngân hàng..." onchange="saveQuotationMeta(false)"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Mã QR thanh toán (Link ảnh hoặc tải ảnh QR lên)</label>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <input class="input" id="q-bank-qr-url" placeholder="Dán link ảnh QR hoặc tải file..." onchange="saveQuotationMeta(false)">
+                      <label class="btn btn-soft btn-sm" style="cursor:pointer; margin:0; white-space:nowrap;">
+                        📷 Ảnh QR
+                        <input type="file" accept="image/*" style="display:none;" onchange="uploadBankQrFile(this)">
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div style="font-size:14px; font-weight:700;">Chi tiết Cost từng Hạng mục &amp; Giá bán tự động</div>
-                <button class="btn btn-primary btn-sm" onclick="addProjectCostItem()">+ Thêm khoản chi / Hạng mục</button>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                <div style="font-size:14px; font-weight:700;">Chi tiết Chi phí từng Hạng mục &amp; Chứng từ (Đã gồm VAT/Thuế TNCN)</div>
+                <button class="btn btn-primary btn-sm" onclick="toggleCostCreator()">+ Thêm khoản chi / Hạng mục</button>
+              </div>
+              <div id="cost-creator-box" style="display:none; background:var(--aux-tint); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:end;">
+                  <div class="field" style="grid-column: span 2;">
+                    <label>Tên hạng mục &amp; Quy cách (*)</label>
+                    <input class="input" id="new-cost-name" placeholder="VD: In ấn hộp quà cứng + ép kim logo">
+                  </div>
+                  <div class="field">
+                    <label>Freelancer / NCC</label>
+                    <input class="input" id="new-cost-vendor" placeholder="VD: Xưởng in / Anh Huy">
+                  </div>
+                  <div class="field">
+                    <label>Chi phí (VND) (Đã gồm VAT/TNCN)</label>
+                    <input class="input" id="new-cost-amount" inputmode="numeric" placeholder="VD: 1.000.000" oninput="formatVndInputLive(this)">
+                  </div>
+                  <div class="field">
+                    <label>Số lượng</label>
+                    <input class="input" type="number" min="1" id="new-cost-qty" value="1">
+                  </div>
+                  <div class="field">
+                    <label>Số Hợp đồng / Hóa đơn</label>
+                    <input class="input" id="new-cost-contract" placeholder="VD: 01/2026/HĐKV">
+                  </div>
+                  <div class="field">
+                    <label>Chứng từ (.docx/.pdf/.xlsx)</label>
+                    <input class="input" type="file" id="new-cost-file" accept=".docx,.doc,.pdf,.xlsx,.xls" style="padding:5px;">
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-primary btn-sm" onclick="submitNewCostItem()">Lưu hạng mục</button>
+                    <button class="btn btn-sm" onclick="toggleCostCreator()">Đóng</button>
+                  </div>
+                </div>
               </div>
               <div class="table-scroll">
                 <table>
                   <thead>
                     <tr>
                       <th>Giai đoạn</th>
-                      <th>Hạng mục &amp; Quy cách</th>
+                      <th style="min-width:260px;">Hạng mục &amp; Quy cách (Hiển thị đầy đủ)</th>
                       <th>Freelancer / NCC</th>
                       <th>SLA (ngày)</th>
-                      <th>Cost / ĐV</th>
+                      <th>Chi phí (VND)<br><span style="font-weight:400; font-size:10px; color:var(--text-muted);">(Gồm VAT/TNCN)</span></th>
                       <th>SL</th>
                       <th>Hệ số</th>
                       <th>Đơn giá báo khách</th>
                       <th>Thành tiền</th>
+                      <th style="min-width:170px;">HĐ / Hóa đơn chứng từ</th>
                       <th>Trạng thái</th>
+                      <th title="Hiển thị trong Báo giá khách hàng">Hiện BG</th>
                       <th>Xóa</th>
                     </tr>
                   </thead>
                   <tbody id="project-costs-tbody">
-                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
+                    <tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1476,28 +1551,46 @@ export function renderPortalHtml(): string {
       return Number(n || 0).toLocaleString('vi-VN') + ' ₫';
     }
 
+    function parseVndNumber(val) {
+      return Number(String(val || '').replace(/[^0-9]/g, '')) || 0;
+    }
+
+    function formatVndInputLive(inp) {
+      var raw = String(inp.value || '').replace(/[^0-9]/g, '');
+      inp.value = raw ? Number(raw).toLocaleString('vi-VN') : '';
+    }
+
     function renderProjectCosts() {
       var sum = projectCostsData.summary || {};
       var q = projectCostsData.quotation || {};
       var costs = projectCostsData.costs || [];
       var stages = pmData.stages || [];
+      var vatPct = Number(q.vat_percent !== undefined && q.vat_percent !== null ? q.vat_percent : 8);
+      var totalRev = Number(sum.totalRevenue !== undefined ? sum.totalRevenue : sum.totalQuoteExclVat) || 0;
 
       document.getElementById('cost-kpi-total').textContent = fmtVnd(sum.totalCost);
-      document.getElementById('cost-kpi-quote').textContent = fmtVnd(sum.totalQuoteExclVat);
+      document.getElementById('cost-kpi-quote').textContent = fmtVnd(totalRev);
       document.getElementById('cost-kpi-vat').textContent = fmtVnd(sum.totalQuoteInclVat);
-      document.getElementById('cost-kpi-vat-sub').textContent = 'VAT ' + (q.vat_percent ?? 8) + '%';
+      document.getElementById('cost-kpi-vat-sub').textContent = 'VAT ' + vatPct + '%: ' + fmtVnd(sum.vatAmount);
       document.getElementById('cost-kpi-profit').textContent = fmtVnd(sum.estimatedProfit);
-      document.getElementById('cost-kpi-margin').textContent = 'Biên lợi nhuận: ' + (sum.profitMarginPct || 0) + '%';
+      document.getElementById('cost-kpi-margin').textContent = '= Doanh thu - VAT (' + vatPct + '%) - Chi phí (Biên ' + (sum.profitMarginPct || 0) + '%)';
 
+      document.getElementById('q-contract-code').value = projectCostsData.contract_code || (pmData.activeProject && pmData.activeProject.contract_code) || '';
       document.getElementById('q-cust-name').value = q.customer_name || '';
-      document.getElementById('q-cust-rep').value = q.customer_rep || '';
+      document.getElementById('q-cust-tax').value = q.customer_tax_code || '';
+      document.getElementById('q-contact-name').value = q.contact_name || '';
+      document.getElementById('q-contact-phone').value = q.contact_phone || '';
       document.getElementById('q-client-tier').value = q.client_tier || 'Doanh nghiệp';
       document.getElementById('q-default-markup').value = q.default_markup || 1.5;
-      document.getElementById('q-vat-percent').value = q.vat_percent ?? 8;
+      document.getElementById('q-vat-percent').value = vatPct;
+      document.getElementById('q-display-mode').value = q.display_mode || 'all';
+      document.getElementById('q-payment-terms').value = q.payment_terms || '';
+      document.getElementById('q-bank-info').value = q.bank_info || '';
+      document.getElementById('q-bank-qr-url').value = q.bank_qr_url || '';
 
       var tbody = document.getElementById('project-costs-tbody');
       if (costs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập cost và tự tính báo giá.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập chi phí (đã gồm VAT/Thuế TNCN).</td></tr>';
         return;
       }
 
@@ -1507,24 +1600,76 @@ export function renderPortalHtml(): string {
           var st = stages[i];
           stageOpts += '<option value="' + st.id + '"' + (Number(st.id) === Number(c.stage_id) ? ' selected' : '') + '>' + esc(st.title) + '</option>';
         }
+        var attLink = '';
+        if (c.has_attachment || c.attachment_data) {
+          var dlHref = c.attachment_data ? c.attachment_data : ('/portal/api/projects/costs/' + c.id + '/attachment');
+          attLink = '<a href="' + esc(dlHref) + '" download="' + esc(c.attachment_name || ('chung-tu-' + c.id)) + '" style="display:block; font-size:11px; color:var(--primary); margin-top:3px; word-break:break-all;">📎 ' + esc(c.attachment_name || 'Tải chứng từ') + '</a>';
+        }
+        var showChecked = Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0;
         return '<tr>' +
           '<td><select class="select" style="height:30px; font-size:12px; max-width:115px;" onchange="updateCostRow(' + c.id + ', {stage_id: Number(this.value) || null})">' + stageOpts + '</select></td>' +
-          '<td><input class="wt-cell-input" style="font-weight:600; min-width:140px;" value="' + esc(c.item_name) + '" onchange="updateCostRow(' + c.id + ', {item_name: this.value})"></td>' +
+          '<td><textarea class="wt-cell-input" rows="2" style="font-weight:600; min-width:250px; white-space:pre-wrap; resize:vertical; line-height:1.4;" onchange="updateCostRow(' + c.id + ', {item_name: this.value})">' + esc(c.item_name) + '</textarea></td>' +
           '<td><input class="wt-cell-input" style="min-width:120px;" value="' + esc(c.vendor_name) + '" onchange="updateCostRow(' + c.id + ', {vendor_name: this.value})"></td>' +
           '<td><input type="number" min="0" class="wt-cell-input" style="width:48px; font-family:JetBrains Mono,monospace;" value="' + (c.duration_days || 0) + '" onchange="updateCostRow(' + c.id + ', {duration_days: Number(this.value)})"></td>' +
-          '<td><input type="number" min="0" step="10000" class="wt-cell-input" style="width:92px; font-family:JetBrains Mono,monospace;" value="' + (c.cost_amount || 0) + '" onchange="updateCostRow(' + c.id + ', {cost_amount: Number(this.value)})"></td>' +
+          '<td><input type="text" inputmode="numeric" class="wt-cell-input" style="width:112px; font-family:JetBrains Mono,monospace; text-align:right;" value="' + Number(c.cost_amount || 0).toLocaleString('vi-VN') + '" oninput="formatVndInputLive(this)" onchange="updateCostRow(' + c.id + ', {cost_amount: parseVndNumber(this.value)})"></td>' +
           '<td><input type="number" min="1" class="wt-cell-input" style="width:44px; font-family:JetBrains Mono,monospace;" value="' + (c.quantity || 1) + '" onchange="updateCostRow(' + c.id + ', {quantity: Number(this.value)})"></td>' +
           '<td><input type="number" min="1" step="0.05" class="wt-cell-input" style="width:52px; font-family:JetBrains Mono,monospace; color:var(--primary); font-weight:700;" value="' + (c.markup_factor || 1.5) + '" onchange="updateCostRow(' + c.id + ', {markup_factor: Number(this.value)})"></td>' +
           '<td style="font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(c.quote_unit_price) + '</td>' +
           '<td style="font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(c.quote_line_total) + '</td>' +
+          '<td>' +
+            '<input class="wt-cell-input" style="font-size:11.5px; min-width:130px; margin-bottom:3px;" placeholder="Số HĐ / Hóa đơn..." value="' + esc(c.contract_ref || '') + '" onchange="updateCostRow(' + c.id + ', {contract_ref: this.value})">' +
+            attLink +
+            '<label style="display:inline-block; font-size:11px; color:var(--primary); cursor:pointer; margin-top:2px;">+ Đính kèm (.docx/.pdf/.xlsx)<input type="file" accept=".docx,.doc,.pdf,.xlsx,.xls" style="display:none;" onchange="uploadCostAttachment(' + c.id + ', this)"></label>' +
+          '</td>' +
           '<td><select class="select" style="height:30px; font-size:11.5px;" onchange="updateCostRow(' + c.id + ', {payment_status: this.value})">' +
             '<option value="Chưa thanh toán"' + (c.payment_status === 'Chưa thanh toán' ? ' selected' : '') + '>Chưa TT</option>' +
             '<option value="Đã tạm ứng 50%"' + (c.payment_status === 'Đã tạm ứng 50%' ? ' selected' : '') + '>Tạm ứng 50%</option>' +
             '<option value="Đã TT 100%"' + (c.payment_status === 'Đã TT 100%' ? ' selected' : '') + '>Đã TT 100%</option>' +
           '</select></td>' +
+          '<td style="text-align:center;"><input type="checkbox" ' + (showChecked ? 'checked' : '') + ' onchange="updateCostRow(' + c.id + ', {show_in_quote: this.checked ? 1 : 0})"></td>' +
           '<td><button class="btn btn-sm" style="height:28px; color:#DC2626;" onclick="deleteCostItem(' + c.id + ')">✕</button></td>' +
         '</tr>';
       }).join('');
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise(function(resolve, reject) {
+        var r = new FileReader();
+        r.onload = function() { resolve(String(r.result || '')); };
+        r.onerror = function() { reject(new Error('Không đọc được file')); };
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function uploadCostAttachment(costId, inp) {
+      var file = inp && inp.files && inp.files[0];
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) {
+        showToast('File tối đa 4MB để đảm bảo tốc độ', true);
+        return;
+      }
+      var dataUrl = await readFileAsDataUrl(file);
+      await updateCostRow(costId, { attachment_name: file.name, attachment_data: dataUrl });
+      showToast('Đã đính kèm chứng từ: ' + file.name);
+    }
+
+    async function uploadBankQrFile(inp) {
+      var file = inp && inp.files && inp.files[0];
+      if (!file) return;
+      var dataUrl = await readFileAsDataUrl(file);
+      document.getElementById('q-bank-qr-url').value = dataUrl;
+      await saveQuotationMeta(false);
+      showToast('Đã tải ảnh QR thanh toán!');
+    }
+
+    async function updateProjectContractCode(pid, val) {
+      await fetch('/portal/api/projects/' + pid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_code: String(val || '').trim() })
+      });
+      showToast('Đã cập nhật Mã Hợp đồng');
+      loadProjectsData(activeProjectId);
     }
 
     async function updateCostRow(costId, patch) {
@@ -1536,38 +1681,65 @@ export function renderPortalHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      showToast('Đã cập nhật chi phí & tính lại báo giá');
-      loadProjectCosts();
+      showToast('Đã cập nhật chi phí & tính lại doanh thu/lợi nhuận');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
-    async function addProjectCostItem() {
-      var name = prompt('Nhập tên hạng mục chi phí (VD: Thiết kế bao bì / Sản xuất hộp):');
-      if (!name || !name.trim()) return;
-      var vendor = prompt('Tên Freelancer / Nhà cung cấp (tuỳ chọn):') || '';
-      var costStr = prompt('Chi phí gốc / đơn vị (VND, VD: 5000000):') || '0';
-      var qtyStr = prompt('Số lượng (mặc định 1):') || '1';
-      var defaultMarkup = Number(document.getElementById('q-default-markup').value) || 1.5;
+    function toggleCostCreator() {
+      var box = document.getElementById('cost-creator-box');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
 
+    async function submitNewCostItem() {
+      var name = document.getElementById('new-cost-name').value.trim();
+      if (!name) { showToast('Vui lòng nhập tên hạng mục', true); return; }
+      var vendor = document.getElementById('new-cost-vendor').value.trim();
+      var costAmount = parseVndNumber(document.getElementById('new-cost-amount').value);
+      var qty = Math.max(1, Number(document.getElementById('new-cost-qty').value) || 1);
+      var contractRef = document.getElementById('new-cost-contract').value.trim();
+      var fileInp = document.getElementById('new-cost-file');
+      var file = fileInp && fileInp.files && fileInp.files[0];
+      var attachment_name = '';
+      var attachment_data = '';
+      if (file) {
+        if (file.size > 4 * 1024 * 1024) { showToast('File chứng từ tối đa 4MB', true); return; }
+        attachment_name = file.name;
+        attachment_data = await readFileAsDataUrl(file);
+      }
+      var defaultMarkup = Number(document.getElementById('q-default-markup').value) || 1.5;
       await fetch('/portal/api/projects/' + activeProjectId + '/costs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          item_name: name.trim(),
-          vendor_name: vendor.trim(),
-          cost_amount: Number(costStr.replace(/[^0-9.]/g, '')) || 0,
-          quantity: Math.max(1, Number(qtyStr) || 1),
-          markup_factor: defaultMarkup
+          item_name: name,
+          vendor_name: vendor,
+          cost_amount: costAmount,
+          quantity: qty,
+          markup_factor: defaultMarkup,
+          contract_ref: contractRef,
+          attachment_name: attachment_name,
+          attachment_data: attachment_data,
+          show_in_quote: 1
         })
       });
-      showToast('Đã thêm khoản chi mới');
-      loadProjectCosts();
+      document.getElementById('new-cost-name').value = '';
+      document.getElementById('new-cost-vendor').value = '';
+      document.getElementById('new-cost-amount').value = '';
+      document.getElementById('new-cost-contract').value = '';
+      if (fileInp) fileInp.value = '';
+      document.getElementById('cost-creator-box').style.display = 'none';
+      showToast('Đã thêm hạng mục chi phí mới');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
     async function deleteCostItem(costId) {
       if (!confirm('Xóa khoản chi phí này?')) return;
       await fetch('/portal/api/projects/costs/' + costId, { method: 'DELETE' });
       showToast('Đã xóa khoản chi');
-      loadProjectCosts();
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
     function applyTierPreset() {
@@ -1584,11 +1756,18 @@ export function renderPortalHtml(): string {
     async function saveQuotationMeta(applyMarkupToAll) {
       if (!activeProjectId) return;
       var payload = {
+        contract_code: document.getElementById('q-contract-code').value.trim(),
         customer_name: document.getElementById('q-cust-name').value.trim(),
-        customer_rep: document.getElementById('q-cust-rep').value.trim(),
+        customer_tax_code: document.getElementById('q-cust-tax').value.trim(),
+        contact_name: document.getElementById('q-contact-name').value.trim(),
+        contact_phone: document.getElementById('q-contact-phone').value.trim(),
         client_tier: document.getElementById('q-client-tier').value,
         default_markup: Number(document.getElementById('q-default-markup').value) || 1.5,
         vat_percent: Number(document.getElementById('q-vat-percent').value) || 0,
+        display_mode: document.getElementById('q-display-mode').value || 'all',
+        payment_terms: document.getElementById('q-payment-terms').value.trim(),
+        bank_info: document.getElementById('q-bank-info').value.trim(),
+        bank_qr_url: document.getElementById('q-bank-qr-url').value.trim(),
         applyMarkupToAll: Boolean(applyMarkupToAll)
       };
       await fetch('/portal/api/projects/' + activeProjectId + '/quotation', {
@@ -1596,43 +1775,93 @@ export function renderPortalHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      showToast(applyMarkupToAll ? 'Đã áp dụng hệ số mới cho tất cả hạng mục!' : 'Đã lưu thông tin báo giá');
-      loadProjectCosts();
+      showToast(applyMarkupToAll ? 'Đã áp dụng hệ số mới cho tất cả hạng mục!' : 'Đã tự động lưu thông tin báo giá');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
+    }
+
+    function buildQuotationDocumentHtml(isForDownload) {
+      var q = projectCostsData.quotation || {};
+      var costs = projectCostsData.costs || [];
+      var sum = projectCostsData.summary || {};
+      var ap = pmData.activeProject || {};
+      var vatPct = Number(q.vat_percent !== undefined ? q.vat_percent : 8);
+      var displayMode = document.getElementById('q-display-mode').value || q.display_mode || 'all';
+      var custName = document.getElementById('q-cust-name').value.trim() || q.customer_name || 'Quý Đối tác';
+      var custTax = document.getElementById('q-cust-tax').value.trim() || q.customer_tax_code || '';
+      var contactName = document.getElementById('q-contact-name').value.trim() || q.contact_name || '';
+      var contactPhone = document.getElementById('q-contact-phone').value.trim() || q.contact_phone || '';
+      var contractCode = document.getElementById('q-contract-code').value.trim() || projectCostsData.contract_code || ap.contract_code || '';
+      var payTerms = document.getElementById('q-payment-terms').value.trim() || q.payment_terms || '';
+      var bankInfo = document.getElementById('q-bank-info').value.trim() || q.bank_info || '';
+      var bankQr = document.getElementById('q-bank-qr-url').value.trim() || q.bank_qr_url || '';
+
+      var rows = '';
+      if (displayMode === 'hidden') {
+        var visibleItems = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
+        var hiddenSum = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) === 0; }).reduce(function(s, x) { return s + (Number(x.quote_line_total) || 0); }, 0);
+        if (visibleItems.length === 0 || (hiddenSum === 0 && costs.length > 0 && visibleItems.length === costs.length)) {
+          rows = '<tr><td style="text-align:center;">1</td><td><strong>Trọn gói triển khai dự án: ' + esc(ap.name || 'Quà tặng doanh nghiệp') + '</strong><div style="font-size:12px;color:#475569;margin-top:3px;">Bao gồm toàn bộ thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td>Theo tiến độ HĐ</td></tr>';
+        } else {
+          rows = visibleItems.map(function(item, idx) {
+            return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+          }).join('');
+          if (hiddenSum > 0) {
+            rows += '<tr><td style="text-align:center;">' + (visibleItems.length + 1) + '</td><td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td></td></tr>';
+          }
+        }
+      } else {
+        rows = costs.map(function(item, idx) {
+          return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+        }).join('');
+      }
+
+      var contactDisplay = [contactName, contactPhone].filter(Boolean).join(' — ') || q.customer_rep || '-';
+      var qrHtml = bankQr ? '<div style="text-align:center;"><img src="' + esc(bankQr) + '" alt="QR Thanh toán" style="width:110px;height:110px;object-fit:contain;border:1px solid #CBD5E1;border-radius:6px;background:#fff;padding:4px;"></div>' : '';
+      var topBtns = isForDownload ? '' : '<div class="no-p" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button class="btn" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;" onclick="window.opener && window.opener.downloadQuotationDoc && window.opener.downloadQuotationDoc()">💾 Lưu file Báo Giá (.doc)</button><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá</button></div>';
+
+      return '<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>' + esc(q.title || 'BÁO GIÁ KHỞI MINH CST') + '</title>' +
+        '<style>@page{size:A4 portrait;margin:14mm;}body{font-family:Segoe UI,Arial,sans-serif;color:#0F172A;margin:0;padding:24px;background:#F8FAFC;}.sheet{max-width:860px;margin:0 auto;background:#fff;padding:32px;border:1px solid #E2E8F0;border-radius:8px;}.header{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #2563EB;padding-bottom:16px;margin-bottom:20px;}.co-name{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:6px;}.co-meta,.cust-box{font-size:12.5px;color:#475569;line-height:1.6;}h1{text-align:center;font-size:19px;font-weight:800;margin:10px 0 6px;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#EFF6FF;border:1px solid #CBD5E1;padding:9px;text-align:left;}td{border:1px solid #CBD5E1;padding:9px;}.totals{width:340px;margin-left:auto;font-size:13.5px;}.totals td{border:none;padding:5px 8px;}.totals tr.grand td{border-top:2px solid #2563EB;font-weight:800;color:#2563EB;}.pay-box{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;font-size:12.5px;background:#F8FAFC;padding:14px;border:1px solid #E2E8F0;border-radius:6px;line-height:1.6;}.btn{background:#2563EB;color:#fff;border:none;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;}@media print{.no-p{display:none!important;}body{background:#fff;padding:0;}.sheet{border:none;}}</style></head><body>' +
+        '<div class="sheet">' + topBtns +
+        '<div class="header"><div><div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div><div class="co-meta">VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội | Liên hệ: 079.338.1666</div></div>' +
+        '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(custName) + '</div>' + (custTax ? '<div><strong>MST:</strong> ' + esc(custTax) + '</div>' : '') + '<div><strong>Đại diện:</strong> ' + esc(contactDisplay) + '</div>' + (contractCode ? '<div><strong>Mã HĐ:</strong> ' + esc(contractCode) + '</div>' : '') + '<div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
+        '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
+        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th><th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<table class="totals"><tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>Thuế GTGT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
+        '<div class="pay-box"><div style="flex:1;"><div><strong>Điều khoản thanh toán:</strong><br>' + esc(payTerms).replace(/\\n/g, '<br>') + '</div><div style="margin-top:8px;"><strong>Thông tin STK &amp; Ngân hàng:</strong><br>' + esc(bankInfo).replace(/\\n/g, '<br>') + '</div></div>' + qrHtml + '</div>' +
+        '</div></body></html>';
+    }
+
+    function downloadQuotationDoc() {
+      if (!activeProjectId) return;
+      var mode = document.getElementById('q-display-mode').value || 'all';
+      if (!window.__KM_IS_STATIC) {
+        window.location.href = '/portal/api/projects/' + activeProjectId + '/quotation/print?download=doc&mode=' + encodeURIComponent(mode);
+        return;
+      }
+      var docHtml = String.fromCharCode(0xFEFF) + buildQuotationDocumentHtml(true);
+      var blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'BaoGia-DuAn-' + activeProjectId + '.doc';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 1000);
+      showToast('Đã lưu file Báo Giá (.doc) về máy!');
     }
 
     function openPrintableQuotation() {
       if (!activeProjectId) return;
+      var mode = document.getElementById('q-display-mode').value || 'all';
       if (!window.__KM_IS_STATIC) {
-        window.open('/portal/api/projects/' + activeProjectId + '/quotation/print', '_blank');
+        window.open('/portal/api/projects/' + activeProjectId + '/quotation/print?mode=' + encodeURIComponent(mode), '_blank');
         return;
       }
-      var q = projectCostsData.quotation || {};
-      var costs = projectCostsData.costs || [];
-      var sum = projectCostsData.summary || {};
-      var vatPct = Number(q.vat_percent || 8);
-      var rows = costs.map(function(item, idx) {
-        return '<tr>' +
-          '<td style="text-align:center;">' + (idx + 1) + '</td>' +
-          '<td><strong>' + esc(item.item_name) + '</strong></td>' +
-          '<td style="text-align:center;">' + esc(item.unit || 'gói') + '</td>' +
-          '<td style="text-align:center;">' + (item.quantity || 1) + '</td>' +
-          '<td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td>' +
-          '<td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td>' +
-          '<td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td>' +
-        '</tr>';
-      }).join('');
       var w = window.open('', '_blank');
       if (!w) { showToast('Trình duyệt đã chặn popup, vui lòng cho phép mở tab mới', true); return; }
       w.document.open();
-      w.document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>' + esc(q.title || 'BÁO GIÁ KHỞI MINH CST') + '</title>' +
-        '<style>@page{size:A4 portrait;margin:14mm;}body{font-family:Segoe UI,Arial,sans-serif;color:#0F172A;margin:0;padding:24px;background:#F8FAFC;}.sheet{max-width:840px;margin:0 auto;background:#fff;padding:32px;border:1px solid #E2E8F0;border-radius:8px;}.header{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #2563EB;padding-bottom:16px;margin-bottom:20px;}.co-name{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:6px;}.co-meta,.cust-box{font-size:12.5px;color:#475569;line-height:1.6;}h1{text-align:center;font-size:19px;font-weight:800;margin:10px 0 6px;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#EFF6FF;border:1px solid #CBD5E1;padding:9px;text-align:left;}td{border:1px solid #CBD5E1;padding:9px;}.totals{width:340px;margin-left:auto;font-size:13.5px;}.totals td{border:none;padding:5px 8px;}.totals tr.grand td{border-top:2px solid #2563EB;font-weight:800;color:#2563EB;}.btn{background:#2563EB;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:600;cursor:pointer;}@media print{.no-p{display:none;}body{background:#fff;padding:0;}.sheet{border:none;}}</style></head><body>' +
-        '<div class="sheet"><div class="no-p" style="text-align:right;margin-bottom:12px;"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá</button></div>' +
-        '<div class="header"><div><div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div><div class="co-meta">VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội | Liên hệ: 079.338.1666</div></div>' +
-        '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(q.customer_name || 'Quý Đối tác') + '</div><div><strong>Đại diện:</strong> ' + esc(q.customer_rep || '-') + '</div><div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
-        '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
-        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th><th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-        '<table class="totals"><tr><td>Cộng tiền hàng:</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>VAT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
-        '<div style="font-size:12.5px;background:#F8FAFC;padding:12px;border:1px solid #E2E8F0;border-radius:6px;"><strong>Ghi chú:</strong> Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán phần còn lại sau khi bàn giao.</div></div></body></html>');
+      w.document.write(buildQuotationDocumentHtml(false));
       w.document.close();
     }
 
@@ -1785,89 +2014,14 @@ export function renderPortalHtml(): string {
       }
     }
 
-    function renderProjectsTab() {
-      var buName = activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner';
-      var rawList = pmData.projects || pmData.allProjects || [];
-      var list = rawList.filter(function(p) { return (p.business_unit || 'KM Gift') === activeBu; });
-
-      var totalBuCost = list.reduce(function(s, p) { return s + (Number(p.total_cost) || 0); }, 0);
-      var totalBuQuote = list.reduce(function(s, p) { return s + (Number(p.total_quote) || 0); }, 0);
-      var totalBuProfit = totalBuQuote - totalBuCost;
-
-      if (document.getElementById('bu-kpi-count')) {
-        document.getElementById('bu-kpi-count').textContent = String(list.length);
-        document.getElementById('bu-kpi-label').textContent = buName;
-        document.getElementById('bu-kpi-cost').textContent = fmtVnd(totalBuCost);
-        document.getElementById('bu-kpi-quote').textContent = fmtVnd(totalBuQuote);
-        document.getElementById('bu-kpi-profit').textContent = fmtVnd(totalBuProfit);
-        document.getElementById('master-bu-title').textContent = 'Bảng Tổng Hợp Dự Án — ' + buName;
-      }
-
-      var masterTbody = document.getElementById('master-projects-tbody');
-      if (masterTbody) {
-        if (list.length === 0) {
-          masterTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)".</td></tr>';
-        } else {
-          masterTbody.innerHTML = list.map(function(p, idx) {
-            var flowLbl = p.flow_type === 'ready_stock' ? 'Hàng có sẵn' : 'Customised';
-            return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
-              '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
-              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + esc(p.payment_summary || '') + '</div></td>' +
-              '<td style="font-size:12.5px; color:var(--text-body);">' + esc(p.items_preview || p.description || '-') + '</td>' +
-              '<td style="font-size:12.5px; color:var(--text-muted);">' + esc(p.vendors_preview || 'Chưa gán NCC') + '</td>' +
-              '<td><div class="badge" style="margin-bottom:4px;">' + flowLbl + '</div><div style="font-size:11.5px; font-family:JetBrains Mono,monospace; color:var(--text-muted);">TƯ: ' + fmtShortDate(p.deposit_date) + '</div></td>' +
-              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(p.total_cost) + '</td>' +
-              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(p.total_quote) + '</td>' +
-              '<td><span class="badge ' + ((p.overall_progress || 0) >= 100 ? 'done' : '') + '">' + (p.overall_progress || 0) + '%</span></td>' +
-              '<td><button class="btn btn-soft btn-sm" onclick="event.stopPropagation(); openProjectDetail(' + p.id + ')">Chi tiết →</button></td>' +
-            '</tr>';
-          }).join('');
-        }
-      }
-
-      var ap = pmData.activeProject;
-      if (ap) {
-        document.getElementById('detail-bu-badge').textContent = ap.business_unit === 'Homeplanner' ? '🏠 Homeplanner' : '🎁 Khởi Minh Gift';
-        document.getElementById('active-project-title').textContent = ap.name;
-        document.getElementById('active-project-meta').textContent =
-          'Đơn vị: ' + (ap.business_unit || 'KM Gift') + '  •  Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Cost: ' + fmtVnd(ap.total_cost) + '  •  Giá trị Báo giá: ' + fmtVnd(ap.total_quote);
-      }
-
-      var tbody = document.getElementById('project-tasks-tbody');
-      var kanban = document.getElementById('project-kanban-view');
-      var tasks = pmData.tasks || [];
-      var stages = pmData.stages || [];
-
-      var slaBar = document.getElementById('project-sla-bar');
-      var showSla = projectViewMode !== 'costs' && ap && (ap.deposit_date || stages.some(function(s) { return Number(s.sla_days) > 0; }));
-      if (slaBar && showSla) {
-        slaBar.style.display = 'flex';
-        document.getElementById('sla-deposit-date').value = ap.deposit_date || '';
-        document.getElementById('sla-flow-badge').textContent =
-          ap.flow_type === 'ready_stock' ? 'Luồng: Hàng có sẵn' : 'Luồng: Customised / Không có sẵn';
-        document.getElementById('sla-strip').innerHTML = stages.map(function(st) {
-          var isAnchor = st.phase === 'deposit' || String(st.title || '').indexOf('Tạm ứng') !== -1;
-          return '<div class="sla-node' + (isAnchor ? ' anchor' : '') + '">' +
-            '<div class="sla-node-title" title="' + esc(st.title) + '">' + esc(st.step_order + '. ' + st.title) + '</div>' +
-            '<div class="sla-node-dates">' + fmtShortDate(st.start_date) + ' → ' + fmtShortDate(st.end_date) + '</div>' +
-            '<div class="sla-days-row">' +
-              '<span>SLA:</span>' +
-              '<input type="number" min="0" max="180" class="sla-days-input" data-stage-id="' + st.id + '" value="' + (Number(st.sla_days) || 0) + '" onchange="recalculateProjectSla()">' +
-              '<span>ngày</span>' +
-            '</div>' +
-          '</div>';
-        }).join('');
-      } else if (slaBar) {
-        slaBar.style.display = 'none';
-      }
-
     async function toggleChecklistItem(taskId, itemId) {
       await fetch('/portal/api/tasks/' + taskId + '/checklist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'toggle', itemId: itemId })
       });
-      loadProjectsData(activeProjectId);
+      await loadProjectsData(activeProjectId);
+      showToast('Đã cập nhật trạng thái đầu mục & thanh tiến độ!');
     }
 
     function toggleChecklistFromInput(inp) {
@@ -1909,42 +2063,129 @@ export function renderPortalHtml(): string {
     }
 
     function renderKanbanCard(t, showStageBadge) {
-        var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
-        var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (t.progress > 0 ? 'Đang làm' : 'Chờ làm'));
-        var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (t.progress > 0 ? '' : 'muted'));
-        var cl = Array.isArray(t.checklist) ? t.checklist : [];
-        var clDone = cl.filter(function(i) { return i.done; }).length;
-        var clHtml = cl.map(function(item) {
-          return '<label class="cl-item' + (item.done ? ' done' : '') + '">' +
-            '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + (item.done ? ' checked' : '') + ' onchange="toggleChecklistFromInput(this)">' +
-            '<span>' + esc(item.text) + '</span>' +
-          '</label>';
-        }).join('');
+      var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
+      var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (t.progress > 0 ? 'Đang làm' : 'Chờ làm'));
+      var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (t.progress > 0 ? '' : 'muted'));
+      var cl = Array.isArray(t.checklist) ? t.checklist : [];
+      var clDone = cl.filter(function(i) { return i.done; }).length;
+      var clHtml = cl.map(function(item) {
+        return '<label class="cl-item' + (item.done ? ' done' : '') + '">' +
+          '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + (item.done ? ' checked' : '') + ' onchange="toggleChecklistFromInput(this)">' +
+          '<span>' + esc(item.text) + '</span>' +
+        '</label>';
+      }).join('');
 
-        return '<div class="kanban-card" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
-          '<div style="font-weight:700; font-size:13.5px; color:var(--text-main); margin-bottom:4px;">' + esc(t.title) + '</div>' +
-          '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">' +
-            '<span>' + esc(t.assigned_name || t.assigned_phone || 'Chưa gán') + '</span>' +
-            '<span>Hạn: ' + esc(t.deadline ? t.deadline.slice(0, 10) : 'Chưa đặt') + '</span>' +
+      return '<div class="kanban-card" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
+        '<div style="font-weight:700; font-size:13.5px; color:var(--text-main); margin-bottom:4px;">' + esc(t.title) + '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">' +
+          '<span>' + esc(t.assigned_name || t.assigned_phone || 'Chưa gán') + '</span>' +
+          '<span>Hạn: ' + esc(t.deadline ? t.deadline.slice(0, 10) : 'Chưa đặt') + '</span>' +
+        '</div>' +
+        '<div style="margin-bottom:8px;">' +
+          '<div class="progress-header">' +
+            '<span>Tiến độ tự động: ' + clDone + '/' + cl.length + ' đầu mục</span>' +
+            '<span style="font-family:JetBrains Mono,monospace; color:' + (isDone ? '#059669' : 'var(--primary)') + ';">' + (t.progress || 0) + '%</span>' +
           '</div>' +
-          '<div style="margin-bottom:8px;">' +
-            '<div class="progress-header">' +
-              '<span>Tiến độ từ Bot: ' + clDone + '/' + cl.length + ' đầu mục</span>' +
-              '<span style="font-family:JetBrains Mono,monospace; color:' + (isDone ? '#059669' : 'var(--primary)') + ';">' + (t.progress || 0) + '%</span>' +
+          '<div class="progress-track"><div class="progress-fill' + (isDone ? ' done' : '') + '" style="width:' + Math.min(100, Math.max(0, t.progress || 0)) + '%;"></div></div>' +
+        '</div>' +
+        '<div class="cl-box">' +
+          (clHtml || '<div style="font-size:11px; color:var(--text-muted);">Chưa có đầu mục con</div>') +
+          '<button class="btn btn-sm" style="height:24px; font-size:11px; align-self:flex-start; margin-top:2px;" onclick="addChecklistItem(' + t.id + ')">+ Thêm đầu mục</button>' +
+        '</div>' +
+        (t.last_report ? '<div class="cl-report">🤖 ' + esc(t.last_report) + '</div>' : '') +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:6px; width:100%;">' +
+          '<span class="badge ' + pillClass + '" style="font-size:10.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; display:block;" title="' + esc(pillText) + '">' + esc(pillText) + '</span>' +
+          '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" onclick="promptBotReport(' + t.id + ')">🤖 Báo Bot</button>' +
+          '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" data-title="' + esc(t.title) + '" data-assigned="' + esc(t.assigned_name || '') + '" onclick="remindProjectTaskFromBtn(this)">🔔 Tag</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderProjectsTab() {
+      var buName = activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner';
+      var rawList = pmData.projects || pmData.allProjects || [];
+      var list = rawList.filter(function(p) { return (p.business_unit || 'KM Gift') === activeBu; });
+
+      var totalBuCost = list.reduce(function(s, p) { return s + (Number(p.total_cost) || 0); }, 0);
+      var totalBuQuote = list.reduce(function(s, p) { return s + (Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0); }, 0);
+      var totalBuProfit = list.reduce(function(s, p) {
+        var prof = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (Number(p.total_quote || 0) - Math.round(Number(p.total_quote || 0) * 0.08) - Number(p.total_cost || 0));
+        return s + prof;
+      }, 0);
+
+      if (document.getElementById('bu-kpi-count')) {
+        document.getElementById('bu-kpi-count').textContent = String(list.length);
+        document.getElementById('bu-kpi-label').textContent = buName;
+        document.getElementById('bu-kpi-cost').textContent = fmtVnd(totalBuCost);
+        document.getElementById('bu-kpi-quote').textContent = fmtVnd(totalBuQuote);
+        document.getElementById('bu-kpi-profit').textContent = fmtVnd(totalBuProfit);
+        document.getElementById('master-bu-title').textContent = 'Bảng Tổng Hợp Dự Án — ' + buName;
+      }
+
+      var masterTbody = document.getElementById('master-projects-tbody');
+      if (masterTbody) {
+        if (list.length === 0) {
+          masterTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)".</td></tr>';
+        } else {
+          masterTbody.innerHTML = list.map(function(p, idx) {
+            var flowLbl = p.flow_type === 'ready_stock' ? 'Hàng có sẵn' : 'Customised';
+            var rev = Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0;
+            var vatAmt = p.vat_amount !== undefined ? Number(p.vat_amount) : Math.round(rev * 0.08);
+            var profitVal = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (rev - vatAmt - Number(p.total_cost || 0));
+            return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
+              '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+              '<td onclick="event.stopPropagation()"><input class="wt-cell-input" style="font-family:JetBrains Mono,monospace; font-size:12px; min-width:120px;" placeholder="Nhập mã HĐ..." value="' + esc(p.contract_code || '') + '" onchange="updateProjectContractCode(' + p.id + ', this.value)"></td>' +
+              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + esc(p.payment_summary || '') + '</div></td>' +
+              '<td style="font-size:12.5px; color:var(--text-body); white-space:normal; line-height:1.45; min-width:220px;">' + esc(p.items_preview || p.description || '-') + '</td>' +
+              '<td style="font-size:12.5px; color:var(--text-muted); white-space:normal;">' + esc(p.vendors_preview || 'Chưa gán NCC') + '</td>' +
+              '<td><div class="badge" style="margin-bottom:4px;">' + flowLbl + '</div><div style="font-size:11.5px; font-family:JetBrains Mono,monospace; color:var(--text-muted);">Mốc: ' + fmtShortDate(p.deposit_date) + '</div></td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(p.total_cost) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(rev) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:' + (profitVal >= 0 ? '#059669' : '#DC2626') + '; white-space:nowrap;">' + fmtVnd(profitVal) + '</td>' +
+              '<td><span class="badge ' + ((p.overall_progress || 0) >= 100 ? 'done' : '') + '">' + (p.overall_progress || 0) + '%</span></td>' +
+              '<td><button class="btn btn-soft btn-sm" onclick="event.stopPropagation(); openProjectDetail(' + p.id + ')">Chi tiết →</button></td>' +
+            '</tr>';
+          }).join('');
+        }
+      }
+
+      var ap = pmData.activeProject;
+      if (ap) {
+        var apRev = Number(ap.total_revenue !== undefined ? ap.total_revenue : ap.total_quote) || 0;
+        var apProfit = ap.estimated_profit !== undefined ? Number(ap.estimated_profit) : (apRev - Math.round(apRev * 0.08) - Number(ap.total_cost || 0));
+        document.getElementById('detail-bu-badge').textContent = ap.business_unit === 'Homeplanner' ? '🏠 Homeplanner' : '🎁 Khởi Minh Gift';
+        document.getElementById('active-project-title').textContent = ap.name;
+        document.getElementById('active-project-meta').textContent =
+          (ap.contract_code ? 'Mã HĐ: ' + ap.contract_code + '  •  ' : '') +
+          'Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Chi phí: ' + fmtVnd(ap.total_cost) + '  •  Tổng Doanh thu: ' + fmtVnd(apRev) + '  •  Lợi nhuận (sau VAT 8%): ' + fmtVnd(apProfit);
+      }
+
+      var tbody = document.getElementById('project-tasks-tbody');
+      var kanban = document.getElementById('project-kanban-view');
+      var tasks = pmData.tasks || [];
+      var stages = pmData.stages || [];
+
+      var slaBar = document.getElementById('project-sla-bar');
+      var showSla = projectViewMode !== 'costs' && ap && (ap.deposit_date || stages.some(function(s) { return Number(s.sla_days) > 0; }));
+      if (slaBar && showSla) {
+        slaBar.style.display = 'flex';
+        document.getElementById('sla-deposit-date').value = ap.deposit_date || '';
+        document.getElementById('sla-flow-badge').textContent =
+          ap.flow_type === 'ready_stock' ? 'Luồng: Hàng có sẵn (Tính xuôi)' : 'Luồng: Customised (Tính xuôi)';
+        document.getElementById('sla-strip').innerHTML = stages.map(function(st) {
+          var isAnchor = st.step_order === 1;
+          return '<div class="sla-node' + (isAnchor ? ' anchor' : '') + '">' +
+            '<div class="sla-node-title" title="' + esc(st.title) + '">' + esc(st.step_order + '. ' + st.title) + '</div>' +
+            '<div class="sla-node-dates">' + fmtShortDate(st.start_date) + ' → ' + fmtShortDate(st.end_date) + '</div>' +
+            '<div class="sla-days-row">' +
+              '<span>SLA:</span>' +
+              '<input type="number" min="0" max="180" class="sla-days-input" data-stage-id="' + st.id + '" value="' + (Number(st.sla_days) || 0) + '" onchange="recalculateProjectSla()">' +
+              '<span>ngày</span>' +
             '</div>' +
-            '<div class="progress-track"><div class="progress-fill' + (isDone ? ' done' : '') + '" style="width:' + Math.min(100, Math.max(0, t.progress || 0)) + '%;"></div></div>' +
-          '</div>' +
-          '<div class="cl-box">' +
-            (clHtml || '<div style="font-size:11px; color:var(--text-muted);">Chưa có đầu mục con</div>') +
-            '<button class="btn btn-sm" style="height:24px; font-size:11px; align-self:flex-start; margin-top:2px;" onclick="addChecklistItem(' + t.id + ')">+ Thêm đầu mục</button>' +
-          '</div>' +
-          (t.last_report ? '<div class="cl-report">🤖 ' + esc(t.last_report) + '</div>' : '') +
-          '<div style="display:flex; justify-content:space-between; align-items:center; gap:6px; width:100%;">' +
-            '<span class="badge ' + pillClass + '" style="font-size:10.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; display:block;" title="' + esc(pillText) + '">' + esc(pillText) + '</span>' +
-            '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" onclick="promptBotReport(' + t.id + ')">🤖 Báo Bot</button>' +
-            '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" data-title="' + esc(t.title) + '" data-assigned="' + esc(t.assigned_name || '') + '" onclick="remindProjectTaskFromBtn(this)">🔔 Tag</button>' +
-          '</div>' +
-        '</div>';
+          '</div>';
+        }).join('');
+      } else if (slaBar) {
+        slaBar.style.display = 'none';
       }
 
       if (projectViewMode === 'stages' && stages.length > 0) {
@@ -2239,7 +2480,7 @@ export function renderPortalHtml(): string {
         }
 
         bodyHtml += '<tr>' +
-          '<td><input class="wt-cell-input" value="' + esc(t.title) + '" onchange="updateWtTask(' + t.id + ', {title: this.value})"></td>' +
+          '<td style="min-width:300px; white-space:normal;"><textarea class="wt-cell-input" rows="2" style="min-width:290px; white-space:pre-wrap; word-break:break-word; resize:vertical; line-height:1.45;" onchange="updateWtTask(' + t.id + ', {title: this.value})">' + esc(t.title) + '</textarea></td>' +
           '<td><select class="select" style="height:30px; font-size:12px; width:100%;" onchange="updateWtTask(' + t.id + ', {assigned_member_id: Number(this.value) || null})">' + memOpts + '</select></td>' +
           '<td><input type="date" class="wt-cell-input" value="' + esc(t.start_date) + '" onchange="updateWtTask(' + t.id + ', {start_date: this.value})"></td>' +
           '<td><input type="date" class="wt-cell-input" value="' + esc(t.end_date) + '" onchange="updateWtTask(' + t.id + ', {end_date: this.value})"></td>' +

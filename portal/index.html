@@ -778,19 +778,19 @@
                 <div class="kpi-sub" id="bu-kpi-label">Khởi Minh Gift</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-label">Tổng Cost đầu vào</div>
-                <div class="kpi-val" id="bu-kpi-cost" style="font-size:20px;">0 ₫</div>
-                <div class="kpi-sub">Tổng hợp từ các hạng mục chi phí</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-label">Tổng Báo giá (Chưa VAT)</div>
+                <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
                 <div class="kpi-val" id="bu-kpi-quote" style="font-size:20px; color:var(--primary);">0 ₫</div>
-                <div class="kpi-sub">Công thức: Cost × Hệ số từng dự án</div>
+                <div class="kpi-sub">Tổng thành tiền báo khách</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-label">Lợi nhuận dự kiến</div>
+                <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
+                <div class="kpi-val" id="bu-kpi-cost" style="font-size:20px;">0 ₫</div>
+                <div class="kpi-sub">Chi phí NCC / Freelancer đã gồm thuế</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Lợi nhuận ròng dự kiến</div>
                 <div class="kpi-val" id="bu-kpi-profit" style="font-size:20px; color:#059669;">0 ₫</div>
-                <div class="kpi-sub">Chênh lệch Báo giá - Cost</div>
+                <div class="kpi-sub">= Doanh thu - Thuế GTGT (8%) - Chi phí</div>
               </div>
             </div>
 
@@ -799,7 +799,7 @@
                 <div>
                   <div class="card-title" id="master-bu-title">Bảng Tổng Hợp Dự Án — Khởi Minh Gift</div>
                   <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                    Bấm vào một dự án bất kỳ để mở công cụ tính SLA theo ngày tạm ứng &amp; lập bảng báo giá gửi khách.
+                    Bấm vào một dự án bất kỳ để mở công cụ tính SLA xuôi, quản lý chứng từ &amp; lập báo giá gửi khách.
                   </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -828,7 +828,7 @@
                     </select>
                   </div>
                   <div class="field">
-                    <label>Ngày ký HĐ / Tạm ứng (Mốc tính SLA)</label>
+                    <label>Ngày bắt đầu / Mốc tính SLA</label>
                     <input class="input" type="date" id="new-km-deposit" value="2026-11-10">
                   </div>
                   <div style="display:flex; gap:8px;">
@@ -842,18 +842,20 @@
                   <thead>
                     <tr>
                       <th style="width:42px;">STT</th>
-                      <th>Khách hàng / Dự án</th>
-                      <th>Hạng mục triển khai</th>
-                      <th>Freelancer / NCC</th>
-                      <th>Ký HĐ/TƯ &amp; Luồng</th>
-                      <th style="text-align:right;">Tổng Cost</th>
-                      <th style="text-align:right;">Báo giá</th>
+                      <th style="min-width:130px;">Mã Hợp đồng</th>
+                      <th style="min-width:190px;">Khách hàng / Dự án</th>
+                      <th style="min-width:240px;">Hạng mục triển khai</th>
+                      <th style="min-width:150px;">Freelancer / NCC</th>
+                      <th>Mốc SLA &amp; Luồng</th>
+                      <th style="text-align:right;">Tổng Chi phí</th>
+                      <th style="text-align:right;">Tổng Doanh thu</th>
+                      <th style="text-align:right;">Lợi nhuận (Sau VAT)</th>
                       <th>Tiến độ</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody id="master-projects-tbody">
-                    <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
+                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -885,11 +887,11 @@
             <div id="project-sla-bar" class="sla-bar" style="display:none;">
               <div class="sla-controls">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <span style="font-size:13px; font-weight:700; color:var(--text-main);">⏱️ Ngày ký HĐ / Tạm ứng:</span>
+                  <span style="font-size:13px; font-weight:700; color:var(--text-main);">📅 Ngày bắt đầu / Mốc tính SLA (Tính xuôi):</span>
                   <input type="date" class="input" id="sla-deposit-date" style="height:34px; width:150px;" onchange="recalculateProjectSla()">
                   <span id="sla-flow-badge" class="badge"></span>
                 </div>
-                <button class="btn btn-primary btn-sm" onclick="recalculateProjectSla()">⚡ Tính lại toàn bộ deadline SLA</button>
+                <button class="btn btn-primary btn-sm" onclick="recalculateProjectSla()">⚡ Tính lại SLA xuôi về sau</button>
               </div>
               <div class="sla-strip" id="sla-strip"></div>
             </div>
@@ -915,47 +917,59 @@
             <div id="project-costs-view" style="display:none; padding:20px;">
               <div class="kpi-grid" style="margin-bottom:16px;">
                 <div class="kpi-card">
-                  <div class="kpi-label">Tổng Cost nội bộ</div>
+                  <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
                   <div class="kpi-val" id="cost-kpi-total" style="font-size:20px;">0 ₫</div>
-                  <div class="kpi-sub">Chi phí Freelancer / Xưởng / NCC</div>
+                  <div class="kpi-sub">Chi phí NCC / Xưởng / Freelancer</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Báo giá (Chưa VAT)</div>
+                  <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
                   <div class="kpi-val" id="cost-kpi-quote" style="font-size:20px; color:var(--primary);">0 ₫</div>
-                  <div class="kpi-sub">Tổng (Cost × Hệ số)</div>
+                  <div class="kpi-sub">Tổng thành tiền báo khách</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Tổng thanh toán (Gồm VAT)</div>
+                  <div class="kpi-label">Thuế GTGT &amp; Tổng thu</div>
                   <div class="kpi-val" id="cost-kpi-vat" style="font-size:20px;">0 ₫</div>
-                  <div class="kpi-sub" id="cost-kpi-vat-sub">VAT 8%</div>
+                  <div class="kpi-sub" id="cost-kpi-vat-sub">VAT 8%: 0 ₫</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-label">Lợi nhuận gộp dự kiến</div>
+                  <div class="kpi-label">Lợi nhuận ròng dự kiến</div>
                   <div class="kpi-val" id="cost-kpi-profit" style="font-size:20px; color:#059669;">0 ₫</div>
-                  <div class="kpi-sub" id="cost-kpi-margin">Biên lợi nhuận: 0%</div>
+                  <div class="kpi-sub" id="cost-kpi-margin">= Doanh thu - VAT - Chi phí</div>
                 </div>
               </div>
 
               <div style="background:var(--aux-tint); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                  <div style="font-size:14px; font-weight:700; color:var(--text-main);">Thông tin Báo giá &amp; Hệ số theo Tệp khách hàng</div>
+                  <div style="font-size:14px; font-weight:700; color:var(--text-main);">Thông tin Khách hàng, Hợp đồng &amp; Cấu hình Báo giá (Tự động lưu)</div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn btn-soft btn-sm" onclick="saveQuotationMeta(false)">💾 Lưu thông tin báo giá</button>
-                    <button class="btn btn-primary btn-sm" onclick="openPrintableQuotation()">📄 Xem &amp; Xuất PDF Báo Giá Khách Hàng</button>
+                    <button class="btn btn-soft btn-sm" onclick="downloadQuotationDoc()">💾 Lưu file Báo Giá (.doc)</button>
+                    <button class="btn btn-primary btn-sm" onclick="openPrintableQuotation()">📄 Xem &amp; In PDF Báo Giá</button>
                   </div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; align-items:end; margin-bottom:12px;">
                   <div class="field">
-                    <label>Khách hàng</label>
-                    <input class="input" id="q-cust-name" placeholder="VD: Đại học Quốc Gia">
+                    <label>Mã Hợp đồng dự án</label>
+                    <input class="input" id="q-contract-code" placeholder="VD: 01/2026/HĐKT-KM" onchange="saveQuotationMeta(false)">
                   </div>
                   <div class="field">
-                    <label>Đại diện &amp; SĐT</label>
-                    <input class="input" id="q-cust-rep" placeholder="VD: Anh Long - 0909...">
+                    <label>Tên doanh nghiệp (Khách hàng)</label>
+                    <input class="input" id="q-cust-name" placeholder="VD: Công ty TNHH ABC / ĐHQG" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Mã số thuế (MST)</label>
+                    <input class="input" id="q-cust-tax" placeholder="VD: 0109xxxxxx" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Họ và tên đại diện</label>
+                    <input class="input" id="q-contact-name" placeholder="VD: Anh Long" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Số điện thoại (SĐT)</label>
+                    <input class="input" id="q-contact-phone" placeholder="VD: 0909xxxxxx" onchange="saveQuotationMeta(false)">
                   </div>
                   <div class="field">
                     <label>Tệp khách hàng</label>
-                    <select class="select" id="q-client-tier" onchange="applyTierPreset()">
+                    <select class="select" id="q-client-tier" onchange="applyTierPreset(); saveQuotationMeta(false);">
                       <option value="Khách lẻ">Khách lẻ (Hệ số x1.7)</option>
                       <option value="Doanh nghiệp">Doanh nghiệp (Hệ số x1.5)</option>
                       <option value="Đối tác / Đại lý">Đối tác / Đại lý (Hệ số x1.35)</option>
@@ -965,40 +979,101 @@
                   <div class="field">
                     <label>Hệ số chung (Markup)</label>
                     <div style="display:flex; gap:6px;">
-                      <input class="input" type="number" step="0.05" min="1" id="q-default-markup" value="1.5" style="width:85px;">
+                      <input class="input" type="number" step="0.05" min="1" id="q-default-markup" value="1.5" style="width:76px;" onchange="saveQuotationMeta(false)">
                       <button class="btn btn-soft btn-sm" style="height:38px;" onclick="saveQuotationMeta(true)">Áp dụng tất cả</button>
                     </div>
                   </div>
                   <div class="field">
                     <label>VAT (%)</label>
-                    <input class="input" type="number" step="1" min="0" max="20" id="q-vat-percent" value="8" style="width:80px;">
+                    <input class="input" type="number" step="1" min="0" max="20" id="q-vat-percent" value="8" style="width:76px;" onchange="saveQuotationMeta(false)">
+                  </div>
+                  <div class="field">
+                    <label>Dạng hiển thị báo giá</label>
+                    <select class="select" id="q-display-mode" onchange="saveQuotationMeta(false)">
+                      <option value="all">Hiển thị tất cả các hạng mục</option>
+                      <option value="hidden">Báo giá ẩn chi tiết (Gộp gói)</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; padding-top:10px; border-top:1px dashed var(--border);">
+                  <div class="field">
+                    <label>Điều khoản thanh toán (hiện trên Báo giá)</label>
+                    <textarea class="textarea" id="q-payment-terms" rows="2" placeholder="VD: Tạm ứng 50% sau khi ký HĐ, 50% sau bàn giao..." onchange="saveQuotationMeta(false)"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Thông tin STK &amp; Ngân hàng thanh toán</label>
+                    <textarea class="textarea" id="q-bank-info" rows="2" placeholder="Chủ TK / Số tài khoản / Ngân hàng..." onchange="saveQuotationMeta(false)"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Mã QR thanh toán (Link ảnh hoặc tải ảnh QR lên)</label>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <input class="input" id="q-bank-qr-url" placeholder="Dán link ảnh QR hoặc tải file..." onchange="saveQuotationMeta(false)">
+                      <label class="btn btn-soft btn-sm" style="cursor:pointer; margin:0; white-space:nowrap;">
+                        📷 Ảnh QR
+                        <input type="file" accept="image/*" style="display:none;" onchange="uploadBankQrFile(this)">
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div style="font-size:14px; font-weight:700;">Chi tiết Cost từng Hạng mục &amp; Giá bán tự động</div>
-                <button class="btn btn-primary btn-sm" onclick="addProjectCostItem()">+ Thêm khoản chi / Hạng mục</button>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                <div style="font-size:14px; font-weight:700;">Chi tiết Chi phí từng Hạng mục &amp; Chứng từ (Đã gồm VAT/Thuế TNCN)</div>
+                <button class="btn btn-primary btn-sm" onclick="toggleCostCreator()">+ Thêm khoản chi / Hạng mục</button>
+              </div>
+              <div id="cost-creator-box" style="display:none; background:var(--aux-tint); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:end;">
+                  <div class="field" style="grid-column: span 2;">
+                    <label>Tên hạng mục &amp; Quy cách (*)</label>
+                    <input class="input" id="new-cost-name" placeholder="VD: In ấn hộp quà cứng + ép kim logo">
+                  </div>
+                  <div class="field">
+                    <label>Freelancer / NCC</label>
+                    <input class="input" id="new-cost-vendor" placeholder="VD: Xưởng in / Anh Huy">
+                  </div>
+                  <div class="field">
+                    <label>Chi phí (VND) (Đã gồm VAT/TNCN)</label>
+                    <input class="input" id="new-cost-amount" inputmode="numeric" placeholder="VD: 1.000.000" oninput="formatVndInputLive(this)">
+                  </div>
+                  <div class="field">
+                    <label>Số lượng</label>
+                    <input class="input" type="number" min="1" id="new-cost-qty" value="1">
+                  </div>
+                  <div class="field">
+                    <label>Số Hợp đồng / Hóa đơn</label>
+                    <input class="input" id="new-cost-contract" placeholder="VD: 01/2026/HĐKV">
+                  </div>
+                  <div class="field">
+                    <label>Chứng từ (.docx/.pdf/.xlsx)</label>
+                    <input class="input" type="file" id="new-cost-file" accept=".docx,.doc,.pdf,.xlsx,.xls" style="padding:5px;">
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-primary btn-sm" onclick="submitNewCostItem()">Lưu hạng mục</button>
+                    <button class="btn btn-sm" onclick="toggleCostCreator()">Đóng</button>
+                  </div>
+                </div>
               </div>
               <div class="table-scroll">
                 <table>
                   <thead>
                     <tr>
                       <th>Giai đoạn</th>
-                      <th>Hạng mục &amp; Quy cách</th>
+                      <th style="min-width:260px;">Hạng mục &amp; Quy cách (Hiển thị đầy đủ)</th>
                       <th>Freelancer / NCC</th>
                       <th>SLA (ngày)</th>
-                      <th>Cost / ĐV</th>
+                      <th>Chi phí (VND)<br><span style="font-weight:400; font-size:10px; color:var(--text-muted);">(Gồm VAT/TNCN)</span></th>
                       <th>SL</th>
                       <th>Hệ số</th>
                       <th>Đơn giá báo khách</th>
                       <th>Thành tiền</th>
+                      <th style="min-width:170px;">HĐ / Hóa đơn chứng từ</th>
                       <th>Trạng thái</th>
+                      <th title="Hiển thị trong Báo giá khách hàng">Hiện BG</th>
                       <th>Xóa</th>
                     </tr>
                   </thead>
                   <tbody id="project-costs-tbody">
-                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
+                    <tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1357,7 +1432,7 @@
   var IS_STATIC = location.hostname.indexOf('github.io') !== -1 || location.protocol === 'file:';
   window.__KM_IS_STATIC = IS_STATIC;
   if (!IS_STATIC) return;
-  var SEED = {"projects":[{"id":1,"name":"Bookmark Lương Thế Vinh","description":"Sản xuất bookmark LTV, tua rua + đế gỗ, in ấn packaging","budget":77052000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-10","expenses_sum":0},{"id":2,"name":"PVEP - Set Quà Tặng Điêu Khắc & Packaging","description":"Landingpage sản phẩm, Set B+C+D có sẵn, Set A+B điêu khắc 3D & Packaging","budget":55000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-11","expenses_sum":0},{"id":3,"name":"KM CST - BST Đồng Vọng (Keycharm & Gác Đũa)","description":"Designer BST Keycharm, Copywriter BST Gác đũa, In ấn packaging & Chụp ảnh","budget":18000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-08","expenses_sum":0},{"id":4,"name":"HALONG RUM - Thiết Kế Label Đêm","description":"Thiết kế Label Đêm cho dự án HALONG RUM","budget":12000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-05","expenses_sum":0},{"id":5,"name":"Maison Mùi - Brand Strategy & Storestyling","description":"Brand Strategy, Storestyling & Media Pre-launch (6 tháng)","budget":320000000,"status":"active","business_unit":"Homeplanner","flow_type":"customised","deposit_date":"2026-11-01","expenses_sum":0},{"id":6,"name":"Viên Villa - Thiết Kế Biển Chỉ Dẫn & Không Gian","description":"Thiết kế biển chỉ dẫn Viên Villa & biển Khởi Minh","budget":12000000,"status":"active","business_unit":"Homeplanner","flow_type":"customised","deposit_date":"2026-11-12","expenses_sum":0}],"stages":[{"id":1,"project_id":1,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-03 → 2026-11-05)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-03","end_date":"2026-11-05"},{"id":2,"project_id":1,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-05 → 2026-11-07)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-05","end_date":"2026-11-07"},{"id":3,"project_id":1,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-07 → 2026-11-10)","sla_days":3,"phase":"deposit","start_date":"2026-11-07","end_date":"2026-11-10"},{"id":4,"project_id":1,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-10 → 2026-11-17)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-10","end_date":"2026-11-17"},{"id":5,"project_id":1,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-17 → 2026-11-19)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-17","end_date":"2026-11-19"},{"id":6,"project_id":1,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-19 → 2026-12-03)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-19","end_date":"2026-12-03"},{"id":7,"project_id":1,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-03 → 2026-12-05)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-03","end_date":"2026-12-05"},{"id":8,"project_id":1,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-05 → 2026-12-07)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-05","end_date":"2026-12-07"},{"id":9,"project_id":1,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-07 → 2026-12-09)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-07","end_date":"2026-12-09"},{"id":10,"project_id":2,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-04 → 2026-11-06)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-04","end_date":"2026-11-06"},{"id":11,"project_id":2,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-06 → 2026-11-08)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-06","end_date":"2026-11-08"},{"id":12,"project_id":2,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-08 → 2026-11-11)","sla_days":3,"phase":"deposit","start_date":"2026-11-08","end_date":"2026-11-11"},{"id":13,"project_id":2,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-11 → 2026-11-18)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-11","end_date":"2026-11-18"},{"id":14,"project_id":2,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-18 → 2026-11-20)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-18","end_date":"2026-11-20"},{"id":15,"project_id":2,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-20 → 2026-12-04)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-20","end_date":"2026-12-04"},{"id":16,"project_id":2,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-04 → 2026-12-06)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-04","end_date":"2026-12-06"},{"id":17,"project_id":2,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-06 → 2026-12-08)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-06","end_date":"2026-12-08"},{"id":18,"project_id":2,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-08 → 2026-12-10)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-08","end_date":"2026-12-10"},{"id":19,"project_id":3,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-01 → 2026-11-03)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-01","end_date":"2026-11-03"},{"id":20,"project_id":3,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-03 → 2026-11-05)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-03","end_date":"2026-11-05"},{"id":21,"project_id":3,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-05 → 2026-11-08)","sla_days":3,"phase":"deposit","start_date":"2026-11-05","end_date":"2026-11-08"},{"id":22,"project_id":3,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-08 → 2026-11-15)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-08","end_date":"2026-11-15"},{"id":23,"project_id":3,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-15 → 2026-11-17)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-15","end_date":"2026-11-17"},{"id":24,"project_id":3,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-17 → 2026-12-01)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-17","end_date":"2026-12-01"},{"id":25,"project_id":3,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-01 → 2026-12-03)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-01","end_date":"2026-12-03"},{"id":26,"project_id":3,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-03 → 2026-12-05)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-03","end_date":"2026-12-05"},{"id":27,"project_id":3,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-05 → 2026-12-07)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-05","end_date":"2026-12-07"},{"id":28,"project_id":4,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-10-29 → 2026-10-31)","sla_days":2,"phase":"pre_deposit","start_date":"2026-10-29","end_date":"2026-10-31"},{"id":29,"project_id":4,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-10-31 → 2026-11-02)","sla_days":2,"phase":"pre_deposit","start_date":"2026-10-31","end_date":"2026-11-02"},{"id":30,"project_id":4,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-02 → 2026-11-05)","sla_days":3,"phase":"deposit","start_date":"2026-11-02","end_date":"2026-11-05"},{"id":31,"project_id":4,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-05 → 2026-11-12)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-05","end_date":"2026-11-12"},{"id":32,"project_id":4,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-12 → 2026-11-14)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-12","end_date":"2026-11-14"},{"id":33,"project_id":4,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-14 → 2026-11-28)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-14","end_date":"2026-11-28"},{"id":34,"project_id":4,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-11-28 → 2026-11-30)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-28","end_date":"2026-11-30"},{"id":35,"project_id":4,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-11-30 → 2026-12-02)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-30","end_date":"2026-12-02"},{"id":36,"project_id":4,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-02 → 2026-12-04)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-02","end_date":"2026-12-04"},{"id":37,"project_id":5,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-10-25 → 2026-10-27)","sla_days":2,"phase":"pre_deposit","start_date":"2026-10-25","end_date":"2026-10-27"},{"id":38,"project_id":5,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-10-27 → 2026-10-29)","sla_days":2,"phase":"pre_deposit","start_date":"2026-10-27","end_date":"2026-10-29"},{"id":39,"project_id":5,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-10-29 → 2026-11-01)","sla_days":3,"phase":"deposit","start_date":"2026-10-29","end_date":"2026-11-01"},{"id":40,"project_id":5,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-01 → 2026-11-08)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-01","end_date":"2026-11-08"},{"id":41,"project_id":5,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-08 → 2026-11-10)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-08","end_date":"2026-11-10"},{"id":42,"project_id":5,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-10 → 2026-11-24)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-10","end_date":"2026-11-24"},{"id":43,"project_id":5,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-11-24 → 2026-11-26)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-24","end_date":"2026-11-26"},{"id":44,"project_id":5,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-11-26 → 2026-11-28)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-26","end_date":"2026-11-28"},{"id":45,"project_id":5,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-11-28 → 2026-11-30)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-28","end_date":"2026-11-30"},{"id":46,"project_id":6,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-05 → 2026-11-07)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-05","end_date":"2026-11-07"},{"id":47,"project_id":6,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-07 → 2026-11-09)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-07","end_date":"2026-11-09"},{"id":48,"project_id":6,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-09 → 2026-11-12)","sla_days":3,"phase":"deposit","start_date":"2026-11-09","end_date":"2026-11-12"},{"id":49,"project_id":6,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-12 → 2026-11-19)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-12","end_date":"2026-11-19"},{"id":50,"project_id":6,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-19 → 2026-11-21)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-19","end_date":"2026-11-21"},{"id":51,"project_id":6,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-21 → 2026-12-05)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-21","end_date":"2026-12-05"},{"id":52,"project_id":6,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-05 → 2026-12-07)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-05","end_date":"2026-12-07"},{"id":53,"project_id":6,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-07 → 2026-12-09)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-07","end_date":"2026-12-09"},{"id":54,"project_id":6,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-09 → 2026-12-11)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-09","end_date":"2026-12-11"}],"tasks":[{"id":1,"project_id":1,"stage_id":1,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-03 → 2026-11-05 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-05","progress":100,"status":"completed","checklist":[{"id":"1_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"1_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"1_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":2,"project_id":1,"stage_id":2,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-05 → 2026-11-07 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-07","progress":100,"status":"completed","checklist":[{"id":"2_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"2_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"2_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":3,"project_id":1,"stage_id":3,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-07 → 2026-11-10 (3 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-10","progress":100,"status":"completed","checklist":[{"id":"3_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"3_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":4,"project_id":1,"stage_id":4,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-10 → 2026-11-17 (7 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-17","progress":100,"status":"completed","checklist":[{"id":"4_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"4_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"4_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":5,"project_id":1,"stage_id":5,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-17 → 2026-11-19 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-19","progress":50,"status":"in_progress","checklist":[{"id":"5_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"5_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":6,"project_id":1,"stage_id":6,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-19 → 2026-12-03 (14 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-03","progress":0,"status":"pending","checklist":[{"id":"6_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"6_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"6_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":7,"project_id":1,"stage_id":7,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-03 → 2026-12-05 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-05","progress":0,"status":"pending","checklist":[{"id":"7_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"7_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":8,"project_id":1,"stage_id":8,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-05 → 2026-12-07 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-07","progress":0,"status":"pending","checklist":[{"id":"8_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"8_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":9,"project_id":1,"stage_id":9,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-07 → 2026-12-09 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-09","progress":0,"status":"pending","checklist":[{"id":"9_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"9_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"9_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":10,"project_id":2,"stage_id":10,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-04 → 2026-11-06 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-06","progress":100,"status":"completed","checklist":[{"id":"10_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"10_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"10_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":11,"project_id":2,"stage_id":11,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-06 → 2026-11-08 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-08","progress":100,"status":"completed","checklist":[{"id":"11_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"11_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"11_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":12,"project_id":2,"stage_id":12,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-08 → 2026-11-11 (3 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-11","progress":100,"status":"completed","checklist":[{"id":"12_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"12_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":13,"project_id":2,"stage_id":13,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-11 → 2026-11-18 (7 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-18","progress":33,"status":"in_progress","checklist":[{"id":"13_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"13_2","text":"Thiết kế bản vẽ 2D & quy cách","done":false},{"id":"13_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":false}],"last_report":""},{"id":14,"project_id":2,"stage_id":14,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-18 → 2026-11-20 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-20","progress":0,"status":"pending","checklist":[{"id":"14_1","text":"Gửi khách duyệt mẫu thiết kế","done":false},{"id":"14_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":15,"project_id":2,"stage_id":15,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-20 → 2026-12-04 (14 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-04","progress":0,"status":"pending","checklist":[{"id":"15_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"15_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"15_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":16,"project_id":2,"stage_id":16,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-04 → 2026-12-06 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-06","progress":0,"status":"pending","checklist":[{"id":"16_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"16_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":17,"project_id":2,"stage_id":17,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-06 → 2026-12-08 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-08","progress":0,"status":"pending","checklist":[{"id":"17_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"17_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":18,"project_id":2,"stage_id":18,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-08 → 2026-12-10 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-10","progress":0,"status":"pending","checklist":[{"id":"18_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"18_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"18_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":19,"project_id":3,"stage_id":19,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-01 → 2026-11-03 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-03","progress":100,"status":"completed","checklist":[{"id":"19_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"19_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"19_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":20,"project_id":3,"stage_id":20,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-03 → 2026-11-05 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-05","progress":100,"status":"completed","checklist":[{"id":"20_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"20_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"20_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":21,"project_id":3,"stage_id":21,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-05 → 2026-11-08 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-08","progress":100,"status":"completed","checklist":[{"id":"21_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"21_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":22,"project_id":3,"stage_id":22,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-08 → 2026-11-15 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-15","progress":100,"status":"completed","checklist":[{"id":"22_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"22_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"22_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":23,"project_id":3,"stage_id":23,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-15 → 2026-11-17 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-17","progress":100,"status":"completed","checklist":[{"id":"23_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"23_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":true}],"last_report":""},{"id":24,"project_id":3,"stage_id":24,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-17 → 2026-12-01 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-01","progress":100,"status":"completed","checklist":[{"id":"24_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":true},{"id":"24_2","text":"Gia công sản xuất hàng loạt","done":true},{"id":"24_3","text":"Hoàn thiện bề mặt & phụ kiện","done":true}],"last_report":""},{"id":25,"project_id":3,"stage_id":25,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-01 → 2026-12-03 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-03","progress":50,"status":"in_progress","checklist":[{"id":"25_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":true},{"id":"25_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":26,"project_id":3,"stage_id":26,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-03 → 2026-12-05 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-05","progress":0,"status":"pending","checklist":[{"id":"26_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"26_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":27,"project_id":3,"stage_id":27,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-05 → 2026-12-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-07","progress":0,"status":"pending","checklist":[{"id":"27_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"27_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"27_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":28,"project_id":4,"stage_id":28,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-10-29 → 2026-10-31 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-10-31","progress":100,"status":"completed","checklist":[{"id":"28_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"28_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"28_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":29,"project_id":4,"stage_id":29,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-10-31 → 2026-11-02 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-02","progress":100,"status":"completed","checklist":[{"id":"29_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"29_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"29_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":30,"project_id":4,"stage_id":30,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-02 → 2026-11-05 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-05","progress":100,"status":"completed","checklist":[{"id":"30_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"30_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":31,"project_id":4,"stage_id":31,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-05 → 2026-11-12 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-12","progress":100,"status":"completed","checklist":[{"id":"31_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"31_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"31_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":32,"project_id":4,"stage_id":32,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-12 → 2026-11-14 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-14","progress":100,"status":"completed","checklist":[{"id":"32_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"32_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":true}],"last_report":""},{"id":33,"project_id":4,"stage_id":33,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-14 → 2026-11-28 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-28","progress":100,"status":"completed","checklist":[{"id":"33_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":true},{"id":"33_2","text":"Gia công sản xuất hàng loạt","done":true},{"id":"33_3","text":"Hoàn thiện bề mặt & phụ kiện","done":true}],"last_report":""},{"id":34,"project_id":4,"stage_id":34,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-11-28 → 2026-11-30 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-30","progress":100,"status":"completed","checklist":[{"id":"34_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":true},{"id":"34_2","text":"QC kiểm tra chất lượng & ngoại quan","done":true}],"last_report":""},{"id":35,"project_id":4,"stage_id":35,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-11-30 → 2026-12-02 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-02","progress":100,"status":"completed","checklist":[{"id":"35_1","text":"In ấn hộp quà & tem nhãn","done":true},{"id":"35_2","text":"Đóng gói thành phẩm vào hộp","done":true}],"last_report":""},{"id":36,"project_id":4,"stage_id":36,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-02 → 2026-12-04 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-04","progress":100,"status":"completed","checklist":[{"id":"36_1","text":"Vận chuyển bàn giao cho khách","done":true},{"id":"36_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":true},{"id":"36_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":true}],"last_report":""},{"id":37,"project_id":5,"stage_id":37,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-10-25 → 2026-10-27 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-10-27","progress":100,"status":"completed","checklist":[{"id":"37_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"37_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"37_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":38,"project_id":5,"stage_id":38,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-10-27 → 2026-10-29 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-10-29","progress":100,"status":"completed","checklist":[{"id":"38_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"38_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"38_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":39,"project_id":5,"stage_id":39,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-10-29 → 2026-11-01 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-01","progress":100,"status":"completed","checklist":[{"id":"39_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"39_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":40,"project_id":5,"stage_id":40,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-01 → 2026-11-08 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-08","progress":100,"status":"completed","checklist":[{"id":"40_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"40_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"40_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":41,"project_id":5,"stage_id":41,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-08 → 2026-11-10 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-10","progress":50,"status":"in_progress","checklist":[{"id":"41_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"41_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":42,"project_id":5,"stage_id":42,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-10 → 2026-11-24 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-24","progress":0,"status":"pending","checklist":[{"id":"42_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"42_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"42_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":43,"project_id":5,"stage_id":43,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-11-24 → 2026-11-26 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-26","progress":0,"status":"pending","checklist":[{"id":"43_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"43_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":44,"project_id":5,"stage_id":44,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-11-26 → 2026-11-28 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-28","progress":0,"status":"pending","checklist":[{"id":"44_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"44_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":45,"project_id":5,"stage_id":45,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-11-28 → 2026-11-30 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-30","progress":0,"status":"pending","checklist":[{"id":"45_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"45_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"45_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":46,"project_id":6,"stage_id":46,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-05 → 2026-11-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-07","progress":100,"status":"completed","checklist":[{"id":"46_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"46_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"46_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":47,"project_id":6,"stage_id":47,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-07 → 2026-11-09 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-09","progress":100,"status":"completed","checklist":[{"id":"47_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"47_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"47_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":48,"project_id":6,"stage_id":48,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-09 → 2026-11-12 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-12","progress":100,"status":"completed","checklist":[{"id":"48_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"48_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":49,"project_id":6,"stage_id":49,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-12 → 2026-11-19 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-19","progress":33,"status":"in_progress","checklist":[{"id":"49_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"49_2","text":"Thiết kế bản vẽ 2D & quy cách","done":false},{"id":"49_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":false}],"last_report":""},{"id":50,"project_id":6,"stage_id":50,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-19 → 2026-11-21 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-21","progress":0,"status":"pending","checklist":[{"id":"50_1","text":"Gửi khách duyệt mẫu thiết kế","done":false},{"id":"50_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":51,"project_id":6,"stage_id":51,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-21 → 2026-12-05 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-05","progress":0,"status":"pending","checklist":[{"id":"51_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"51_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"51_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":52,"project_id":6,"stage_id":52,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-05 → 2026-12-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-07","progress":0,"status":"pending","checklist":[{"id":"52_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"52_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":53,"project_id":6,"stage_id":53,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-07 → 2026-12-09 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-09","progress":0,"status":"pending","checklist":[{"id":"53_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"53_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":54,"project_id":6,"stage_id":54,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-09 → 2026-12-11 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-11","progress":0,"status":"pending","checklist":[{"id":"54_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"54_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"54_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""}],"costs":[{"id":1,"project_id":1,"stage_id":6,"stage_title":"Sản xuất","category":"Sản xuất","item_name":"Sản xuất bookmark LTV","vendor_name":"Xưởng sản xuất","cost_amount":17120000,"quantity":1,"unit":"gói","duration_days":14,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":2,"project_id":1,"stage_id":6,"stage_title":"Sản xuất","category":"Phụ kiện","item_name":"Tua rua + đế gỗ","vendor_name":"Xưởng phụ kiện","cost_amount":1474000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":3,"project_id":1,"stage_id":8,"stage_title":"Đóng gói","category":"In ấn","item_name":"In ấn packaging","vendor_name":"Xưởng in packaging","cost_amount":4400000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":4,"project_id":1,"stage_id":9,"stage_title":"Bàn giao + BBNT + ĐNTT","category":"Chiết khấu","item_name":"Chiết khấu c Quyên","vendor_name":"Chị Quyên","cost_amount":15410400,"quantity":1,"unit":"gói","duration_days":2,"markup_factor":2,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":5,"project_id":2,"stage_id":13,"stage_title":"Thiết kế","category":"Digital","item_name":"Landingpage sản phẩm","vendor_name":"Huy","cost_amount":10000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":6,"project_id":2,"stage_id":17,"stage_title":"Đóng gói","category":"Hàng có sẵn","item_name":"Set quà tặng B + C + D (Mẫu có sẵn)","vendor_name":"Kho KM Gift","cost_amount":3264000,"quantity":1,"unit":"set","duration_days":3,"markup_factor":1.6,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":7,"project_id":2,"stage_id":15,"stage_title":"Sản xuất","category":"Điêu khắc 3D","item_name":"Set quà tặng A + B: Thiết kế & SX 2 mẫu điêu khắc 3D","vendor_name":"Freelancer - Lam Đoàn","cost_amount":4000000,"quantity":1,"unit":"gói","duration_days":14,"markup_factor":1.6,"description_specs":"","payment_status":"Đã TT 100%"},{"id":8,"project_id":2,"stage_id":13,"stage_title":"Thiết kế","category":"Bao bì","item_name":"Thiết kế Packaging set quà tặng","vendor_name":"Freelance - Hà Linh","cost_amount":15000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":9,"project_id":3,"stage_id":22,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Designer - BST Keycharm Đồng Vọng","vendor_name":"Freelancer - Khánh Vy","cost_amount":2500000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":10,"project_id":3,"stage_id":22,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế phụ trợ BST Đồng Vọng","vendor_name":"Freelancer - Hà Linh","cost_amount":2000000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":11,"project_id":3,"stage_id":26,"stage_title":"Đóng gói","category":"In ấn","item_name":"In ấn packaging BST Đồng Vọng","vendor_name":"Xưởng in","cost_amount":2117203,"quantity":1,"unit":"lô","duration_days":7,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":12,"project_id":3,"stage_id":25,"stage_title":"Kiểm hàng","category":"Media","item_name":"Chụp ảnh sản phẩm BST Đồng Vọng","vendor_name":"Studio","cost_amount":500000,"quantity":1,"unit":"buổi","duration_days":2,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":13,"project_id":3,"stage_id":23,"stage_title":"Chốt thiết kế","category":"Nội dung","item_name":"Copywriter - BST Gác đũa Đồng Vọng","vendor_name":"Freelancer - Mavis","cost_amount":1500000,"quantity":1,"unit":"gói","duration_days":4,"markup_factor":1.5,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":14,"project_id":4,"stage_id":31,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế Label Đêm","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":7500000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Đã TT 100%"},{"id":15,"project_id":5,"stage_id":40,"stage_title":"Thiết kế","category":"Chiến lược","item_name":"Brand Strategy & Storestyling","vendor_name":"Freelancer - Nguyễn Hoàng Phương Thảo","cost_amount":70000000,"quantity":1,"unit":"gói","duration_days":30,"markup_factor":1.5,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":16,"project_id":5,"stage_id":42,"stage_title":"Sản xuất","category":"Media","item_name":"Media Pre-launch (6 tháng)","vendor_name":"Freelancer - Thảo Vũ","cost_amount":132000000,"quantity":1,"unit":"gói","duration_days":180,"markup_factor":1.5,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":17,"project_id":6,"stage_id":49,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế biển chỉ dẫn","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":4000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":18,"project_id":6,"stage_id":49,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế biển Khởi Minh","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":2500000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":1.6,"description_specs":"","payment_status":"Đã tạm ứng 50%"}],"quotations":{"1":{"project_id":1,"customer_name":"Trường Lương Thế Vinh","customer_rep":"","quote_date":"2026-11-10","title":"BÁO GIÁ BOOKMARK LƯƠNG THẾ VINH","client_tier":"Doanh nghiệp","default_markup":2,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"2":{"project_id":2,"customer_name":"PVEP (Tổng Công ty Thăm dò Khai thác Dầu khí)","customer_rep":"","quote_date":"2026-11-11","title":"BÁO GIÁ PVEP - SET QUÀ TẶNG ĐIÊU KHẮC & PACKAGING","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"3":{"project_id":3,"customer_name":"KM CST (Bộ Sưu Tập Đồng Vọng)","customer_rep":"","quote_date":"2026-11-08","title":"BÁO GIÁ KM CST - BST ĐỒNG VỌNG (KEYCHARM & GÁC ĐŨA)","client_tier":"Doanh nghiệp","default_markup":1.5,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"4":{"project_id":4,"customer_name":"HALONG RUM","customer_rep":"","quote_date":"2026-11-05","title":"BÁO GIÁ HALONG RUM - THIẾT KẾ LABEL ĐÊM","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"5":{"project_id":5,"customer_name":"Maison Mùi","customer_rep":"","quote_date":"2026-11-01","title":"BÁO GIÁ MAISON MÙI - BRAND STRATEGY & STORESTYLING","client_tier":"Doanh nghiệp","default_markup":1.5,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"6":{"project_id":6,"customer_name":"Viên Villa","customer_rep":"","quote_date":"2026-11-12","title":"BÁO GIÁ VIÊN VILLA - THIẾT KẾ BIỂN CHỈ DẪN & KHÔNG GIAN","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."}},"workTracker":{"settings":{"id":1,"project_start_date":"2026-11-09","today_date":"2026-11-10","title":"THEO DÕI TIẾN ĐỘ CÔNG VIỆC","weeks_count":7},"members":[{"id":1,"member_order":1,"name":"SA","color_hex":"#F472B6"},{"id":2,"member_order":2,"name":"HUY","color_hex":"#FB923C"},{"id":3,"member_order":3,"name":"CHỊ THANH","color_hex":"#FBBF24"},{"id":4,"member_order":4,"name":"ANH VĂN","color_hex":"#34D399"},{"id":5,"member_order":5,"name":"CHỊ CHÂU","color_hex":"#38BDF8"},{"id":6,"member_order":6,"name":"CHỊ BÊ","color_hex":"#A78BFA"}],"tasks":[{"id":1,"title":"Khảo sát hiện trạng & Chốt concept thiết kế","assigned_member_id":1,"start_date":"2026-11-09","end_date":"2026-11-13","progress":1,"status":"completed"},{"id":2,"title":"Thiết kế bản vẽ kỹ thuật 2D & Sơ đồ M&E","assigned_member_id":2,"start_date":"2026-11-12","end_date":"2026-11-16","progress":0.4,"status":"in_progress"},{"id":3,"title":"Dựng phối cảnh 3D Render không gian chính","assigned_member_id":3,"start_date":"2026-11-16","end_date":"2026-11-25","progress":0.4,"status":"in_progress"},{"id":4,"title":"Bóc tách khối lượng vật tư & Lập báo giá thầu","assigned_member_id":4,"start_date":"2026-11-18","end_date":"2026-12-04","progress":0.2,"status":"in_progress"},{"id":5,"title":"Gia công sản xuất nội thất mộc tại xưởng","assigned_member_id":5,"start_date":"2026-11-26","end_date":"2026-12-08","progress":0,"status":"pending"},{"id":6,"title":"Thi công cải tạo thô & Lắp đặt điện nước hiện trường","assigned_member_id":6,"start_date":"2026-12-07","end_date":"2026-12-14","progress":0,"status":"pending"}]},"assets":[{"id":1,"asset_type":"file","title":"260905_HDKV_KhanhLinh_LabelDem.docx","project_name":"HALONG RUM - Thiết Kế Label Đêm","sender_name":"Hà Ngọc Khánh Linh","thread_name":"Nhóm Khởi Minh Gift","ai_summary":"Hợp đồng thiết kế Label Đêm (Đã TT 100%)","status":"synced","original_url":"","drive_web_url":"https://drive.google.com"},{"id":2,"asset_type":"image","title":"Mockup_3D_DieuKhac_PVEP.jpg","project_name":"PVEP - Set Quà Tặng Điêu Khắc & Packaging","sender_name":"Lam Đoàn","thread_name":"Nhóm Sản Xuất KM Gift","ai_summary":"Phối cảnh 3D 2 mẫu điêu khắc set A+B","status":"synced","original_url":"","drive_web_url":"https://drive.google.com"},{"id":3,"asset_type":"link","title":"Báo giá Bookmark Đồng Sơn - Đại Học Quốc Gia","project_name":"Bookmark Lương Thế Vinh","sender_name":"Quản trị viên","thread_name":"Nhóm Dự án KM Gift","ai_summary":"Bảng báo giá chuẩn Khởi Minh CST chưa gồm 8% VAT","status":"classified","original_url":"https://docs.google.com/spreadsheets/d/1wGElkdiOhwEQYr0vbZuCHdx6Jgl4XzXf0PEdQN3jU-E","drive_web_url":""}],"nextIds":{"project":10,"stage":55,"task":55,"cost":19,"wt":10}};
+  var SEED = {"projects":[{"id":1,"name":"Bookmark Lương Thế Vinh","description":"Sản xuất bookmark LTV, tua rua + đế gỗ, in ấn packaging","budget":77052000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-10","expenses_sum":0},{"id":2,"name":"PVEP - Set Quà Tặng Điêu Khắc & Packaging","description":"Landingpage sản phẩm, Set B+C+D có sẵn, Set A+B điêu khắc 3D & Packaging","budget":55000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-11","expenses_sum":0},{"id":3,"name":"KM CST - BST Đồng Vọng (Keycharm & Gác Đũa)","description":"Designer BST Keycharm, Copywriter BST Gác đũa, In ấn packaging & Chụp ảnh","budget":18000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-08","expenses_sum":0},{"id":4,"name":"HALONG RUM - Thiết Kế Label Đêm","description":"Thiết kế Label Đêm cho dự án HALONG RUM","budget":12000000,"status":"active","business_unit":"KM Gift","flow_type":"customised","deposit_date":"2026-11-05","expenses_sum":0},{"id":5,"name":"Maison Mùi - Brand Strategy & Storestyling","description":"Brand Strategy, Storestyling & Media Pre-launch (6 tháng)","budget":320000000,"status":"active","business_unit":"Homeplanner","flow_type":"customised","deposit_date":"2026-11-01","expenses_sum":0},{"id":6,"name":"Viên Villa - Thiết Kế Biển Chỉ Dẫn & Không Gian","description":"Thiết kế biển chỉ dẫn Viên Villa & biển Khởi Minh","budget":12000000,"status":"active","business_unit":"Homeplanner","flow_type":"customised","deposit_date":"2026-11-12","expenses_sum":0}],"stages":[{"id":1,"project_id":1,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-10 → 2026-11-12)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-10","end_date":"2026-11-12"},{"id":2,"project_id":1,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-12 → 2026-11-14)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-12","end_date":"2026-11-14"},{"id":3,"project_id":1,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-14 → 2026-11-17)","sla_days":3,"phase":"deposit","start_date":"2026-11-14","end_date":"2026-11-17"},{"id":4,"project_id":1,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-17 → 2026-11-24)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-17","end_date":"2026-11-24"},{"id":5,"project_id":1,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-24 → 2026-11-26)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-24","end_date":"2026-11-26"},{"id":6,"project_id":1,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-26 → 2026-12-10)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-26","end_date":"2026-12-10"},{"id":7,"project_id":1,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-10 → 2026-12-12)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-10","end_date":"2026-12-12"},{"id":8,"project_id":1,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-12 → 2026-12-14)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-12","end_date":"2026-12-14"},{"id":9,"project_id":1,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-14 → 2026-12-16)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-14","end_date":"2026-12-16"},{"id":10,"project_id":2,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-11 → 2026-11-13)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-11","end_date":"2026-11-13"},{"id":11,"project_id":2,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-13 → 2026-11-15)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-13","end_date":"2026-11-15"},{"id":12,"project_id":2,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-15 → 2026-11-18)","sla_days":3,"phase":"deposit","start_date":"2026-11-15","end_date":"2026-11-18"},{"id":13,"project_id":2,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-18 → 2026-11-25)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-18","end_date":"2026-11-25"},{"id":14,"project_id":2,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-25 → 2026-11-27)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-25","end_date":"2026-11-27"},{"id":15,"project_id":2,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-27 → 2026-12-11)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-27","end_date":"2026-12-11"},{"id":16,"project_id":2,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-11 → 2026-12-13)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-11","end_date":"2026-12-13"},{"id":17,"project_id":2,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-13 → 2026-12-15)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-13","end_date":"2026-12-15"},{"id":18,"project_id":2,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-15 → 2026-12-17)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-15","end_date":"2026-12-17"},{"id":19,"project_id":3,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-08 → 2026-11-10)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-08","end_date":"2026-11-10"},{"id":20,"project_id":3,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-10 → 2026-11-12)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-10","end_date":"2026-11-12"},{"id":21,"project_id":3,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-12 → 2026-11-15)","sla_days":3,"phase":"deposit","start_date":"2026-11-12","end_date":"2026-11-15"},{"id":22,"project_id":3,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-15 → 2026-11-22)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-15","end_date":"2026-11-22"},{"id":23,"project_id":3,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-22 → 2026-11-24)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-22","end_date":"2026-11-24"},{"id":24,"project_id":3,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-24 → 2026-12-08)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-24","end_date":"2026-12-08"},{"id":25,"project_id":3,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-08 → 2026-12-10)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-08","end_date":"2026-12-10"},{"id":26,"project_id":3,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-10 → 2026-12-12)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-10","end_date":"2026-12-12"},{"id":27,"project_id":3,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-12 → 2026-12-14)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-12","end_date":"2026-12-14"},{"id":28,"project_id":4,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-05 → 2026-11-07)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-05","end_date":"2026-11-07"},{"id":29,"project_id":4,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-07 → 2026-11-09)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-07","end_date":"2026-11-09"},{"id":30,"project_id":4,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-09 → 2026-11-12)","sla_days":3,"phase":"deposit","start_date":"2026-11-09","end_date":"2026-11-12"},{"id":31,"project_id":4,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-12 → 2026-11-19)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-12","end_date":"2026-11-19"},{"id":32,"project_id":4,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-19 → 2026-11-21)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-19","end_date":"2026-11-21"},{"id":33,"project_id":4,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-21 → 2026-12-05)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-21","end_date":"2026-12-05"},{"id":34,"project_id":4,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-05 → 2026-12-07)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-05","end_date":"2026-12-07"},{"id":35,"project_id":4,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-07 → 2026-12-09)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-07","end_date":"2026-12-09"},{"id":36,"project_id":4,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-09 → 2026-12-11)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-09","end_date":"2026-12-11"},{"id":37,"project_id":5,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-01 → 2026-11-03)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-01","end_date":"2026-11-03"},{"id":38,"project_id":5,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-03 → 2026-11-05)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-03","end_date":"2026-11-05"},{"id":39,"project_id":5,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-05 → 2026-11-08)","sla_days":3,"phase":"deposit","start_date":"2026-11-05","end_date":"2026-11-08"},{"id":40,"project_id":5,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-08 → 2026-11-15)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-08","end_date":"2026-11-15"},{"id":41,"project_id":5,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-15 → 2026-11-17)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-15","end_date":"2026-11-17"},{"id":42,"project_id":5,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-17 → 2026-12-01)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-17","end_date":"2026-12-01"},{"id":43,"project_id":5,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-01 → 2026-12-03)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-01","end_date":"2026-12-03"},{"id":44,"project_id":5,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-03 → 2026-12-05)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-03","end_date":"2026-12-05"},{"id":45,"project_id":5,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-05 → 2026-12-07)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-05","end_date":"2026-12-07"},{"id":46,"project_id":6,"step_order":1,"title":"Báo giá","description":"SLA: 2 ngày (2026-11-12 → 2026-11-14)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-12","end_date":"2026-11-14"},{"id":47,"project_id":6,"step_order":2,"title":"Ký hợp đồng","description":"SLA: 2 ngày (2026-11-14 → 2026-11-16)","sla_days":2,"phase":"pre_deposit","start_date":"2026-11-14","end_date":"2026-11-16"},{"id":48,"project_id":6,"step_order":3,"title":"Tạm ứng 50% HĐ","description":"SLA: 3 ngày (2026-11-16 → 2026-11-19)","sla_days":3,"phase":"deposit","start_date":"2026-11-16","end_date":"2026-11-19"},{"id":49,"project_id":6,"step_order":4,"title":"Thiết kế","description":"SLA: 7 ngày (2026-11-19 → 2026-11-26)","sla_days":7,"phase":"post_deposit","start_date":"2026-11-19","end_date":"2026-11-26"},{"id":50,"project_id":6,"step_order":5,"title":"Chốt thiết kế","description":"SLA: 2 ngày (2026-11-26 → 2026-11-28)","sla_days":2,"phase":"post_deposit","start_date":"2026-11-26","end_date":"2026-11-28"},{"id":51,"project_id":6,"step_order":6,"title":"Sản xuất","description":"SLA: 14 ngày (2026-11-28 → 2026-12-12)","sla_days":14,"phase":"post_deposit","start_date":"2026-11-28","end_date":"2026-12-12"},{"id":52,"project_id":6,"step_order":7,"title":"Kiểm hàng","description":"SLA: 2 ngày (2026-12-12 → 2026-12-14)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-12","end_date":"2026-12-14"},{"id":53,"project_id":6,"step_order":8,"title":"Đóng gói","description":"SLA: 2 ngày (2026-12-14 → 2026-12-16)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-14","end_date":"2026-12-16"},{"id":54,"project_id":6,"step_order":9,"title":"Bàn giao + BBNT + ĐNTT","description":"SLA: 2 ngày (2026-12-16 → 2026-12-18)","sla_days":2,"phase":"post_deposit","start_date":"2026-12-16","end_date":"2026-12-18"}],"tasks":[{"id":1,"project_id":1,"stage_id":1,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-10 → 2026-11-12 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-12","progress":100,"status":"completed","checklist":[{"id":"1_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"1_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"1_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":2,"project_id":1,"stage_id":2,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-12 → 2026-11-14 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-14","progress":100,"status":"completed","checklist":[{"id":"2_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"2_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"2_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":3,"project_id":1,"stage_id":3,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-14 → 2026-11-17 (3 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-17","progress":100,"status":"completed","checklist":[{"id":"3_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"3_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":4,"project_id":1,"stage_id":4,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-17 → 2026-11-24 (7 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-24","progress":100,"status":"completed","checklist":[{"id":"4_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"4_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"4_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":5,"project_id":1,"stage_id":5,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-24 → 2026-11-26 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-11-26","progress":50,"status":"in_progress","checklist":[{"id":"5_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"5_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":6,"project_id":1,"stage_id":6,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-26 → 2026-12-10 (14 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-10","progress":0,"status":"pending","checklist":[{"id":"6_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"6_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"6_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":7,"project_id":1,"stage_id":7,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-10 → 2026-12-12 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-12","progress":0,"status":"pending","checklist":[{"id":"7_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"7_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":8,"project_id":1,"stage_id":8,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-12 → 2026-12-14 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-14","progress":0,"status":"pending","checklist":[{"id":"8_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"8_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":9,"project_id":1,"stage_id":9,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-14 → 2026-12-16 (2 ngày)","assigned_phone":"","assigned_name":"Xưởng sản xuất","deadline":"2026-12-16","progress":0,"status":"pending","checklist":[{"id":"9_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"9_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"9_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":10,"project_id":2,"stage_id":10,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-11 → 2026-11-13 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-13","progress":100,"status":"completed","checklist":[{"id":"10_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"10_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"10_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":11,"project_id":2,"stage_id":11,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-13 → 2026-11-15 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-15","progress":100,"status":"completed","checklist":[{"id":"11_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"11_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"11_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":12,"project_id":2,"stage_id":12,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-15 → 2026-11-18 (3 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-18","progress":100,"status":"completed","checklist":[{"id":"12_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"12_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":13,"project_id":2,"stage_id":13,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-18 → 2026-11-25 (7 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-25","progress":33,"status":"in_progress","checklist":[{"id":"13_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"13_2","text":"Thiết kế bản vẽ 2D & quy cách","done":false},{"id":"13_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":false}],"last_report":""},{"id":14,"project_id":2,"stage_id":14,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-25 → 2026-11-27 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-11-27","progress":0,"status":"pending","checklist":[{"id":"14_1","text":"Gửi khách duyệt mẫu thiết kế","done":false},{"id":"14_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":15,"project_id":2,"stage_id":15,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-27 → 2026-12-11 (14 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-11","progress":0,"status":"pending","checklist":[{"id":"15_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"15_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"15_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":16,"project_id":2,"stage_id":16,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-11 → 2026-12-13 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-13","progress":0,"status":"pending","checklist":[{"id":"16_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"16_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":17,"project_id":2,"stage_id":17,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-13 → 2026-12-15 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-15","progress":0,"status":"pending","checklist":[{"id":"17_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"17_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":18,"project_id":2,"stage_id":18,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-15 → 2026-12-17 (2 ngày)","assigned_phone":"","assigned_name":"Huy","deadline":"2026-12-17","progress":0,"status":"pending","checklist":[{"id":"18_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"18_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"18_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":19,"project_id":3,"stage_id":19,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-08 → 2026-11-10 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-10","progress":100,"status":"completed","checklist":[{"id":"19_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"19_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"19_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":20,"project_id":3,"stage_id":20,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-10 → 2026-11-12 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-12","progress":100,"status":"completed","checklist":[{"id":"20_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"20_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"20_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":21,"project_id":3,"stage_id":21,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-12 → 2026-11-15 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-15","progress":100,"status":"completed","checklist":[{"id":"21_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"21_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":22,"project_id":3,"stage_id":22,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-15 → 2026-11-22 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-22","progress":100,"status":"completed","checklist":[{"id":"22_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"22_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"22_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":23,"project_id":3,"stage_id":23,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-22 → 2026-11-24 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-11-24","progress":100,"status":"completed","checklist":[{"id":"23_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"23_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":true}],"last_report":""},{"id":24,"project_id":3,"stage_id":24,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-24 → 2026-12-08 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-08","progress":100,"status":"completed","checklist":[{"id":"24_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":true},{"id":"24_2","text":"Gia công sản xuất hàng loạt","done":true},{"id":"24_3","text":"Hoàn thiện bề mặt & phụ kiện","done":true}],"last_report":""},{"id":25,"project_id":3,"stage_id":25,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-08 → 2026-12-10 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-10","progress":50,"status":"in_progress","checklist":[{"id":"25_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":true},{"id":"25_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":26,"project_id":3,"stage_id":26,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-10 → 2026-12-12 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-12","progress":0,"status":"pending","checklist":[{"id":"26_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"26_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":27,"project_id":3,"stage_id":27,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-12 → 2026-12-14 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Khánh Vy","deadline":"2026-12-14","progress":0,"status":"pending","checklist":[{"id":"27_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"27_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"27_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":28,"project_id":4,"stage_id":28,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-05 → 2026-11-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-07","progress":100,"status":"completed","checklist":[{"id":"28_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"28_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"28_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":29,"project_id":4,"stage_id":29,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-07 → 2026-11-09 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-09","progress":100,"status":"completed","checklist":[{"id":"29_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"29_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"29_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":30,"project_id":4,"stage_id":30,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-09 → 2026-11-12 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-12","progress":100,"status":"completed","checklist":[{"id":"30_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"30_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":31,"project_id":4,"stage_id":31,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-12 → 2026-11-19 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-19","progress":100,"status":"completed","checklist":[{"id":"31_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"31_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"31_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":32,"project_id":4,"stage_id":32,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-19 → 2026-11-21 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-21","progress":100,"status":"completed","checklist":[{"id":"32_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"32_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":true}],"last_report":""},{"id":33,"project_id":4,"stage_id":33,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-21 → 2026-12-05 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-05","progress":100,"status":"completed","checklist":[{"id":"33_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":true},{"id":"33_2","text":"Gia công sản xuất hàng loạt","done":true},{"id":"33_3","text":"Hoàn thiện bề mặt & phụ kiện","done":true}],"last_report":""},{"id":34,"project_id":4,"stage_id":34,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-05 → 2026-12-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-07","progress":100,"status":"completed","checklist":[{"id":"34_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":true},{"id":"34_2","text":"QC kiểm tra chất lượng & ngoại quan","done":true}],"last_report":""},{"id":35,"project_id":4,"stage_id":35,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-07 → 2026-12-09 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-09","progress":100,"status":"completed","checklist":[{"id":"35_1","text":"In ấn hộp quà & tem nhãn","done":true},{"id":"35_2","text":"Đóng gói thành phẩm vào hộp","done":true}],"last_report":""},{"id":36,"project_id":4,"stage_id":36,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-09 → 2026-12-11 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-11","progress":100,"status":"completed","checklist":[{"id":"36_1","text":"Vận chuyển bàn giao cho khách","done":true},{"id":"36_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":true},{"id":"36_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":true}],"last_report":""},{"id":37,"project_id":5,"stage_id":37,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-01 → 2026-11-03 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-03","progress":100,"status":"completed","checklist":[{"id":"37_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"37_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"37_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":38,"project_id":5,"stage_id":38,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-03 → 2026-11-05 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-05","progress":100,"status":"completed","checklist":[{"id":"38_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"38_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"38_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":39,"project_id":5,"stage_id":39,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-05 → 2026-11-08 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-08","progress":100,"status":"completed","checklist":[{"id":"39_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"39_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":40,"project_id":5,"stage_id":40,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-08 → 2026-11-15 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-15","progress":100,"status":"completed","checklist":[{"id":"40_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"40_2","text":"Thiết kế bản vẽ 2D & quy cách","done":true},{"id":"40_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":true}],"last_report":""},{"id":41,"project_id":5,"stage_id":41,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-15 → 2026-11-17 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-11-17","progress":50,"status":"in_progress","checklist":[{"id":"41_1","text":"Gửi khách duyệt mẫu thiết kế","done":true},{"id":"41_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":42,"project_id":5,"stage_id":42,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-17 → 2026-12-01 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-12-01","progress":0,"status":"pending","checklist":[{"id":"42_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"42_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"42_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":43,"project_id":5,"stage_id":43,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-01 → 2026-12-03 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-12-03","progress":0,"status":"pending","checklist":[{"id":"43_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"43_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":44,"project_id":5,"stage_id":44,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-03 → 2026-12-05 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-12-05","progress":0,"status":"pending","checklist":[{"id":"44_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"44_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":45,"project_id":5,"stage_id":45,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-05 → 2026-12-07 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Nguyễn Hoàng Phương Thảo","deadline":"2026-12-07","progress":0,"status":"pending","checklist":[{"id":"45_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"45_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"45_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""},{"id":46,"project_id":6,"stage_id":46,"title":"Lập & gửi báo giá quà tặng cho khách","description":"Mốc SLA: 2026-11-12 → 2026-11-14 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-14","progress":100,"status":"completed","checklist":[{"id":"46_1","text":"Tiếp nhận yêu cầu & số lượng","done":true},{"id":"46_2","text":"Tính cost & gửi bảng báo giá","done":true},{"id":"46_3","text":"Khách phản hồi xác nhận giá","done":true}],"last_report":""},{"id":47,"project_id":6,"stage_id":47,"title":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","description":"Mốc SLA: 2026-11-14 → 2026-11-16 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-16","progress":100,"status":"completed","checklist":[{"id":"47_1","text":"Soạn dự thảo hợp đồng","done":true},{"id":"47_2","text":"Hai bên duyệt điều khoản","done":true},{"id":"47_3","text":"Ký kết hợp đồng chính thức","done":true}],"last_report":""},{"id":48,"project_id":6,"stage_id":48,"title":"Xác nhận thanh toán tạm ứng 50% HĐ","description":"Mốc SLA: 2026-11-16 → 2026-11-19 (3 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-19","progress":100,"status":"completed","checklist":[{"id":"48_1","text":"Gửi đề nghị tạm ứng 50%","done":true},{"id":"48_2","text":"Kế toán xác nhận tiền về tài khoản","done":true}],"last_report":""},{"id":49,"project_id":6,"stage_id":49,"title":"Thiết kế mẫu & mockup in ấn logo","description":"Mốc SLA: 2026-11-19 → 2026-11-26 (7 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-26","progress":33,"status":"in_progress","checklist":[{"id":"49_1","text":"Lên moodboard & concept chủ đạo","done":true},{"id":"49_2","text":"Thiết kế bản vẽ 2D & quy cách","done":false},{"id":"49_3","text":"Dựng phối cảnh 3D mockup sản phẩm","done":false}],"last_report":""},{"id":50,"project_id":6,"stage_id":50,"title":"Gửi khách duyệt & ký chốt file thiết kế cuối","description":"Mốc SLA: 2026-11-26 → 2026-11-28 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-11-28","progress":0,"status":"pending","checklist":[{"id":"50_1","text":"Gửi khách duyệt mẫu thiết kế","done":false},{"id":"50_2","text":"Chốt file in ấn/sản xuất cuối cùng","done":false}],"last_report":""},{"id":51,"project_id":6,"stage_id":51,"title":"Triển khai sản xuất & gia công hàng loạt","description":"Mốc SLA: 2026-11-28 → 2026-12-12 (14 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-12","progress":0,"status":"pending","checklist":[{"id":"51_1","text":"Chuẩn bị vật tư & khuôn mẫu","done":false},{"id":"51_2","text":"Gia công sản xuất hàng loạt","done":false},{"id":"51_3","text":"Hoàn thiện bề mặt & phụ kiện","done":false}],"last_report":""},{"id":52,"project_id":6,"stage_id":52,"title":"QC kiểm tra chất lượng & số lượng thành phẩm","description":"Mốc SLA: 2026-12-12 → 2026-12-14 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-14","progress":0,"status":"pending","checklist":[{"id":"52_1","text":"Kiểm đếm đủ số lượng đơn hàng","done":false},{"id":"52_2","text":"QC kiểm tra chất lượng & ngoại quan","done":false}],"last_report":""},{"id":53,"project_id":6,"stage_id":53,"title":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","description":"Mốc SLA: 2026-12-14 → 2026-12-16 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-16","progress":0,"status":"pending","checklist":[{"id":"53_1","text":"In ấn hộp quà & tem nhãn","done":false},{"id":"53_2","text":"Đóng gói thành phẩm vào hộp","done":false}],"last_report":""},{"id":54,"project_id":6,"stage_id":54,"title":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","description":"Mốc SLA: 2026-12-16 → 2026-12-18 (2 ngày)","assigned_phone":"","assigned_name":"Freelancer - Hà Ngọc Khánh Linh","deadline":"2026-12-18","progress":0,"status":"pending","checklist":[{"id":"54_1","text":"Vận chuyển bàn giao cho khách","done":false},{"id":"54_2","text":"Ký Biên bản nghiệm thu (BBNT)","done":false},{"id":"54_3","text":"Gửi Đề nghị thanh toán (ĐNTT) phần còn lại","done":false}],"last_report":""}],"costs":[{"id":1,"project_id":1,"stage_id":6,"stage_title":"Sản xuất","category":"Sản xuất","item_name":"Sản xuất bookmark LTV","vendor_name":"Xưởng sản xuất","cost_amount":17120000,"quantity":1,"unit":"gói","duration_days":14,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":2,"project_id":1,"stage_id":6,"stage_title":"Sản xuất","category":"Phụ kiện","item_name":"Tua rua + đế gỗ","vendor_name":"Xưởng phụ kiện","cost_amount":1474000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":3,"project_id":1,"stage_id":8,"stage_title":"Đóng gói","category":"In ấn","item_name":"In ấn packaging","vendor_name":"Xưởng in packaging","cost_amount":4400000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":2,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":4,"project_id":1,"stage_id":9,"stage_title":"Bàn giao + BBNT + ĐNTT","category":"Chiết khấu","item_name":"Chiết khấu c Quyên","vendor_name":"Chị Quyên","cost_amount":15410400,"quantity":1,"unit":"gói","duration_days":2,"markup_factor":2,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":5,"project_id":2,"stage_id":13,"stage_title":"Thiết kế","category":"Digital","item_name":"Landingpage sản phẩm","vendor_name":"Huy","cost_amount":10000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":6,"project_id":2,"stage_id":17,"stage_title":"Đóng gói","category":"Hàng có sẵn","item_name":"Set quà tặng B + C + D (Mẫu có sẵn)","vendor_name":"Kho KM Gift","cost_amount":3264000,"quantity":1,"unit":"set","duration_days":3,"markup_factor":1.6,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":7,"project_id":2,"stage_id":15,"stage_title":"Sản xuất","category":"Điêu khắc 3D","item_name":"Set quà tặng A + B: Thiết kế & SX 2 mẫu điêu khắc 3D","vendor_name":"Freelancer - Lam Đoàn","cost_amount":4000000,"quantity":1,"unit":"gói","duration_days":14,"markup_factor":1.6,"description_specs":"","payment_status":"Đã TT 100%"},{"id":8,"project_id":2,"stage_id":13,"stage_title":"Thiết kế","category":"Bao bì","item_name":"Thiết kế Packaging set quà tặng","vendor_name":"Freelance - Hà Linh","cost_amount":15000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":9,"project_id":3,"stage_id":22,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Designer - BST Keycharm Đồng Vọng","vendor_name":"Freelancer - Khánh Vy","cost_amount":2500000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":10,"project_id":3,"stage_id":22,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế phụ trợ BST Đồng Vọng","vendor_name":"Freelancer - Hà Linh","cost_amount":2000000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":11,"project_id":3,"stage_id":26,"stage_title":"Đóng gói","category":"In ấn","item_name":"In ấn packaging BST Đồng Vọng","vendor_name":"Xưởng in","cost_amount":2117203,"quantity":1,"unit":"lô","duration_days":7,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":12,"project_id":3,"stage_id":25,"stage_title":"Kiểm hàng","category":"Media","item_name":"Chụp ảnh sản phẩm BST Đồng Vọng","vendor_name":"Studio","cost_amount":500000,"quantity":1,"unit":"buổi","duration_days":2,"markup_factor":1.5,"description_specs":"","payment_status":"Đã TT 100%"},{"id":13,"project_id":3,"stage_id":23,"stage_title":"Chốt thiết kế","category":"Nội dung","item_name":"Copywriter - BST Gác đũa Đồng Vọng","vendor_name":"Freelancer - Mavis","cost_amount":1500000,"quantity":1,"unit":"gói","duration_days":4,"markup_factor":1.5,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":14,"project_id":4,"stage_id":31,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế Label Đêm","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":7500000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Đã TT 100%"},{"id":15,"project_id":5,"stage_id":40,"stage_title":"Thiết kế","category":"Chiến lược","item_name":"Brand Strategy & Storestyling","vendor_name":"Freelancer - Nguyễn Hoàng Phương Thảo","cost_amount":70000000,"quantity":1,"unit":"gói","duration_days":30,"markup_factor":1.5,"description_specs":"","payment_status":"Đã tạm ứng 50%"},{"id":16,"project_id":5,"stage_id":42,"stage_title":"Sản xuất","category":"Media","item_name":"Media Pre-launch (6 tháng)","vendor_name":"Freelancer - Thảo Vũ","cost_amount":132000000,"quantity":1,"unit":"gói","duration_days":180,"markup_factor":1.5,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":17,"project_id":6,"stage_id":49,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế biển chỉ dẫn","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":4000000,"quantity":1,"unit":"gói","duration_days":7,"markup_factor":1.6,"description_specs":"","payment_status":"Chưa thanh toán"},{"id":18,"project_id":6,"stage_id":49,"stage_title":"Thiết kế","category":"Thiết kế","item_name":"Thiết kế biển Khởi Minh","vendor_name":"Freelancer - Hà Ngọc Khánh Linh","cost_amount":2500000,"quantity":1,"unit":"gói","duration_days":5,"markup_factor":1.6,"description_specs":"","payment_status":"Đã tạm ứng 50%"}],"quotations":{"1":{"project_id":1,"customer_name":"Trường Lương Thế Vinh","customer_rep":"","quote_date":"2026-11-10","title":"BÁO GIÁ BOOKMARK LƯƠNG THẾ VINH","client_tier":"Doanh nghiệp","default_markup":2,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"2":{"project_id":2,"customer_name":"PVEP (Tổng Công ty Thăm dò Khai thác Dầu khí)","customer_rep":"","quote_date":"2026-11-11","title":"BÁO GIÁ PVEP - SET QUÀ TẶNG ĐIÊU KHẮC & PACKAGING","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"3":{"project_id":3,"customer_name":"KM CST (Bộ Sưu Tập Đồng Vọng)","customer_rep":"","quote_date":"2026-11-08","title":"BÁO GIÁ KM CST - BST ĐỒNG VỌNG (KEYCHARM & GÁC ĐŨA)","client_tier":"Doanh nghiệp","default_markup":1.5,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"4":{"project_id":4,"customer_name":"HALONG RUM","customer_rep":"","quote_date":"2026-11-05","title":"BÁO GIÁ HALONG RUM - THIẾT KẾ LABEL ĐÊM","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"5":{"project_id":5,"customer_name":"Maison Mùi","customer_rep":"","quote_date":"2026-11-01","title":"BÁO GIÁ MAISON MÙI - BRAND STRATEGY & STORESTYLING","client_tier":"Doanh nghiệp","default_markup":1.5,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."},"6":{"project_id":6,"customer_name":"Viên Villa","customer_rep":"","quote_date":"2026-11-12","title":"BÁO GIÁ VIÊN VILLA - THIẾT KẾ BIỂN CHỈ DẪN & KHÔNG GIAN","client_tier":"Doanh nghiệp","default_markup":1.6,"vat_percent":8,"notes":"Thanh toán: Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán toàn bộ giá trị còn lại sau khi bàn giao sản phẩm.\nVận chuyển: Giá trên đã bao gồm chi phí vận chuyển đến 1 địa điểm trong nội thành Hà Nội."}},"workTracker":{"settings":{"id":1,"project_start_date":"2026-11-09","today_date":"2026-11-10","title":"THEO DÕI TIẾN ĐỘ CÔNG VIỆC","weeks_count":7},"members":[{"id":1,"member_order":1,"name":"SA","color_hex":"#F472B6"},{"id":2,"member_order":2,"name":"HUY","color_hex":"#FB923C"},{"id":3,"member_order":3,"name":"CHỊ THANH","color_hex":"#FBBF24"},{"id":4,"member_order":4,"name":"ANH VĂN","color_hex":"#34D399"},{"id":5,"member_order":5,"name":"CHỊ CHÂU","color_hex":"#38BDF8"},{"id":6,"member_order":6,"name":"CHỊ BÊ","color_hex":"#A78BFA"}],"tasks":[{"id":1,"title":"Khảo sát hiện trạng & Chốt concept thiết kế","assigned_member_id":1,"start_date":"2026-11-09","end_date":"2026-11-13","progress":1,"status":"completed"},{"id":2,"title":"Thiết kế bản vẽ kỹ thuật 2D & Sơ đồ M&E","assigned_member_id":2,"start_date":"2026-11-12","end_date":"2026-11-16","progress":0.4,"status":"in_progress"},{"id":3,"title":"Dựng phối cảnh 3D Render không gian chính","assigned_member_id":3,"start_date":"2026-11-16","end_date":"2026-11-25","progress":0.4,"status":"in_progress"},{"id":4,"title":"Bóc tách khối lượng vật tư & Lập báo giá thầu","assigned_member_id":4,"start_date":"2026-11-18","end_date":"2026-12-04","progress":0.2,"status":"in_progress"},{"id":5,"title":"Gia công sản xuất nội thất mộc tại xưởng","assigned_member_id":5,"start_date":"2026-11-26","end_date":"2026-12-08","progress":0,"status":"pending"},{"id":6,"title":"Thi công cải tạo thô & Lắp đặt điện nước hiện trường","assigned_member_id":6,"start_date":"2026-12-07","end_date":"2026-12-14","progress":0,"status":"pending"}]},"assets":[{"id":1,"asset_type":"file","title":"260905_HDKV_KhanhLinh_LabelDem.docx","project_name":"HALONG RUM - Thiết Kế Label Đêm","sender_name":"Hà Ngọc Khánh Linh","thread_name":"Nhóm Khởi Minh Gift","ai_summary":"Hợp đồng thiết kế Label Đêm (Đã TT 100%)","status":"synced","original_url":"","drive_web_url":"https://drive.google.com"},{"id":2,"asset_type":"image","title":"Mockup_3D_DieuKhac_PVEP.jpg","project_name":"PVEP - Set Quà Tặng Điêu Khắc & Packaging","sender_name":"Lam Đoàn","thread_name":"Nhóm Sản Xuất KM Gift","ai_summary":"Phối cảnh 3D 2 mẫu điêu khắc set A+B","status":"synced","original_url":"","drive_web_url":"https://drive.google.com"},{"id":3,"asset_type":"link","title":"Báo giá Bookmark Đồng Sơn - Đại Học Quốc Gia","project_name":"Bookmark Lương Thế Vinh","sender_name":"Quản trị viên","thread_name":"Nhóm Dự án KM Gift","ai_summary":"Bảng báo giá chuẩn Khởi Minh CST chưa gồm 8% VAT","status":"classified","original_url":"https://docs.google.com/spreadsheets/d/1wGElkdiOhwEQYr0vbZuCHdx6Jgl4XzXf0PEdQN3jU-E","drive_web_url":""}],"nextIds":{"project":10,"stage":55,"task":55,"cost":19,"wt":10}};
   var CUSTOM_TPL = [{"stepOrder":1,"title":"Báo giá","slaDays":2,"phase":"pre_deposit","defaultTaskTitle":"Lập & gửi báo giá quà tặng cho khách","defaultChecklist":["Tiếp nhận yêu cầu & số lượng","Tính cost & gửi bảng báo giá","Khách phản hồi xác nhận giá"]},{"stepOrder":2,"title":"Ký hợp đồng","slaDays":2,"phase":"pre_deposit","defaultTaskTitle":"Soạn & ký hợp đồng nguyên tắc / đơn hàng","defaultChecklist":["Soạn dự thảo hợp đồng","Hai bên duyệt điều khoản","Ký kết hợp đồng chính thức"]},{"stepOrder":3,"title":"Tạm ứng 50% HĐ","slaDays":3,"phase":"deposit","defaultTaskTitle":"Xác nhận thanh toán tạm ứng 50% HĐ","defaultChecklist":["Gửi đề nghị tạm ứng 50%","Kế toán xác nhận tiền về tài khoản"]},{"stepOrder":4,"title":"Thiết kế","slaDays":7,"phase":"post_deposit","defaultTaskTitle":"Thiết kế mẫu & mockup in ấn logo","defaultChecklist":["Lên moodboard & concept chủ đạo","Thiết kế bản vẽ 2D & quy cách","Dựng phối cảnh 3D mockup sản phẩm"]},{"stepOrder":5,"title":"Chốt thiết kế","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"Gửi khách duyệt & ký chốt file thiết kế cuối","defaultChecklist":["Gửi khách duyệt mẫu thiết kế","Chốt file in ấn/sản xuất cuối cùng"]},{"stepOrder":6,"title":"Sản xuất","slaDays":14,"phase":"post_deposit","defaultTaskTitle":"Triển khai sản xuất & gia công hàng loạt","defaultChecklist":["Chuẩn bị vật tư & khuôn mẫu","Gia công sản xuất hàng loạt","Hoàn thiện bề mặt & phụ kiện"]},{"stepOrder":7,"title":"Kiểm hàng","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"QC kiểm tra chất lượng & số lượng thành phẩm","defaultChecklist":["Kiểm đếm đủ số lượng đơn hàng","QC kiểm tra chất lượng & ngoại quan"]},{"stepOrder":8,"title":"Đóng gói","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"Đóng gói hộp quà, tem nhãn & chuẩn bị giao","defaultChecklist":["In ấn hộp quà & tem nhãn","Đóng gói thành phẩm vào hộp"]},{"stepOrder":9,"title":"Bàn giao + BBNT + ĐNTT","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"Giao hàng, ký BBNT & gửi ĐNTT phần còn lại","defaultChecklist":["Vận chuyển bàn giao cho khách","Ký Biên bản nghiệm thu (BBNT)","Gửi Đề nghị thanh toán (ĐNTT) phần còn lại"]}];
   var READY_TPL = [{"stepOrder":1,"title":"Báo giá","slaDays":1,"phase":"pre_deposit","defaultTaskTitle":"Báo giá sản phẩm có sẵn & kiểm tồn kho","defaultChecklist":["Kiểm tồn kho & xác nhận mẫu","Gửi báo giá khách hàng"]},{"stepOrder":2,"title":"Ký hợp đồng","slaDays":1,"phase":"pre_deposit","defaultTaskTitle":"Ký hợp đồng / xác nhận đơn hàng","defaultChecklist":["Soạn hợp đồng / đơn đặt hàng","Hai bên ký xác nhận"]},{"stepOrder":3,"title":"Tạm ứng 50% HĐ","slaDays":3,"phase":"deposit","defaultTaskTitle":"Xác nhận thanh toán tạm ứng 50% HĐ","defaultChecklist":["Gửi đề nghị tạm ứng 50%","Xác nhận tiền về tài khoản"]},{"stepOrder":4,"title":"Đóng gói","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"Soạn hàng từ kho & đóng gói theo yêu cầu","defaultChecklist":["Xuất kho đủ số lượng","Đóng gói hộp & tem nhãn"]},{"stepOrder":5,"title":"Bàn giao + ĐNTT","slaDays":2,"phase":"post_deposit","defaultTaskTitle":"Bàn giao hàng hóa & gửi ĐNTT thanh toán","defaultChecklist":["Giao hàng tận nơi","Gửi Đề nghị thanh toán phần còn lại"]}];
   var STORE_KEY = 'km_portal_static_store_v1';
@@ -1493,10 +1568,15 @@
         var overall = pt.length ? Math.round(pt.reduce(function(s, t) { return s + (t.progress || 0); }, 0) / pt.length) : 0;
         var tc = 0, tq = 0;
         pc.forEach(function(c) { var q = Math.max(1, Number(c.quantity) || 1); tc += (Number(c.cost_amount) || 0) * q; tq += Math.round((Number(c.cost_amount) || 0) * (Number(c.markup_factor) || 1.5)) * q; });
+        var qMeta = st.quotations[p.id] || {};
+        var vatPctP = Number(qMeta.vat_percent !== undefined ? qMeta.vat_percent : 8);
+        var vatAmtP = Math.round(tq * vatPctP / 100);
+        var estProfit = tq - vatAmtP - tc;
         var paidCnt = pc.filter(function(c) { return String(c.payment_status || '').indexOf('100%') !== -1; }).length;
         return Object.assign({}, p, {
+          contract_code: p.contract_code || '',
           tasks_count: pt.length, completed_tasks: doneCnt, overall_progress: overall, stages_count: ps.length,
-          total_cost: tc, total_quote: tq,
+          total_cost: tc, total_quote: tq, total_revenue: tq, vat_percent: vatPctP, vat_amount: vatAmtP, estimated_profit: estProfit,
           items_preview: pc.slice(0, 2).map(function(c) { return c.item_name; }).join(', ') + (pc.length > 2 ? ' (+' + (pc.length - 2) + ')' : ''),
           vendors_preview: pc.slice(0, 2).map(function(c) { return c.vendor_name; }).filter(Boolean).join(', '),
           payment_summary: pc.length ? paidCnt + '/' + pc.length + ' Đã TT' : 'Chưa có khoản chi'
@@ -1509,11 +1589,20 @@
       var pTasks = st.tasks.filter(function(t) { return t.project_id === aid; }).map(function(t) { return Object.assign({}, t, { stage_title: stMap[t.stage_id] || '' }); });
       return jsonRes({ projects: enrichedProjects, activeProject: activeP, stages: pStages, tasks: pTasks, members: [] });
     }
+    var mProjPatch = url.match(/^\/portal\/api\/projects\/(\d+)$/);
+    if (mProjPatch && method === 'PATCH') {
+      var pidUpd = Number(mProjPatch[1]);
+      var prjUpd = st.projects.find(function(x) { return x.id === pidUpd; });
+      if (prjUpd) Object.assign(prjUpd, body);
+      saveStore(st);
+      return jsonRes({ ok: true });
+    }
     var mCosts = url.match(/^\/portal\/api\/projects\/(\d+)\/costs$/);
     if (mCosts) {
       var pid = Number(mCosts[1]);
+      var prjC = st.projects.find(function(x) { return x.id === pid; }) || {};
       if (method === 'GET') {
-        var q = st.quotations[pid] || { project_id: pid, customer_name: '', customer_rep: '', quote_date: '2026-11-10', title: 'BÁO GIÁ SẢN PHẨM', client_tier: 'Doanh nghiệp', default_markup: 1.5, vat_percent: 8, notes: '' };
+        var q = Object.assign({ project_id: pid, customer_name: '', customer_tax_code: '', contact_name: '', contact_phone: '', customer_rep: '', quote_date: '2026-11-10', title: 'BÁO GIÁ SẢN PHẨM', client_tier: 'Doanh nghiệp', default_markup: 1.5, vat_percent: 8, notes: '', payment_terms: 'Tạm ứng 50% sau khi ký HĐ, 50% sau khi nghiệm thu bàn giao.', bank_info: 'Chủ TK: CÔNG TY CP KHỞI MINH\nSTK: 0793381666 — ACB', bank_qr_url: '', display_mode: 'all' }, st.quotations[pid] || {});
         var list = st.costs.filter(function(c) { return c.project_id === pid; });
         var tc = 0, tq = 0;
         var out = list.map(function(c) {
@@ -1521,17 +1610,18 @@
           var up = Math.round((Number(c.cost_amount) || 0) * (Number(c.markup_factor) || q.default_markup || 1.5));
           var lt = up * qty;
           tc += (Number(c.cost_amount) || 0) * qty; tq += lt;
-          return Object.assign({}, c, { quote_unit_price: up, quote_line_total: lt });
+          return Object.assign({}, c, { quote_unit_price: up, quote_line_total: lt, has_attachment: !!(c.attachment_data) });
         });
         var vat = Math.round(tq * (Number(q.vat_percent) || 0) / 100);
-        return jsonRes({ ok: true, costs: out, quotation: q, summary: { totalCost: tc, totalQuoteExclVat: tq, vatAmount: vat, totalQuoteInclVat: tq + vat, estimatedProfit: tq - tc, profitMarginPct: tq > 0 ? Math.round((tq - tc) * 100 / tq) : 0 } });
+        var profit = tq - vat - tc;
+        return jsonRes({ ok: true, contract_code: prjC.contract_code || '', costs: out, quotation: q, summary: { totalCost: tc, totalRevenue: tq, totalQuoteExclVat: tq, vatAmount: vat, totalQuoteInclVat: tq + vat, estimatedProfit: profit, profitMarginPct: tq > 0 ? Math.round(profit * 100 / tq) : 0 } });
       }
       if (method === 'POST') {
         if (body.id) {
           var ex = st.costs.find(function(x) { return x.id === body.id; });
           if (ex) Object.assign(ex, body);
         } else {
-          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán' }, body));
+          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán', contract_ref: '', attachment_name: '', attachment_data: '', show_in_quote: 1 }, body));
         }
         saveStore(st);
         return jsonRes({ ok: true });
@@ -1547,6 +1637,10 @@
     var mQuote = url.match(/^\/portal\/api\/projects\/(\d+)\/quotation$/);
     if (mQuote && method === 'POST') {
       var pidQ = Number(mQuote[1]);
+      if (body.contract_code !== undefined) {
+        var pForQ = st.projects.find(function(x) { return x.id === pidQ; });
+        if (pForQ) pForQ.contract_code = body.contract_code;
+      }
       st.quotations[pidQ] = Object.assign(st.quotations[pidQ] || { project_id: pidQ }, body);
       if (body.applyMarkupToAll) {
         st.costs.forEach(function(c) { if (c.project_id === pidQ) c.markup_factor = Number(body.default_markup) || 1.5; });
@@ -1558,16 +1652,11 @@
       var npId = st.nextIds.project++;
       var fType = body.flowType === 'ready_stock' ? 'ready_stock' : 'customised';
       var anchor = body.depositDate || '2026-11-10';
-      st.projects.push({ id: npId, name: body.name || 'Dự án mới', description: '', budget: 0, status: 'active', business_unit: body.businessUnit || 'KM Gift', flow_type: fType, deposit_date: anchor, expenses_sum: 0 });
+      st.projects.push({ id: npId, name: body.name || 'Dự án mới', description: '', budget: 0, status: 'active', business_unit: body.businessUnit || 'KM Gift', flow_type: fType, deposit_date: anchor, contract_code: '', expenses_sum: 0 });
       var tpl = fType === 'ready_stock' ? READY_TPL : CUSTOM_TPL;
-      var pre = tpl.filter(function(x) { return x.phase !== 'post_deposit'; });
-      var post = tpl.filter(function(x) { return x.phase === 'post_deposit'; });
-      var cb = anchor;
-      var preCalc = [];
-      for (var i = pre.length - 1; i >= 0; i--) { var ed = cb; var sd = addDaysStr(ed, -pre[i].slaDays); preCalc.unshift(Object.assign({}, pre[i], { startDate: sd, endDate: ed })); cb = sd; }
       var cf = anchor;
-      var postCalc = post.map(function(x) { var sd = cf; var ed = addDaysStr(sd, x.slaDays); cf = ed; return Object.assign({}, x, { startDate: sd, endDate: ed }); });
-      preCalc.concat(postCalc).forEach(function(s) {
+      var allCalc = tpl.map(function(x) { var sd = cf; var ed = addDaysStr(sd, x.slaDays); cf = ed; return Object.assign({}, x, { startDate: sd, endDate: ed }); });
+      allCalc.forEach(function(s) {
         var sid = st.nextIds.stage++;
         st.stages.push({ id: sid, project_id: npId, step_order: s.stepOrder, title: s.title, sla_days: s.slaDays, phase: s.phase, start_date: s.startDate, end_date: s.endDate });
         var tid = st.nextIds.task++;
@@ -1586,12 +1675,8 @@
         body.stageSlaUpdates.forEach(function(u) { var s = st.stages.find(function(x) { return x.id === u.id; }); if (s) s.sla_days = Number(u.slaDays) || 0; });
       }
       var pSts = st.stages.filter(function(s) { return s.project_id === pidS; }).sort(function(a, b) { return a.step_order - b.step_order; });
-      var preS = pSts.filter(function(s) { return s.phase === 'pre_deposit' || s.phase === 'deposit'; });
-      var postS = pSts.filter(function(s) { return s.phase !== 'pre_deposit' && s.phase !== 'deposit'; });
-      var cBack = anchorD;
-      for (var j = preS.length - 1; j >= 0; j--) { preS[j].end_date = cBack; preS[j].start_date = addDaysStr(cBack, -(Number(preS[j].sla_days) || 0)); cBack = preS[j].start_date; }
       var cFwd = anchorD;
-      for (var k = 0; k < postS.length; k++) { postS[k].start_date = cFwd; postS[k].end_date = addDaysStr(cFwd, Number(postS[k].sla_days) || 0); cFwd = postS[k].end_date; }
+      for (var k = 0; k < pSts.length; k++) { pSts[k].start_date = cFwd; pSts[k].end_date = addDaysStr(cFwd, Number(pSts[k].sla_days) || 0); cFwd = pSts[k].end_date; }
       pSts.forEach(function(s) { st.tasks.forEach(function(t) { if (t.stage_id === s.id) t.deadline = s.end_date; }); });
       saveStore(st);
       return jsonRes({ ok: true });
@@ -1761,28 +1846,46 @@
       return Number(n || 0).toLocaleString('vi-VN') + ' ₫';
     }
 
+    function parseVndNumber(val) {
+      return Number(String(val || '').replace(/[^0-9]/g, '')) || 0;
+    }
+
+    function formatVndInputLive(inp) {
+      var raw = String(inp.value || '').replace(/[^0-9]/g, '');
+      inp.value = raw ? Number(raw).toLocaleString('vi-VN') : '';
+    }
+
     function renderProjectCosts() {
       var sum = projectCostsData.summary || {};
       var q = projectCostsData.quotation || {};
       var costs = projectCostsData.costs || [];
       var stages = pmData.stages || [];
+      var vatPct = Number(q.vat_percent !== undefined && q.vat_percent !== null ? q.vat_percent : 8);
+      var totalRev = Number(sum.totalRevenue !== undefined ? sum.totalRevenue : sum.totalQuoteExclVat) || 0;
 
       document.getElementById('cost-kpi-total').textContent = fmtVnd(sum.totalCost);
-      document.getElementById('cost-kpi-quote').textContent = fmtVnd(sum.totalQuoteExclVat);
+      document.getElementById('cost-kpi-quote').textContent = fmtVnd(totalRev);
       document.getElementById('cost-kpi-vat').textContent = fmtVnd(sum.totalQuoteInclVat);
-      document.getElementById('cost-kpi-vat-sub').textContent = 'VAT ' + (q.vat_percent ?? 8) + '%';
+      document.getElementById('cost-kpi-vat-sub').textContent = 'VAT ' + vatPct + '%: ' + fmtVnd(sum.vatAmount);
       document.getElementById('cost-kpi-profit').textContent = fmtVnd(sum.estimatedProfit);
-      document.getElementById('cost-kpi-margin').textContent = 'Biên lợi nhuận: ' + (sum.profitMarginPct || 0) + '%';
+      document.getElementById('cost-kpi-margin').textContent = '= Doanh thu - VAT (' + vatPct + '%) - Chi phí (Biên ' + (sum.profitMarginPct || 0) + '%)';
 
+      document.getElementById('q-contract-code').value = projectCostsData.contract_code || (pmData.activeProject && pmData.activeProject.contract_code) || '';
       document.getElementById('q-cust-name').value = q.customer_name || '';
-      document.getElementById('q-cust-rep').value = q.customer_rep || '';
+      document.getElementById('q-cust-tax').value = q.customer_tax_code || '';
+      document.getElementById('q-contact-name').value = q.contact_name || '';
+      document.getElementById('q-contact-phone').value = q.contact_phone || '';
       document.getElementById('q-client-tier').value = q.client_tier || 'Doanh nghiệp';
       document.getElementById('q-default-markup').value = q.default_markup || 1.5;
-      document.getElementById('q-vat-percent').value = q.vat_percent ?? 8;
+      document.getElementById('q-vat-percent').value = vatPct;
+      document.getElementById('q-display-mode').value = q.display_mode || 'all';
+      document.getElementById('q-payment-terms').value = q.payment_terms || '';
+      document.getElementById('q-bank-info').value = q.bank_info || '';
+      document.getElementById('q-bank-qr-url').value = q.bank_qr_url || '';
 
       var tbody = document.getElementById('project-costs-tbody');
       if (costs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập cost và tự tính báo giá.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập chi phí (đã gồm VAT/Thuế TNCN).</td></tr>';
         return;
       }
 
@@ -1792,24 +1895,76 @@
           var st = stages[i];
           stageOpts += '<option value="' + st.id + '"' + (Number(st.id) === Number(c.stage_id) ? ' selected' : '') + '>' + esc(st.title) + '</option>';
         }
+        var attLink = '';
+        if (c.has_attachment || c.attachment_data) {
+          var dlHref = c.attachment_data ? c.attachment_data : ('/portal/api/projects/costs/' + c.id + '/attachment');
+          attLink = '<a href="' + esc(dlHref) + '" download="' + esc(c.attachment_name || ('chung-tu-' + c.id)) + '" style="display:block; font-size:11px; color:var(--primary); margin-top:3px; word-break:break-all;">📎 ' + esc(c.attachment_name || 'Tải chứng từ') + '</a>';
+        }
+        var showChecked = Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0;
         return '<tr>' +
           '<td><select class="select" style="height:30px; font-size:12px; max-width:115px;" onchange="updateCostRow(' + c.id + ', {stage_id: Number(this.value) || null})">' + stageOpts + '</select></td>' +
-          '<td><input class="wt-cell-input" style="font-weight:600; min-width:140px;" value="' + esc(c.item_name) + '" onchange="updateCostRow(' + c.id + ', {item_name: this.value})"></td>' +
+          '<td><textarea class="wt-cell-input" rows="2" style="font-weight:600; min-width:250px; white-space:pre-wrap; resize:vertical; line-height:1.4;" onchange="updateCostRow(' + c.id + ', {item_name: this.value})">' + esc(c.item_name) + '</textarea></td>' +
           '<td><input class="wt-cell-input" style="min-width:120px;" value="' + esc(c.vendor_name) + '" onchange="updateCostRow(' + c.id + ', {vendor_name: this.value})"></td>' +
           '<td><input type="number" min="0" class="wt-cell-input" style="width:48px; font-family:JetBrains Mono,monospace;" value="' + (c.duration_days || 0) + '" onchange="updateCostRow(' + c.id + ', {duration_days: Number(this.value)})"></td>' +
-          '<td><input type="number" min="0" step="10000" class="wt-cell-input" style="width:92px; font-family:JetBrains Mono,monospace;" value="' + (c.cost_amount || 0) + '" onchange="updateCostRow(' + c.id + ', {cost_amount: Number(this.value)})"></td>' +
+          '<td><input type="text" inputmode="numeric" class="wt-cell-input" style="width:112px; font-family:JetBrains Mono,monospace; text-align:right;" value="' + Number(c.cost_amount || 0).toLocaleString('vi-VN') + '" oninput="formatVndInputLive(this)" onchange="updateCostRow(' + c.id + ', {cost_amount: parseVndNumber(this.value)})"></td>' +
           '<td><input type="number" min="1" class="wt-cell-input" style="width:44px; font-family:JetBrains Mono,monospace;" value="' + (c.quantity || 1) + '" onchange="updateCostRow(' + c.id + ', {quantity: Number(this.value)})"></td>' +
           '<td><input type="number" min="1" step="0.05" class="wt-cell-input" style="width:52px; font-family:JetBrains Mono,monospace; color:var(--primary); font-weight:700;" value="' + (c.markup_factor || 1.5) + '" onchange="updateCostRow(' + c.id + ', {markup_factor: Number(this.value)})"></td>' +
           '<td style="font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(c.quote_unit_price) + '</td>' +
           '<td style="font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(c.quote_line_total) + '</td>' +
+          '<td>' +
+            '<input class="wt-cell-input" style="font-size:11.5px; min-width:130px; margin-bottom:3px;" placeholder="Số HĐ / Hóa đơn..." value="' + esc(c.contract_ref || '') + '" onchange="updateCostRow(' + c.id + ', {contract_ref: this.value})">' +
+            attLink +
+            '<label style="display:inline-block; font-size:11px; color:var(--primary); cursor:pointer; margin-top:2px;">+ Đính kèm (.docx/.pdf/.xlsx)<input type="file" accept=".docx,.doc,.pdf,.xlsx,.xls" style="display:none;" onchange="uploadCostAttachment(' + c.id + ', this)"></label>' +
+          '</td>' +
           '<td><select class="select" style="height:30px; font-size:11.5px;" onchange="updateCostRow(' + c.id + ', {payment_status: this.value})">' +
             '<option value="Chưa thanh toán"' + (c.payment_status === 'Chưa thanh toán' ? ' selected' : '') + '>Chưa TT</option>' +
             '<option value="Đã tạm ứng 50%"' + (c.payment_status === 'Đã tạm ứng 50%' ? ' selected' : '') + '>Tạm ứng 50%</option>' +
             '<option value="Đã TT 100%"' + (c.payment_status === 'Đã TT 100%' ? ' selected' : '') + '>Đã TT 100%</option>' +
           '</select></td>' +
+          '<td style="text-align:center;"><input type="checkbox" ' + (showChecked ? 'checked' : '') + ' onchange="updateCostRow(' + c.id + ', {show_in_quote: this.checked ? 1 : 0})"></td>' +
           '<td><button class="btn btn-sm" style="height:28px; color:#DC2626;" onclick="deleteCostItem(' + c.id + ')">✕</button></td>' +
         '</tr>';
       }).join('');
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise(function(resolve, reject) {
+        var r = new FileReader();
+        r.onload = function() { resolve(String(r.result || '')); };
+        r.onerror = function() { reject(new Error('Không đọc được file')); };
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function uploadCostAttachment(costId, inp) {
+      var file = inp && inp.files && inp.files[0];
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) {
+        showToast('File tối đa 4MB để đảm bảo tốc độ', true);
+        return;
+      }
+      var dataUrl = await readFileAsDataUrl(file);
+      await updateCostRow(costId, { attachment_name: file.name, attachment_data: dataUrl });
+      showToast('Đã đính kèm chứng từ: ' + file.name);
+    }
+
+    async function uploadBankQrFile(inp) {
+      var file = inp && inp.files && inp.files[0];
+      if (!file) return;
+      var dataUrl = await readFileAsDataUrl(file);
+      document.getElementById('q-bank-qr-url').value = dataUrl;
+      await saveQuotationMeta(false);
+      showToast('Đã tải ảnh QR thanh toán!');
+    }
+
+    async function updateProjectContractCode(pid, val) {
+      await fetch('/portal/api/projects/' + pid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_code: String(val || '').trim() })
+      });
+      showToast('Đã cập nhật Mã Hợp đồng');
+      loadProjectsData(activeProjectId);
     }
 
     async function updateCostRow(costId, patch) {
@@ -1821,38 +1976,65 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      showToast('Đã cập nhật chi phí & tính lại báo giá');
-      loadProjectCosts();
+      showToast('Đã cập nhật chi phí & tính lại doanh thu/lợi nhuận');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
-    async function addProjectCostItem() {
-      var name = prompt('Nhập tên hạng mục chi phí (VD: Thiết kế bao bì / Sản xuất hộp):');
-      if (!name || !name.trim()) return;
-      var vendor = prompt('Tên Freelancer / Nhà cung cấp (tuỳ chọn):') || '';
-      var costStr = prompt('Chi phí gốc / đơn vị (VND, VD: 5000000):') || '0';
-      var qtyStr = prompt('Số lượng (mặc định 1):') || '1';
-      var defaultMarkup = Number(document.getElementById('q-default-markup').value) || 1.5;
+    function toggleCostCreator() {
+      var box = document.getElementById('cost-creator-box');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
 
+    async function submitNewCostItem() {
+      var name = document.getElementById('new-cost-name').value.trim();
+      if (!name) { showToast('Vui lòng nhập tên hạng mục', true); return; }
+      var vendor = document.getElementById('new-cost-vendor').value.trim();
+      var costAmount = parseVndNumber(document.getElementById('new-cost-amount').value);
+      var qty = Math.max(1, Number(document.getElementById('new-cost-qty').value) || 1);
+      var contractRef = document.getElementById('new-cost-contract').value.trim();
+      var fileInp = document.getElementById('new-cost-file');
+      var file = fileInp && fileInp.files && fileInp.files[0];
+      var attachment_name = '';
+      var attachment_data = '';
+      if (file) {
+        if (file.size > 4 * 1024 * 1024) { showToast('File chứng từ tối đa 4MB', true); return; }
+        attachment_name = file.name;
+        attachment_data = await readFileAsDataUrl(file);
+      }
+      var defaultMarkup = Number(document.getElementById('q-default-markup').value) || 1.5;
       await fetch('/portal/api/projects/' + activeProjectId + '/costs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          item_name: name.trim(),
-          vendor_name: vendor.trim(),
-          cost_amount: Number(costStr.replace(/[^0-9.]/g, '')) || 0,
-          quantity: Math.max(1, Number(qtyStr) || 1),
-          markup_factor: defaultMarkup
+          item_name: name,
+          vendor_name: vendor,
+          cost_amount: costAmount,
+          quantity: qty,
+          markup_factor: defaultMarkup,
+          contract_ref: contractRef,
+          attachment_name: attachment_name,
+          attachment_data: attachment_data,
+          show_in_quote: 1
         })
       });
-      showToast('Đã thêm khoản chi mới');
-      loadProjectCosts();
+      document.getElementById('new-cost-name').value = '';
+      document.getElementById('new-cost-vendor').value = '';
+      document.getElementById('new-cost-amount').value = '';
+      document.getElementById('new-cost-contract').value = '';
+      if (fileInp) fileInp.value = '';
+      document.getElementById('cost-creator-box').style.display = 'none';
+      showToast('Đã thêm hạng mục chi phí mới');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
     async function deleteCostItem(costId) {
       if (!confirm('Xóa khoản chi phí này?')) return;
       await fetch('/portal/api/projects/costs/' + costId, { method: 'DELETE' });
       showToast('Đã xóa khoản chi');
-      loadProjectCosts();
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
     }
 
     function applyTierPreset() {
@@ -1869,11 +2051,18 @@
     async function saveQuotationMeta(applyMarkupToAll) {
       if (!activeProjectId) return;
       var payload = {
+        contract_code: document.getElementById('q-contract-code').value.trim(),
         customer_name: document.getElementById('q-cust-name').value.trim(),
-        customer_rep: document.getElementById('q-cust-rep').value.trim(),
+        customer_tax_code: document.getElementById('q-cust-tax').value.trim(),
+        contact_name: document.getElementById('q-contact-name').value.trim(),
+        contact_phone: document.getElementById('q-contact-phone').value.trim(),
         client_tier: document.getElementById('q-client-tier').value,
         default_markup: Number(document.getElementById('q-default-markup').value) || 1.5,
         vat_percent: Number(document.getElementById('q-vat-percent').value) || 0,
+        display_mode: document.getElementById('q-display-mode').value || 'all',
+        payment_terms: document.getElementById('q-payment-terms').value.trim(),
+        bank_info: document.getElementById('q-bank-info').value.trim(),
+        bank_qr_url: document.getElementById('q-bank-qr-url').value.trim(),
         applyMarkupToAll: Boolean(applyMarkupToAll)
       };
       await fetch('/portal/api/projects/' + activeProjectId + '/quotation', {
@@ -1881,43 +2070,93 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      showToast(applyMarkupToAll ? 'Đã áp dụng hệ số mới cho tất cả hạng mục!' : 'Đã lưu thông tin báo giá');
-      loadProjectCosts();
+      showToast(applyMarkupToAll ? 'Đã áp dụng hệ số mới cho tất cả hạng mục!' : 'Đã tự động lưu thông tin báo giá');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
+    }
+
+    function buildQuotationDocumentHtml(isForDownload) {
+      var q = projectCostsData.quotation || {};
+      var costs = projectCostsData.costs || [];
+      var sum = projectCostsData.summary || {};
+      var ap = pmData.activeProject || {};
+      var vatPct = Number(q.vat_percent !== undefined ? q.vat_percent : 8);
+      var displayMode = document.getElementById('q-display-mode').value || q.display_mode || 'all';
+      var custName = document.getElementById('q-cust-name').value.trim() || q.customer_name || 'Quý Đối tác';
+      var custTax = document.getElementById('q-cust-tax').value.trim() || q.customer_tax_code || '';
+      var contactName = document.getElementById('q-contact-name').value.trim() || q.contact_name || '';
+      var contactPhone = document.getElementById('q-contact-phone').value.trim() || q.contact_phone || '';
+      var contractCode = document.getElementById('q-contract-code').value.trim() || projectCostsData.contract_code || ap.contract_code || '';
+      var payTerms = document.getElementById('q-payment-terms').value.trim() || q.payment_terms || '';
+      var bankInfo = document.getElementById('q-bank-info').value.trim() || q.bank_info || '';
+      var bankQr = document.getElementById('q-bank-qr-url').value.trim() || q.bank_qr_url || '';
+
+      var rows = '';
+      if (displayMode === 'hidden') {
+        var visibleItems = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
+        var hiddenSum = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) === 0; }).reduce(function(s, x) { return s + (Number(x.quote_line_total) || 0); }, 0);
+        if (visibleItems.length === 0 || (hiddenSum === 0 && costs.length > 0 && visibleItems.length === costs.length)) {
+          rows = '<tr><td style="text-align:center;">1</td><td><strong>Trọn gói triển khai dự án: ' + esc(ap.name || 'Quà tặng doanh nghiệp') + '</strong><div style="font-size:12px;color:#475569;margin-top:3px;">Bao gồm toàn bộ thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td>Theo tiến độ HĐ</td></tr>';
+        } else {
+          rows = visibleItems.map(function(item, idx) {
+            return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+          }).join('');
+          if (hiddenSum > 0) {
+            rows += '<tr><td style="text-align:center;">' + (visibleItems.length + 1) + '</td><td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td></td></tr>';
+          }
+        }
+      } else {
+        rows = costs.map(function(item, idx) {
+          return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+        }).join('');
+      }
+
+      var contactDisplay = [contactName, contactPhone].filter(Boolean).join(' — ') || q.customer_rep || '-';
+      var qrHtml = bankQr ? '<div style="text-align:center;"><img src="' + esc(bankQr) + '" alt="QR Thanh toán" style="width:110px;height:110px;object-fit:contain;border:1px solid #CBD5E1;border-radius:6px;background:#fff;padding:4px;"></div>' : '';
+      var topBtns = isForDownload ? '' : '<div class="no-p" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button class="btn" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;" onclick="window.opener && window.opener.downloadQuotationDoc && window.opener.downloadQuotationDoc()">💾 Lưu file Báo Giá (.doc)</button><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá</button></div>';
+
+      return '<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>' + esc(q.title || 'BÁO GIÁ KHỞI MINH CST') + '</title>' +
+        '<style>@page{size:A4 portrait;margin:14mm;}body{font-family:Segoe UI,Arial,sans-serif;color:#0F172A;margin:0;padding:24px;background:#F8FAFC;}.sheet{max-width:860px;margin:0 auto;background:#fff;padding:32px;border:1px solid #E2E8F0;border-radius:8px;}.header{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #2563EB;padding-bottom:16px;margin-bottom:20px;}.co-name{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:6px;}.co-meta,.cust-box{font-size:12.5px;color:#475569;line-height:1.6;}h1{text-align:center;font-size:19px;font-weight:800;margin:10px 0 6px;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#EFF6FF;border:1px solid #CBD5E1;padding:9px;text-align:left;}td{border:1px solid #CBD5E1;padding:9px;}.totals{width:340px;margin-left:auto;font-size:13.5px;}.totals td{border:none;padding:5px 8px;}.totals tr.grand td{border-top:2px solid #2563EB;font-weight:800;color:#2563EB;}.pay-box{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;font-size:12.5px;background:#F8FAFC;padding:14px;border:1px solid #E2E8F0;border-radius:6px;line-height:1.6;}.btn{background:#2563EB;color:#fff;border:none;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;}@media print{.no-p{display:none!important;}body{background:#fff;padding:0;}.sheet{border:none;}}</style></head><body>' +
+        '<div class="sheet">' + topBtns +
+        '<div class="header"><div><div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div><div class="co-meta">VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội | Liên hệ: 079.338.1666</div></div>' +
+        '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(custName) + '</div>' + (custTax ? '<div><strong>MST:</strong> ' + esc(custTax) + '</div>' : '') + '<div><strong>Đại diện:</strong> ' + esc(contactDisplay) + '</div>' + (contractCode ? '<div><strong>Mã HĐ:</strong> ' + esc(contractCode) + '</div>' : '') + '<div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
+        '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
+        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th><th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<table class="totals"><tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>Thuế GTGT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
+        '<div class="pay-box"><div style="flex:1;"><div><strong>Điều khoản thanh toán:</strong><br>' + esc(payTerms).replace(/\n/g, '<br>') + '</div><div style="margin-top:8px;"><strong>Thông tin STK &amp; Ngân hàng:</strong><br>' + esc(bankInfo).replace(/\n/g, '<br>') + '</div></div>' + qrHtml + '</div>' +
+        '</div></body></html>';
+    }
+
+    function downloadQuotationDoc() {
+      if (!activeProjectId) return;
+      var mode = document.getElementById('q-display-mode').value || 'all';
+      if (!window.__KM_IS_STATIC) {
+        window.location.href = '/portal/api/projects/' + activeProjectId + '/quotation/print?download=doc&mode=' + encodeURIComponent(mode);
+        return;
+      }
+      var docHtml = String.fromCharCode(0xFEFF) + buildQuotationDocumentHtml(true);
+      var blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'BaoGia-DuAn-' + activeProjectId + '.doc';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 1000);
+      showToast('Đã lưu file Báo Giá (.doc) về máy!');
     }
 
     function openPrintableQuotation() {
       if (!activeProjectId) return;
+      var mode = document.getElementById('q-display-mode').value || 'all';
       if (!window.__KM_IS_STATIC) {
-        window.open('/portal/api/projects/' + activeProjectId + '/quotation/print', '_blank');
+        window.open('/portal/api/projects/' + activeProjectId + '/quotation/print?mode=' + encodeURIComponent(mode), '_blank');
         return;
       }
-      var q = projectCostsData.quotation || {};
-      var costs = projectCostsData.costs || [];
-      var sum = projectCostsData.summary || {};
-      var vatPct = Number(q.vat_percent || 8);
-      var rows = costs.map(function(item, idx) {
-        return '<tr>' +
-          '<td style="text-align:center;">' + (idx + 1) + '</td>' +
-          '<td><strong>' + esc(item.item_name) + '</strong></td>' +
-          '<td style="text-align:center;">' + esc(item.unit || 'gói') + '</td>' +
-          '<td style="text-align:center;">' + (item.quantity || 1) + '</td>' +
-          '<td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td>' +
-          '<td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td>' +
-          '<td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td>' +
-        '</tr>';
-      }).join('');
       var w = window.open('', '_blank');
       if (!w) { showToast('Trình duyệt đã chặn popup, vui lòng cho phép mở tab mới', true); return; }
       w.document.open();
-      w.document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>' + esc(q.title || 'BÁO GIÁ KHỞI MINH CST') + '</title>' +
-        '<style>@page{size:A4 portrait;margin:14mm;}body{font-family:Segoe UI,Arial,sans-serif;color:#0F172A;margin:0;padding:24px;background:#F8FAFC;}.sheet{max-width:840px;margin:0 auto;background:#fff;padding:32px;border:1px solid #E2E8F0;border-radius:8px;}.header{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #2563EB;padding-bottom:16px;margin-bottom:20px;}.co-name{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:6px;}.co-meta,.cust-box{font-size:12.5px;color:#475569;line-height:1.6;}h1{text-align:center;font-size:19px;font-weight:800;margin:10px 0 6px;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#EFF6FF;border:1px solid #CBD5E1;padding:9px;text-align:left;}td{border:1px solid #CBD5E1;padding:9px;}.totals{width:340px;margin-left:auto;font-size:13.5px;}.totals td{border:none;padding:5px 8px;}.totals tr.grand td{border-top:2px solid #2563EB;font-weight:800;color:#2563EB;}.btn{background:#2563EB;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:600;cursor:pointer;}@media print{.no-p{display:none;}body{background:#fff;padding:0;}.sheet{border:none;}}</style></head><body>' +
-        '<div class="sheet"><div class="no-p" style="text-align:right;margin-bottom:12px;"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF Báo Giá</button></div>' +
-        '<div class="header"><div><div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div><div class="co-meta">VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội | Liên hệ: 079.338.1666</div></div>' +
-        '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(q.customer_name || 'Quý Đối tác') + '</div><div><strong>Đại diện:</strong> ' + esc(q.customer_rep || '-') + '</div><div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
-        '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
-        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th><th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-        '<table class="totals"><tr><td>Cộng tiền hàng:</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>VAT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
-        '<div style="font-size:12.5px;background:#F8FAFC;padding:12px;border:1px solid #E2E8F0;border-radius:6px;"><strong>Ghi chú:</strong> Tạm ứng 50% giá trị đơn hàng sau khi đặt hàng và thanh toán phần còn lại sau khi bàn giao.</div></div></body></html>');
+      w.document.write(buildQuotationDocumentHtml(false));
       w.document.close();
     }
 
@@ -2070,89 +2309,14 @@
       }
     }
 
-    function renderProjectsTab() {
-      var buName = activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner';
-      var rawList = pmData.projects || pmData.allProjects || [];
-      var list = rawList.filter(function(p) { return (p.business_unit || 'KM Gift') === activeBu; });
-
-      var totalBuCost = list.reduce(function(s, p) { return s + (Number(p.total_cost) || 0); }, 0);
-      var totalBuQuote = list.reduce(function(s, p) { return s + (Number(p.total_quote) || 0); }, 0);
-      var totalBuProfit = totalBuQuote - totalBuCost;
-
-      if (document.getElementById('bu-kpi-count')) {
-        document.getElementById('bu-kpi-count').textContent = String(list.length);
-        document.getElementById('bu-kpi-label').textContent = buName;
-        document.getElementById('bu-kpi-cost').textContent = fmtVnd(totalBuCost);
-        document.getElementById('bu-kpi-quote').textContent = fmtVnd(totalBuQuote);
-        document.getElementById('bu-kpi-profit').textContent = fmtVnd(totalBuProfit);
-        document.getElementById('master-bu-title').textContent = 'Bảng Tổng Hợp Dự Án — ' + buName;
-      }
-
-      var masterTbody = document.getElementById('master-projects-tbody');
-      if (masterTbody) {
-        if (list.length === 0) {
-          masterTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)".</td></tr>';
-        } else {
-          masterTbody.innerHTML = list.map(function(p, idx) {
-            var flowLbl = p.flow_type === 'ready_stock' ? 'Hàng có sẵn' : 'Customised';
-            return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
-              '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
-              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + esc(p.payment_summary || '') + '</div></td>' +
-              '<td style="font-size:12.5px; color:var(--text-body);">' + esc(p.items_preview || p.description || '-') + '</td>' +
-              '<td style="font-size:12.5px; color:var(--text-muted);">' + esc(p.vendors_preview || 'Chưa gán NCC') + '</td>' +
-              '<td><div class="badge" style="margin-bottom:4px;">' + flowLbl + '</div><div style="font-size:11.5px; font-family:JetBrains Mono,monospace; color:var(--text-muted);">TƯ: ' + fmtShortDate(p.deposit_date) + '</div></td>' +
-              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(p.total_cost) + '</td>' +
-              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(p.total_quote) + '</td>' +
-              '<td><span class="badge ' + ((p.overall_progress || 0) >= 100 ? 'done' : '') + '">' + (p.overall_progress || 0) + '%</span></td>' +
-              '<td><button class="btn btn-soft btn-sm" onclick="event.stopPropagation(); openProjectDetail(' + p.id + ')">Chi tiết →</button></td>' +
-            '</tr>';
-          }).join('');
-        }
-      }
-
-      var ap = pmData.activeProject;
-      if (ap) {
-        document.getElementById('detail-bu-badge').textContent = ap.business_unit === 'Homeplanner' ? '🏠 Homeplanner' : '🎁 Khởi Minh Gift';
-        document.getElementById('active-project-title').textContent = ap.name;
-        document.getElementById('active-project-meta').textContent =
-          'Đơn vị: ' + (ap.business_unit || 'KM Gift') + '  •  Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Cost: ' + fmtVnd(ap.total_cost) + '  •  Giá trị Báo giá: ' + fmtVnd(ap.total_quote);
-      }
-
-      var tbody = document.getElementById('project-tasks-tbody');
-      var kanban = document.getElementById('project-kanban-view');
-      var tasks = pmData.tasks || [];
-      var stages = pmData.stages || [];
-
-      var slaBar = document.getElementById('project-sla-bar');
-      var showSla = projectViewMode !== 'costs' && ap && (ap.deposit_date || stages.some(function(s) { return Number(s.sla_days) > 0; }));
-      if (slaBar && showSla) {
-        slaBar.style.display = 'flex';
-        document.getElementById('sla-deposit-date').value = ap.deposit_date || '';
-        document.getElementById('sla-flow-badge').textContent =
-          ap.flow_type === 'ready_stock' ? 'Luồng: Hàng có sẵn' : 'Luồng: Customised / Không có sẵn';
-        document.getElementById('sla-strip').innerHTML = stages.map(function(st) {
-          var isAnchor = st.phase === 'deposit' || String(st.title || '').indexOf('Tạm ứng') !== -1;
-          return '<div class="sla-node' + (isAnchor ? ' anchor' : '') + '">' +
-            '<div class="sla-node-title" title="' + esc(st.title) + '">' + esc(st.step_order + '. ' + st.title) + '</div>' +
-            '<div class="sla-node-dates">' + fmtShortDate(st.start_date) + ' → ' + fmtShortDate(st.end_date) + '</div>' +
-            '<div class="sla-days-row">' +
-              '<span>SLA:</span>' +
-              '<input type="number" min="0" max="180" class="sla-days-input" data-stage-id="' + st.id + '" value="' + (Number(st.sla_days) || 0) + '" onchange="recalculateProjectSla()">' +
-              '<span>ngày</span>' +
-            '</div>' +
-          '</div>';
-        }).join('');
-      } else if (slaBar) {
-        slaBar.style.display = 'none';
-      }
-
     async function toggleChecklistItem(taskId, itemId) {
       await fetch('/portal/api/tasks/' + taskId + '/checklist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'toggle', itemId: itemId })
       });
-      loadProjectsData(activeProjectId);
+      await loadProjectsData(activeProjectId);
+      showToast('Đã cập nhật trạng thái đầu mục & thanh tiến độ!');
     }
 
     function toggleChecklistFromInput(inp) {
@@ -2194,42 +2358,129 @@
     }
 
     function renderKanbanCard(t, showStageBadge) {
-        var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
-        var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (t.progress > 0 ? 'Đang làm' : 'Chờ làm'));
-        var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (t.progress > 0 ? '' : 'muted'));
-        var cl = Array.isArray(t.checklist) ? t.checklist : [];
-        var clDone = cl.filter(function(i) { return i.done; }).length;
-        var clHtml = cl.map(function(item) {
-          return '<label class="cl-item' + (item.done ? ' done' : '') + '">' +
-            '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + (item.done ? ' checked' : '') + ' onchange="toggleChecklistFromInput(this)">' +
-            '<span>' + esc(item.text) + '</span>' +
-          '</label>';
-        }).join('');
+      var isDone = t.progress >= 100 || t.status === 'completed' || t.status === 'done';
+      var pillText = showStageBadge ? (t.stage_title || 'Giai đoạn') : (isDone ? 'Hoàn thành' : (t.progress > 0 ? 'Đang làm' : 'Chờ làm'));
+      var pillClass = showStageBadge ? 'muted' : (isDone ? 'done' : (t.progress > 0 ? '' : 'muted'));
+      var cl = Array.isArray(t.checklist) ? t.checklist : [];
+      var clDone = cl.filter(function(i) { return i.done; }).length;
+      var clHtml = cl.map(function(item) {
+        return '<label class="cl-item' + (item.done ? ' done' : '') + '">' +
+          '<input type="checkbox" data-task-id="' + t.id + '" data-item-id="' + esc(item.id) + '"' + (item.done ? ' checked' : '') + ' onchange="toggleChecklistFromInput(this)">' +
+          '<span>' + esc(item.text) + '</span>' +
+        '</label>';
+      }).join('');
 
-        return '<div class="kanban-card" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
-          '<div style="font-weight:700; font-size:13.5px; color:var(--text-main); margin-bottom:4px;">' + esc(t.title) + '</div>' +
-          '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">' +
-            '<span>' + esc(t.assigned_name || t.assigned_phone || 'Chưa gán') + '</span>' +
-            '<span>Hạn: ' + esc(t.deadline ? t.deadline.slice(0, 10) : 'Chưa đặt') + '</span>' +
+      return '<div class="kanban-card" draggable="true" onmousedown="onCardMouseDown(event, this)" onmouseup="onCardMouseUp(this)" ondragstart="onTaskDragStart(event, ' + t.id + ')" ondragend="onTaskDragEnd(event)">' +
+        '<div style="font-weight:700; font-size:13.5px; color:var(--text-main); margin-bottom:4px;">' + esc(t.title) + '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">' +
+          '<span>' + esc(t.assigned_name || t.assigned_phone || 'Chưa gán') + '</span>' +
+          '<span>Hạn: ' + esc(t.deadline ? t.deadline.slice(0, 10) : 'Chưa đặt') + '</span>' +
+        '</div>' +
+        '<div style="margin-bottom:8px;">' +
+          '<div class="progress-header">' +
+            '<span>Tiến độ tự động: ' + clDone + '/' + cl.length + ' đầu mục</span>' +
+            '<span style="font-family:JetBrains Mono,monospace; color:' + (isDone ? '#059669' : 'var(--primary)') + ';">' + (t.progress || 0) + '%</span>' +
           '</div>' +
-          '<div style="margin-bottom:8px;">' +
-            '<div class="progress-header">' +
-              '<span>Tiến độ từ Bot: ' + clDone + '/' + cl.length + ' đầu mục</span>' +
-              '<span style="font-family:JetBrains Mono,monospace; color:' + (isDone ? '#059669' : 'var(--primary)') + ';">' + (t.progress || 0) + '%</span>' +
+          '<div class="progress-track"><div class="progress-fill' + (isDone ? ' done' : '') + '" style="width:' + Math.min(100, Math.max(0, t.progress || 0)) + '%;"></div></div>' +
+        '</div>' +
+        '<div class="cl-box">' +
+          (clHtml || '<div style="font-size:11px; color:var(--text-muted);">Chưa có đầu mục con</div>') +
+          '<button class="btn btn-sm" style="height:24px; font-size:11px; align-self:flex-start; margin-top:2px;" onclick="addChecklistItem(' + t.id + ')">+ Thêm đầu mục</button>' +
+        '</div>' +
+        (t.last_report ? '<div class="cl-report">🤖 ' + esc(t.last_report) + '</div>' : '') +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:6px; width:100%;">' +
+          '<span class="badge ' + pillClass + '" style="font-size:10.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; display:block;" title="' + esc(pillText) + '">' + esc(pillText) + '</span>' +
+          '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" onclick="promptBotReport(' + t.id + ')">🤖 Báo Bot</button>' +
+          '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" data-title="' + esc(t.title) + '" data-assigned="' + esc(t.assigned_name || '') + '" onclick="remindProjectTaskFromBtn(this)">🔔 Tag</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderProjectsTab() {
+      var buName = activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner';
+      var rawList = pmData.projects || pmData.allProjects || [];
+      var list = rawList.filter(function(p) { return (p.business_unit || 'KM Gift') === activeBu; });
+
+      var totalBuCost = list.reduce(function(s, p) { return s + (Number(p.total_cost) || 0); }, 0);
+      var totalBuQuote = list.reduce(function(s, p) { return s + (Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0); }, 0);
+      var totalBuProfit = list.reduce(function(s, p) {
+        var prof = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (Number(p.total_quote || 0) - Math.round(Number(p.total_quote || 0) * 0.08) - Number(p.total_cost || 0));
+        return s + prof;
+      }, 0);
+
+      if (document.getElementById('bu-kpi-count')) {
+        document.getElementById('bu-kpi-count').textContent = String(list.length);
+        document.getElementById('bu-kpi-label').textContent = buName;
+        document.getElementById('bu-kpi-cost').textContent = fmtVnd(totalBuCost);
+        document.getElementById('bu-kpi-quote').textContent = fmtVnd(totalBuQuote);
+        document.getElementById('bu-kpi-profit').textContent = fmtVnd(totalBuProfit);
+        document.getElementById('master-bu-title').textContent = 'Bảng Tổng Hợp Dự Án — ' + buName;
+      }
+
+      var masterTbody = document.getElementById('master-projects-tbody');
+      if (masterTbody) {
+        if (list.length === 0) {
+          masterTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)".</td></tr>';
+        } else {
+          masterTbody.innerHTML = list.map(function(p, idx) {
+            var flowLbl = p.flow_type === 'ready_stock' ? 'Hàng có sẵn' : 'Customised';
+            var rev = Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0;
+            var vatAmt = p.vat_amount !== undefined ? Number(p.vat_amount) : Math.round(rev * 0.08);
+            var profitVal = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (rev - vatAmt - Number(p.total_cost || 0));
+            return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
+              '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+              '<td onclick="event.stopPropagation()"><input class="wt-cell-input" style="font-family:JetBrains Mono,monospace; font-size:12px; min-width:120px;" placeholder="Nhập mã HĐ..." value="' + esc(p.contract_code || '') + '" onchange="updateProjectContractCode(' + p.id + ', this.value)"></td>' +
+              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + esc(p.payment_summary || '') + '</div></td>' +
+              '<td style="font-size:12.5px; color:var(--text-body); white-space:normal; line-height:1.45; min-width:220px;">' + esc(p.items_preview || p.description || '-') + '</td>' +
+              '<td style="font-size:12.5px; color:var(--text-muted); white-space:normal;">' + esc(p.vendors_preview || 'Chưa gán NCC') + '</td>' +
+              '<td><div class="badge" style="margin-bottom:4px;">' + flowLbl + '</div><div style="font-size:11.5px; font-family:JetBrains Mono,monospace; color:var(--text-muted);">Mốc: ' + fmtShortDate(p.deposit_date) + '</div></td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(p.total_cost) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(rev) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:' + (profitVal >= 0 ? '#059669' : '#DC2626') + '; white-space:nowrap;">' + fmtVnd(profitVal) + '</td>' +
+              '<td><span class="badge ' + ((p.overall_progress || 0) >= 100 ? 'done' : '') + '">' + (p.overall_progress || 0) + '%</span></td>' +
+              '<td><button class="btn btn-soft btn-sm" onclick="event.stopPropagation(); openProjectDetail(' + p.id + ')">Chi tiết →</button></td>' +
+            '</tr>';
+          }).join('');
+        }
+      }
+
+      var ap = pmData.activeProject;
+      if (ap) {
+        var apRev = Number(ap.total_revenue !== undefined ? ap.total_revenue : ap.total_quote) || 0;
+        var apProfit = ap.estimated_profit !== undefined ? Number(ap.estimated_profit) : (apRev - Math.round(apRev * 0.08) - Number(ap.total_cost || 0));
+        document.getElementById('detail-bu-badge').textContent = ap.business_unit === 'Homeplanner' ? '🏠 Homeplanner' : '🎁 Khởi Minh Gift';
+        document.getElementById('active-project-title').textContent = ap.name;
+        document.getElementById('active-project-meta').textContent =
+          (ap.contract_code ? 'Mã HĐ: ' + ap.contract_code + '  •  ' : '') +
+          'Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Chi phí: ' + fmtVnd(ap.total_cost) + '  •  Tổng Doanh thu: ' + fmtVnd(apRev) + '  •  Lợi nhuận (sau VAT 8%): ' + fmtVnd(apProfit);
+      }
+
+      var tbody = document.getElementById('project-tasks-tbody');
+      var kanban = document.getElementById('project-kanban-view');
+      var tasks = pmData.tasks || [];
+      var stages = pmData.stages || [];
+
+      var slaBar = document.getElementById('project-sla-bar');
+      var showSla = projectViewMode !== 'costs' && ap && (ap.deposit_date || stages.some(function(s) { return Number(s.sla_days) > 0; }));
+      if (slaBar && showSla) {
+        slaBar.style.display = 'flex';
+        document.getElementById('sla-deposit-date').value = ap.deposit_date || '';
+        document.getElementById('sla-flow-badge').textContent =
+          ap.flow_type === 'ready_stock' ? 'Luồng: Hàng có sẵn (Tính xuôi)' : 'Luồng: Customised (Tính xuôi)';
+        document.getElementById('sla-strip').innerHTML = stages.map(function(st) {
+          var isAnchor = st.step_order === 1;
+          return '<div class="sla-node' + (isAnchor ? ' anchor' : '') + '">' +
+            '<div class="sla-node-title" title="' + esc(st.title) + '">' + esc(st.step_order + '. ' + st.title) + '</div>' +
+            '<div class="sla-node-dates">' + fmtShortDate(st.start_date) + ' → ' + fmtShortDate(st.end_date) + '</div>' +
+            '<div class="sla-days-row">' +
+              '<span>SLA:</span>' +
+              '<input type="number" min="0" max="180" class="sla-days-input" data-stage-id="' + st.id + '" value="' + (Number(st.sla_days) || 0) + '" onchange="recalculateProjectSla()">' +
+              '<span>ngày</span>' +
             '</div>' +
-            '<div class="progress-track"><div class="progress-fill' + (isDone ? ' done' : '') + '" style="width:' + Math.min(100, Math.max(0, t.progress || 0)) + '%;"></div></div>' +
-          '</div>' +
-          '<div class="cl-box">' +
-            (clHtml || '<div style="font-size:11px; color:var(--text-muted);">Chưa có đầu mục con</div>') +
-            '<button class="btn btn-sm" style="height:24px; font-size:11px; align-self:flex-start; margin-top:2px;" onclick="addChecklistItem(' + t.id + ')">+ Thêm đầu mục</button>' +
-          '</div>' +
-          (t.last_report ? '<div class="cl-report">🤖 ' + esc(t.last_report) + '</div>' : '') +
-          '<div style="display:flex; justify-content:space-between; align-items:center; gap:6px; width:100%;">' +
-            '<span class="badge ' + pillClass + '" style="font-size:10.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; display:block;" title="' + esc(pillText) + '">' + esc(pillText) + '</span>' +
-            '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" onclick="promptBotReport(' + t.id + ')">🤖 Báo Bot</button>' +
-            '<button class="btn btn-soft btn-sm" style="height:26px; font-size:11px; padding:0 8px; flex-shrink:0;" data-title="' + esc(t.title) + '" data-assigned="' + esc(t.assigned_name || '') + '" onclick="remindProjectTaskFromBtn(this)">🔔 Tag</button>' +
-          '</div>' +
-        '</div>';
+          '</div>';
+        }).join('');
+      } else if (slaBar) {
+        slaBar.style.display = 'none';
       }
 
       if (projectViewMode === 'stages' && stages.length > 0) {
@@ -2524,7 +2775,7 @@
         }
 
         bodyHtml += '<tr>' +
-          '<td><input class="wt-cell-input" value="' + esc(t.title) + '" onchange="updateWtTask(' + t.id + ', {title: this.value})"></td>' +
+          '<td style="min-width:300px; white-space:normal;"><textarea class="wt-cell-input" rows="2" style="min-width:290px; white-space:pre-wrap; word-break:break-word; resize:vertical; line-height:1.45;" onchange="updateWtTask(' + t.id + ', {title: this.value})">' + esc(t.title) + '</textarea></td>' +
           '<td><select class="select" style="height:30px; font-size:12px; width:100%;" onchange="updateWtTask(' + t.id + ', {assigned_member_id: Number(this.value) || null})">' + memOpts + '</select></td>' +
           '<td><input type="date" class="wt-cell-input" value="' + esc(t.start_date) + '" onchange="updateWtTask(' + t.id + ', {start_date: this.value})"></td>' +
           '<td><input type="date" class="wt-cell-input" value="' + esc(t.end_date) + '" onchange="updateWtTask(' + t.id + ', {end_date: this.value})"></td>' +

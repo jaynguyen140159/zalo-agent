@@ -141,9 +141,8 @@ export function addDaysIso(isoDate: string, days: number): string {
 }
 
 /**
- * Tính lịch SLA dây chuyền cho dự án Khởi Minh Gift từ ngày Tạm ứng 50% HĐ.
- * - Các bước sau tạm ứng (Thiết kế -> Chốt thiết kế -> Sản xuất -> ...) cộng dồn tiến về phía trước.
- * - Các bước trước tạm ứng (Báo giá -> Ký HĐ -> Tạm ứng) tính lùi từ ngày tạm ứng.
+ * Tính lịch SLA dây chuyền xuôi từ mốc ngày bắt đầu (hoặc ngày ký HĐ / tạm ứng).
+ * Mọi bước theo đúng thứ tự stepOrder 1 -> N đều cộng dồn xuôi về sau, không tính lùi.
  */
 export function calculateKmGiftSchedule(params: {
   flowType: KmGiftFlowType;
@@ -162,23 +161,8 @@ export function calculateKmGiftSchedule(params: {
   }));
 
   const results: CalculatedSlaStage[] = [];
-
-  // 1. Pre-deposit & deposit stages end at anchor date
-  const preAndDeposit = stagesWithSla.filter((s) => s.phase !== "post_deposit");
-  let cursorBack = anchor;
-  const preReversed: CalculatedSlaStage[] = [];
-  for (let i = preAndDeposit.length - 1; i >= 0; i--) {
-    const st = preAndDeposit[i]!;
-    const endDate = cursorBack;
-    const startDate = addDaysIso(endDate, -st.slaDays);
-    preReversed.push({ ...st, startDate, endDate });
-    cursorBack = startDate;
-  }
-  results.push(...preReversed.reverse());
-
-  // 2. Post-deposit stages cascade forward from anchor date
   let cursorForward = anchor;
-  for (const st of stagesWithSla.filter((s) => s.phase === "post_deposit")) {
+  for (const st of stagesWithSla) {
     const startDate = cursorForward;
     const endDate = addDaysIso(startDate, st.slaDays);
     results.push({ ...st, startDate, endDate });
