@@ -903,11 +903,13 @@ export const portalRoutes = new Hono()
           "Chủ TK: CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH\nSTK: 0793381666 — Ngân hàng TMCP Á Châu (ACB)",
       ),
       bank_qr_url: String(rawQ?.bank_qr_url || ""),
-      display_mode: String(rawQ?.display_mode || "all"),
+      display_mode: String(rawQ?.display_mode || "selected"),
     };
 
     let totalCost = 0;
-    let totalQuoteExclVat = 0;
+    let allQuoteExclVat = 0;
+    let selectedQuoteExclVat = 0;
+    let selectedCount = 0;
     const enriched = costs.map((item) => {
       const qty = Math.max(1, Number(item.quantity) || 1);
       const unitCost = Number(item.cost_amount) || 0;
@@ -916,7 +918,11 @@ export const portalRoutes = new Hono()
       const quoteUnitPrice = Math.round(unitCost * factor);
       const quoteLineTotal = quoteUnitPrice * qty;
       totalCost += lineCost;
-      totalQuoteExclVat += quoteLineTotal;
+      allQuoteExclVat += quoteLineTotal;
+      if (Number(item.show_in_quote ?? 1) !== 0) {
+        selectedQuoteExclVat += quoteLineTotal;
+        selectedCount++;
+      }
       return {
         ...item,
         line_cost: lineCost,
@@ -925,6 +931,7 @@ export const portalRoutes = new Hono()
       };
     });
 
+    const totalQuoteExclVat = quotation.display_mode === "selected" ? selectedQuoteExclVat : allQuoteExclVat;
     const vatPct = Number(quotation.vat_percent) || 0;
     const vatAmount = Math.round((totalQuoteExclVat * vatPct) / 100);
     const totalQuoteInclVat = totalQuoteExclVat + vatAmount;
@@ -941,6 +948,10 @@ export const portalRoutes = new Hono()
         totalCost,
         totalRevenue: totalQuoteExclVat,
         totalQuoteExclVat,
+        allQuoteExclVat,
+        selectedQuoteExclVat,
+        selectedCount,
+        totalCount: enriched.length,
         vatAmount,
         totalQuoteInclVat,
         estimatedProfit,
@@ -1065,6 +1076,14 @@ export const portalRoutes = new Hono()
     return c.json({ ok: true, id: row.id });
   })
 
+  .post("/api/projects/:id/costs/quote-selection", async (c) => {
+    const projectId = Number(c.req.param("id"));
+    const body = await c.req.json<{ showInQuote?: number | boolean }>();
+    const flag = body.showInQuote ? 1 : 0;
+    db.prepare("UPDATE pm_project_costs SET show_in_quote = ? WHERE project_id = ?").run(flag, projectId);
+    return c.json({ ok: true, show_in_quote: flag });
+  })
+
   .delete("/api/projects/costs/:costId", (c) => {
     const costId = Number(c.req.param("costId"));
     db.prepare("DELETE FROM pm_project_costs WHERE id = ?").run(costId);
@@ -1147,7 +1166,7 @@ export const portalRoutes = new Hono()
       body.payment_terms ?? existing?.payment_terms ?? "",
       body.bank_info ?? existing?.bank_info ?? "",
       body.bank_qr_url ?? existing?.bank_qr_url ?? "",
-      body.display_mode ?? existing?.display_mode ?? "all",
+      body.display_mode ?? existing?.display_mode ?? "selected",
     );
 
     if (body.applyMarkupToAll) {
@@ -1215,7 +1234,7 @@ export const portalRoutes = new Hono()
           "Chủ TK: CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH\nSTK: 0793381666 — Ngân hàng TMCP Á Châu (ACB)",
       ),
       bank_qr_url: String(qRaw?.bank_qr_url || ""),
-      display_mode: String(c.req.query("mode") || qRaw?.display_mode || "all"),
+      display_mode: String(c.req.query("mode") || qRaw?.display_mode || "selected"),
     };
 
     const escHtml = (s: unknown) =>
@@ -1253,7 +1272,17 @@ export const portalRoutes = new Hono()
 
     let hasAnyImage = false;
     let rowsHtml = "";
-    if (q.display_mode === "hidden") {
+    let quoteSubTotal = subTotal;
+    if (q.display_mode === "selected") {
+      // Chỉ báo giá những sản phẩm/hạng mục được tick ở cột Báo giá (loại hẳn mục bỏ chọn)
+      const selectedItems = calculatedItems.filter((it) => Number(it.show_in_quote ?? 1) !== 0);
+      quoteSubTotal = selectedItems.reduce((s, x) => s + x.lineTotal, 0);
+      hasAnyImage = selectedItems.some((it) => Boolean(it.product_image && it.product_image.trim()));
+      rowsHtml =
+        selectedItems.length > 0
+          ? selectedItems.map((item, idx) => renderQuoteItemRow(item, idx, hasAnyImage)).join("")
+          : `<tr><td colspan="7" style="text-align:center; color:#64748B; padding:16px;">Chưa có hạng mục nào được tick chọn đưa vào Báo giá.</td></tr>`;
+    } else if (q.display_mode === "hidden") {
       // Báo giá ẩn chi tiết: chỉ hiện 1 dòng tổng hợp gói dịch vụ hoặc các mục cho phép hiện
       const visibleItems = calculatedItems.filter((it) => Number(it.show_in_quote ?? 1) === 1);
       const hiddenTotal = calculatedItems
@@ -1291,8 +1320,8 @@ export const portalRoutes = new Hono()
     }
 
     const vatPct = Number(q.vat_percent) || 0;
-    const vatAmt = Math.round((subTotal * vatPct) / 100);
-    const grandTotal = subTotal + vatAmt;
+    const vatAmt = Math.round((quoteSubTotal * vatPct) / 100);
+    const grandTotal = quoteSubTotal + vatAmt;
     const contactDisplay = [q.contact_name, q.contact_phone].filter(Boolean).join(" — ") || q.customer_rep || "-";
     const paymentTermsHtml = escHtml(q.payment_terms).replace(/\n/g, "<br>");
     const bankInfoHtml = escHtml(q.bank_info).replace(/\n/g, "<br>");
@@ -1367,7 +1396,7 @@ export const portalRoutes = new Hono()
       <tbody>${rowsHtml || `<tr><td colspan="${hasAnyImage ? 8 : 7}" style="text-align:center; color:#64748B;">Chưa có hạng mục nào</td></tr>`}</tbody>
     </table>
     <table class="totals">
-      <tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${subTotal.toLocaleString("vi-VN")} ₫</td></tr>
+      <tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${quoteSubTotal.toLocaleString("vi-VN")} ₫</td></tr>
       <tr><td>Thuế GTGT (${vatPct}%):</td><td style="text-align:right;">${vatAmt.toLocaleString("vi-VN")} ₫</td></tr>
       <tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">${grandTotal.toLocaleString("vi-VN")} ₫</td></tr>
     </table>

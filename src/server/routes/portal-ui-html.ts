@@ -1032,6 +1032,7 @@ export function renderPortalHtml(): string {
                   <div class="field">
                     <label>Dạng hiển thị báo giá</label>
                     <select class="select" id="q-display-mode" onchange="saveQuotationMeta(false)">
+                      <option value="selected">Chỉ báo giá các hạng mục đã chọn</option>
                       <option value="all">Hiển thị tất cả các hạng mục</option>
                       <option value="hidden">Báo giá ẩn chi tiết (Gộp gói)</option>
                     </select>
@@ -1060,8 +1061,15 @@ export function renderPortalHtml(): string {
               </div>
 
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-                <div style="font-size:14px; font-weight:700;">Chi tiết Chi phí từng Hạng mục &amp; Chứng từ (Đã gồm VAT/Thuế TNCN)</div>
-                <button class="btn btn-primary btn-sm" onclick="toggleCostCreator()">+ Thêm khoản chi / Hạng mục</button>
+                <div>
+                  <div style="font-size:14px; font-weight:700;">Chi tiết Chi phí từng Hạng mục &amp; Chứng từ (Đã gồm VAT/Thuế TNCN)</div>
+                  <div id="cost-quote-selection-pill" style="font-size:12px; color:var(--primary); font-weight:600; margin-top:2px;"></div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <button type="button" class="btn btn-soft btn-sm" onclick="toggleAllCostsInQuote(true)" title="Chọn tất cả hạng mục vào Báo giá">☑ Chọn tất cả BG</button>
+                  <button type="button" class="btn btn-soft btn-sm" onclick="toggleAllCostsInQuote(false)" title="Bỏ chọn tất cả hạng mục">☐ Bỏ chọn hết</button>
+                  <button class="btn btn-primary btn-sm" onclick="toggleCostCreator()">+ Thêm khoản chi / Hạng mục</button>
+                </div>
               </div>
               <div id="cost-creator-box" style="display:none; background:var(--aux-tint); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px;">
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:end;">
@@ -1104,6 +1112,7 @@ export function renderPortalHtml(): string {
                 <table>
                   <thead>
                     <tr>
+                      <th style="width:68px; text-align:center;" title="Tick để chọn sản phẩm/hạng mục đưa vào file Báo giá"><label style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; font-size:11px; margin:0;"><span>Báo giá</span><input type="checkbox" id="chk-all-costs-quote" onchange="toggleAllCostsInQuote(this.checked)"></label></th>
                       <th>Giai đoạn</th>
                       <th style="min-width:128px;">Ảnh SP (Báo giá)</th>
                       <th style="min-width:240px;">Hạng mục &amp; Quy cách (Hiển thị đầy đủ)</th>
@@ -1116,12 +1125,11 @@ export function renderPortalHtml(): string {
                       <th>Thành tiền</th>
                       <th style="min-width:170px;">HĐ / Hóa đơn chứng từ</th>
                       <th>Trạng thái</th>
-                      <th title="Hiển thị trong Báo giá khách hàng">Hiện BG</th>
                       <th>Xóa</th>
                     </tr>
                   </thead>
                   <tbody id="project-costs-tbody">
-                    <tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
+                    <tr><td colspan="14" style="text-align:center; color:var(--text-muted); padding:20px;">Đang tải bảng chi phí...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1908,10 +1916,26 @@ export function renderPortalHtml(): string {
       document.getElementById('q-client-tier').value = q.client_tier || 'Doanh nghiệp';
       document.getElementById('q-default-markup').value = q.default_markup || 1.5;
       document.getElementById('q-vat-percent').value = vatPct;
-      document.getElementById('q-display-mode').value = q.display_mode || 'all';
+      document.getElementById('q-display-mode').value = q.display_mode || 'selected';
       document.getElementById('q-payment-terms').value = q.payment_terms || '';
       document.getElementById('q-bank-info').value = q.bank_info || '';
       document.getElementById('q-bank-qr-url').value = q.bank_qr_url || '';
+
+      var selCount = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; }).length;
+      var selSum = costs
+        .filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; })
+        .reduce(function(s, c) { return s + (Number(c.quote_line_total) || 0); }, 0);
+      var masterChk = document.getElementById('chk-all-costs-quote');
+      if (masterChk) {
+        masterChk.checked = costs.length > 0 && selCount === costs.length;
+        masterChk.indeterminate = selCount > 0 && selCount < costs.length;
+      }
+      var selPill = document.getElementById('cost-quote-selection-pill');
+      if (selPill) {
+        selPill.innerHTML = costs.length > 0
+          ? ('✅ Đang chọn <strong>' + selCount + '/' + costs.length + '</strong> hạng mục vào Báo giá • Giá trị BG (chưa VAT): <strong>' + fmtVnd(selSum) + '</strong>')
+          : '';
+      }
 
       var tbody = document.getElementById('project-costs-tbody');
       if (costs.length === 0) {
@@ -1940,7 +1964,9 @@ export function renderPortalHtml(): string {
           '<label style="display:inline-block; font-size:11px; color:var(--primary); cursor:pointer;">📷 Tải ảnh SP<input type="file" accept="image/*" style="display:none;" onchange="uploadCostProductImage(' + c.id + ', this)"></label>' +
         '</div>';
         var showChecked = Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0;
-        return '<tr>' +
+        var rowStyle = showChecked ? '' : ' style="opacity:0.72; background:#F8FAFC;"';
+        return '<tr' + rowStyle + '>' +
+          '<td style="text-align:center;"><input type="checkbox" style="width:16px; height:16px; cursor:pointer; accent-color:var(--primary);" title="Tick để đưa vào Báo giá" ' + (showChecked ? 'checked' : '') + ' onchange="toggleCostInQuote(' + c.id + ', this.checked)"></td>' +
           '<td><select class="select" style="height:30px; font-size:12px; max-width:115px;" onchange="updateCostRow(' + c.id + ', {stage_id: Number(this.value) || null})">' + stageOpts + '</select></td>' +
           '<td>' + imgCellHtml + '</td>' +
           '<td><textarea class="wt-cell-input" rows="2" style="font-weight:600; min-width:230px; white-space:pre-wrap; resize:vertical; line-height:1.4;" onchange="updateCostRow(' + c.id + ', {item_name: this.value})">' + esc(c.item_name) + '</textarea></td>' +
@@ -1961,7 +1987,6 @@ export function renderPortalHtml(): string {
             '<option value="Đã tạm ứng 50%"' + (c.payment_status === 'Đã tạm ứng 50%' ? ' selected' : '') + '>Tạm ứng 50%</option>' +
             '<option value="Đã TT 100%"' + (c.payment_status === 'Đã TT 100%' ? ' selected' : '') + '>Đã TT 100%</option>' +
           '</select></td>' +
-          '<td style="text-align:center;"><input type="checkbox" ' + (showChecked ? 'checked' : '') + ' onchange="updateCostRow(' + c.id + ', {show_in_quote: this.checked ? 1 : 0})"></td>' +
           '<td><button class="btn btn-sm" style="height:28px; color:#DC2626;" onclick="deleteCostItem(' + c.id + ')">✕</button></td>' +
         '</tr>';
       }).join('');
@@ -2425,6 +2450,46 @@ export function renderPortalHtml(): string {
       loadProjectsData(activeProjectId);
     }
 
+    async function toggleCostInQuote(costId, checked) {
+      if (!activeProjectId) return;
+      var item = (projectCostsData.costs || []).find(function(x) { return x.id === costId; });
+      if (!item) return;
+      var modeSel = document.getElementById('q-display-mode');
+      var payload = Object.assign({}, item, { id: costId, show_in_quote: checked ? 1 : 0 });
+      await fetch('/portal/api/projects/' + activeProjectId + '/costs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (modeSel && modeSel.value === 'all' && !checked) {
+        modeSel.value = 'selected';
+        await saveQuotationMeta(false);
+        showToast('Đã bỏ khỏi Báo giá & bật chế độ Chỉ báo giá mục đã chọn');
+        return;
+      }
+      showToast(checked ? 'Đã chọn đưa hạng mục vào Báo giá' : 'Đã bỏ hạng mục khỏi Báo giá');
+      await loadProjectCosts();
+      loadProjectsData(activeProjectId);
+    }
+
+    async function toggleAllCostsInQuote(checked) {
+      if (!activeProjectId) return;
+      var modeSel = document.getElementById('q-display-mode');
+      await fetch('/portal/api/projects/' + activeProjectId + '/costs/quote-selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showInQuote: checked ? 1 : 0 })
+      });
+      if (modeSel && modeSel.value === 'all' && !checked) {
+        modeSel.value = 'selected';
+        await saveQuotationMeta(false);
+      } else {
+        await loadProjectCosts();
+        loadProjectsData(activeProjectId);
+      }
+      showToast(checked ? 'Đã chọn tất cả hạng mục vào Báo giá' : 'Đã bỏ chọn toàn bộ hạng mục khỏi Báo giá');
+    }
+
     function toggleCostCreator() {
       var box = document.getElementById('cost-creator-box');
       box.style.display = box.style.display === 'none' ? 'block' : 'none';
@@ -2536,7 +2601,7 @@ export function renderPortalHtml(): string {
       var sum = projectCostsData.summary || {};
       var ap = pmData.activeProject || {};
       var vatPct = Number(q.vat_percent !== undefined ? q.vat_percent : 8);
-      var displayMode = document.getElementById('q-display-mode').value || q.display_mode || 'all';
+      var displayMode = document.getElementById('q-display-mode').value || q.display_mode || 'selected';
       var custName = document.getElementById('q-cust-name').value.trim() || q.customer_name || 'Quý Đối tác';
       var custTax = document.getElementById('q-cust-tax').value.trim() || q.customer_tax_code || '';
       var contactName = document.getElementById('q-contact-name').value.trim() || q.contact_name || '';
@@ -2555,11 +2620,19 @@ export function renderPortalHtml(): string {
 
       var hasAnyImage = false;
       var rows = '';
-      if (displayMode === 'hidden') {
+      var quoteSubTotal = costs.reduce(function(s, x) { return s + (Number(x.quote_line_total) || 0); }, 0);
+      if (displayMode === 'selected') {
+        var selItems = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
+        quoteSubTotal = selItems.reduce(function(s, x) { return s + (Number(x.quote_line_total) || 0); }, 0);
+        hasAnyImage = selItems.some(function(c) { return Boolean(c.product_image && String(c.product_image).trim()); });
+        rows = selItems.length > 0
+          ? selItems.map(function(item, idx) { return renderQuoteRowHtml(item, idx, hasAnyImage); }).join('')
+          : '<tr><td colspan="7" style="text-align:center;color:#64748B;padding:16px;">Chưa có hạng mục nào được tick chọn đưa vào Báo giá.</td></tr>';
+      } else if (displayMode === 'hidden') {
         var visibleItems = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
         var hiddenSum = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) === 0; }).reduce(function(s, x) { return s + (Number(x.quote_line_total) || 0); }, 0);
         if (visibleItems.length === 0 || (hiddenSum === 0 && costs.length > 0 && visibleItems.length === costs.length)) {
-          rows = '<tr><td style="text-align:center;">1</td><td><strong>Trọn gói triển khai dự án: ' + esc(ap.name || 'Quà tặng doanh nghiệp') + '</strong><div style="font-size:12px;color:#475569;margin-top:3px;">Bao gồm toàn bộ thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td>Theo tiến độ HĐ</td></tr>';
+          rows = '<tr><td style="text-align:center;">1</td><td><strong>Trọn gói triển khai dự án: ' + esc(ap.name || 'Quà tặng doanh nghiệp') + '</strong><div style="font-size:12px;color:#475569;margin-top:3px;">Bao gồm toàn bộ thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(quoteSubTotal || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(quoteSubTotal || 0).toLocaleString('vi-VN') + '</td><td>Theo tiến độ HĐ</td></tr>';
         } else {
           hasAnyImage = visibleItems.some(function(c) { return Boolean(c.product_image && String(c.product_image).trim()); });
           rows = visibleItems.map(function(item, idx) {
@@ -2575,6 +2648,8 @@ export function renderPortalHtml(): string {
           return renderQuoteRowHtml(item, idx, hasAnyImage);
         }).join('');
       }
+      var quoteVatAmt = Math.round(quoteSubTotal * vatPct / 100);
+      var quoteGrandTotal = quoteSubTotal + quoteVatAmt;
 
       var contactDisplay = [contactName, contactPhone].filter(Boolean).join(' — ') || q.customer_rep || '-';
       var qrHtml = bankQr ? '<div style="text-align:center;"><img src="' + esc(bankQr) + '" alt="QR Thanh toán" style="width:110px;height:110px;object-fit:contain;border:1px solid #CBD5E1;border-radius:6px;background:#fff;padding:4px;"></div>' : '';
@@ -2587,14 +2662,26 @@ export function renderPortalHtml(): string {
         '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(custName) + '</div>' + (custTax ? '<div><strong>MST:</strong> ' + esc(custTax) + '</div>' : '') + '<div><strong>Đại diện:</strong> ' + esc(contactDisplay) + '</div>' + (contractCode ? '<div><strong>Mã HĐ:</strong> ' + esc(contractCode) + '</div>' : '') + '<div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
         '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
         '<table><thead><tr><th style="width:40px;text-align:center;">No.</th>' + (hasAnyImage ? '<th style="width:80px;text-align:center;">HÌNH ẢNH</th>' : '') + '<th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-        '<table class="totals"><tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>Thuế GTGT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
+        '<table class="totals"><tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right;font-weight:700;">' + fmtVnd(quoteSubTotal) + '</td></tr><tr><td>Thuế GTGT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(quoteVatAmt) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(quoteGrandTotal) + '</td></tr></table>' +
         '<div class="pay-box"><div style="flex:1;"><div><strong>Điều khoản thanh toán:</strong><br>' + esc(payTerms).replace(/\\n/g, '<br>') + '</div><div style="margin-top:8px;"><strong>Thông tin STK &amp; Ngân hàng:</strong><br>' + esc(bankInfo).replace(/\\n/g, '<br>') + '</div></div>' + qrHtml + '</div>' +
         '</div></body></html>';
     }
 
+    function ensureQuoteHasSelectionForSelectedMode() {
+      var mode = (document.getElementById('q-display-mode') && document.getElementById('q-display-mode').value) || 'selected';
+      if (mode !== 'selected') return true;
+      var costs = projectCostsData.costs || [];
+      var sel = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
+      if (costs.length > 0 && sel.length === 0) {
+        showToast('Chưa tick chọn hạng mục nào trong cột Báo giá!', true);
+        return false;
+      }
+      return true;
+    }
+
     function downloadQuotationDoc() {
-      if (!activeProjectId) return;
-      var mode = document.getElementById('q-display-mode').value || 'all';
+      if (!activeProjectId || !ensureQuoteHasSelectionForSelectedMode()) return;
+      var mode = document.getElementById('q-display-mode').value || 'selected';
       if (!window.__KM_IS_STATIC) {
         window.location.href = '/portal/api/projects/' + activeProjectId + '/quotation/print?download=doc&mode=' + encodeURIComponent(mode);
         return;
@@ -2612,8 +2699,8 @@ export function renderPortalHtml(): string {
     }
 
     function openPrintableQuotation() {
-      if (!activeProjectId) return;
-      var mode = document.getElementById('q-display-mode').value || 'all';
+      if (!activeProjectId || !ensureQuoteHasSelectionForSelectedMode()) return;
+      var mode = document.getElementById('q-display-mode').value || 'selected';
       if (!window.__KM_IS_STATIC) {
         window.open('/portal/api/projects/' + activeProjectId + '/quotation/print?mode=' + encodeURIComponent(mode), '_blank');
         return;

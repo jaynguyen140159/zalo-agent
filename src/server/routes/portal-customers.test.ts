@@ -158,5 +158,32 @@ describe("Portal Customers & Multi-Project Profit (KM Gift <-> KM Brand)", () =>
     const p1After = summaryAfter.projects.find((p) => p.id === p1Json.id)!;
     assert.equal(p1After.business_unit, "KM Brand");
     assert.equal(p1After.customer_id, customerId);
+
+    // Kiểm tra chế độ "chỉ báo giá các hạng mục đã chọn" (selected): thêm hạng mục bỏ tick -> chỉ in hạng mục đã tick & tính tổng đúng
+    await app.request(`/portal/api/projects/${p1Json.id}/costs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        item_name: "Chi phí nội bộ không báo khách",
+        cost_amount: 5000000,
+        quantity: 1,
+        markup_factor: 1.5,
+        show_in_quote: 0,
+      }),
+    });
+    const selectedHtml = await (
+      await app.request(`/portal/api/projects/${p1Json.id}/quotation/print?mode=selected`)
+    ).text();
+    assert.match(selectedHtml, /Hộp quà cao cấp/);
+    assert.equal(selectedHtml.includes("Chi phí nội bộ không báo khách"), false);
+    assert.match(selectedHtml, /20\.000\.000/);
+    assert.match(selectedHtml, /21\.600\.000/);
+
+    const costsSelected = (await (await app.request(`/portal/api/projects/${p1Json.id}/costs`)).json()) as {
+      summary: { totalQuoteExclVat: number; selectedCount: number; totalCount: number };
+    };
+    assert.equal(costsSelected.summary.selectedCount, 1);
+    assert.equal(costsSelected.summary.totalCount, 2);
+    assert.equal(costsSelected.summary.totalQuoteExclVat, 20000000);
   });
 });

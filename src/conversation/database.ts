@@ -1136,7 +1136,7 @@ function taoBangWorkTracker(database: DatabaseSync): void {
   ensureColumn("pm_quotations", "payment_terms", "TEXT DEFAULT ''");
   ensureColumn("pm_quotations", "bank_info", "TEXT DEFAULT ''");
   ensureColumn("pm_quotations", "bank_qr_url", "TEXT DEFAULT ''");
-  ensureColumn("pm_quotations", "display_mode", "TEXT DEFAULT 'all'");
+  ensureColumn("pm_quotations", "display_mode", "TEXT DEFAULT 'selected'");
 
   // Backfill pm_customers và gán customer_id cho các dự án chưa có liên kết khách hàng
   const unlinkedProjects = database
