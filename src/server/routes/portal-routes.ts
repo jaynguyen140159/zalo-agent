@@ -93,6 +93,207 @@ function computeChecklistState(
     : { progress: 100, status: "completed" };
 }
 
+const ALLOWED_BUSINESS_UNITS = new Set(["KM Gift", "KM Brand", "Homeplanner"]);
+
+function normalizeBusinessUnit(raw?: string): string {
+  const trimmed = String(raw || "").trim();
+  return ALLOWED_BUSINESS_UNITS.has(trimmed) ? trimmed : "KM Gift";
+}
+
+function findOrCreateCustomerId(opts: {
+  name: string;
+  taxCode?: string;
+  contactName?: string;
+  contactPhone?: string;
+}): number | null {
+  const cleanName = String(opts.name || "").trim();
+  if (!cleanName) return null;
+  const existing = db
+    .prepare("SELECT id, tax_code, contact_name, contact_phone FROM pm_customers WHERE lower(trim(name)) = lower(trim(?)) LIMIT 1")
+    .get(cleanName) as { id: number; tax_code?: string; contact_name?: string; contact_phone?: string } | undefined;
+  if (existing) {
+    const nextTax = opts.taxCode?.trim() || existing.tax_code || "";
+    const nextContact = opts.contactName?.trim() || existing.contact_name || "";
+    const nextPhone = opts.contactPhone?.trim() || existing.contact_phone || "";
+    if (nextTax !== (existing.tax_code || "") || nextContact !== (existing.contact_name || "") || nextPhone !== (existing.contact_phone || "")) {
+      db.prepare(
+        "UPDATE pm_customers SET tax_code = ?, contact_name = ?, contact_phone = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?",
+      ).run(nextTax, nextContact, nextPhone, existing.id);
+    }
+    return existing.id;
+  }
+  const inserted = db
+    .prepare(
+      `INSERT INTO pm_customers (name, tax_code, contact_name, contact_phone)
+       VALUES (?, ?, ?, ?) RETURNING id`,
+    )
+    .get(
+      cleanName,
+      (opts.taxCode || "").trim(),
+      (opts.contactName || "").trim(),
+      (opts.contactPhone || "").trim(),
+    ) as { id: number };
+  return inserted.id;
+}
+
+function buildEnrichedProjectsAndCustomers() {
+  const customerRows = db
+    .prepare("SELECT * FROM pm_customers ORDER BY id ASC")
+    .all() as Array<{
+      id: number;
+      name: string;
+      tax_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
+      notes?: string;
+      created_at?: string;
+    }>;
+  const customersById = new Map<number, (typeof customerRows)[0]>();
+  for (const c of customerRows) customersById.set(c.id, c);
+
+  const rawProjects = db.prepare("SELECT * FROM pm_projects ORDER BY id ASC").all() as Array<{
+    id: number;
+    name: string;
+    description?: string;
+    budget?: number;
+    status?: string;
+    business_unit?: string;
+    flow_type?: string;
+    deposit_date?: string;
+    contract_code?: string;
+    customer_id?: number | null;
+  }>;
+
+  const allProjects = rawProjects.map((p) => {
+    const pTasks = db.prepare("SELECT id, progress, status FROM pm_tasks WHERE project_id = ?").all(p.id) as {
+      progress: number;
+      status: string;
+    }[];
+    const tasks_count = pTasks.length;
+    const completed_tasks = pTasks.filter((t) => t.progress >= 100 || t.status === "completed").length;
+    let overall_progress = 0;
+    if (tasks_count > 0) {
+      const sumPct = pTasks.reduce((s, t) => s + (t.progress || 0), 0);
+      overall_progress = Math.round(sumPct / tasks_count);
+    }
+    const stages_count =
+      (db.prepare("SELECT count(*) as c FROM pm_stages WHERE project_id = ?").get(p.id) as { c: number })?.c || 0;
+    const expenses_sum =
+      (db.prepare("SELECT COALESCE(SUM(amount), 0) as s FROM pm_expenses WHERE project_id = ?").get(p.id) as { s: number })
+        ?.s || 0;
+
+    const pCosts = db
+      .prepare(
+        "SELECT item_name, vendor_name, cost_amount, quantity, markup_factor, payment_status FROM pm_project_costs WHERE project_id = ? ORDER BY id ASC",
+      )
+      .all(p.id) as Array<{
+      item_name: string;
+      vendor_name: string;
+      cost_amount: number;
+      quantity: number;
+      markup_factor: number;
+      payment_status: string;
+    }>;
+    let total_cost = 0;
+    let total_quote = 0;
+    const itemNames: string[] = [];
+    const vendors = new Set<string>();
+    for (const cItem of pCosts) {
+      const qty = Math.max(1, Number(cItem.quantity) || 1);
+      const uCost = Number(cItem.cost_amount) || 0;
+      const markup = Number(cItem.markup_factor) || 1.5;
+      total_cost += uCost * qty;
+      total_quote += Math.round(uCost * markup) * qty;
+      if (cItem.item_name) itemNames.push(cItem.item_name);
+      if (cItem.vendor_name) vendors.add(cItem.vendor_name);
+    }
+
+    const qMeta = db
+      .prepare(
+        "SELECT customer_name, customer_tax_code, contact_name, contact_phone, vat_percent FROM pm_quotations WHERE project_id = ?",
+      )
+      .get(p.id) as
+      | {
+          customer_name?: string;
+          customer_tax_code?: string;
+          contact_name?: string;
+          contact_phone?: string;
+          vat_percent?: number;
+        }
+      | undefined;
+
+    const vatPct = qMeta?.vat_percent !== undefined && qMeta?.vat_percent !== null ? Number(qMeta.vat_percent) : 8;
+    const vat_amount = Math.round((total_quote * vatPct) / 100);
+    // Lợi nhuận = Tổng doanh thu - thuế GTGT - tổng chi phí
+    const estimated_profit = total_quote - vat_amount - total_cost;
+    const profit_margin_pct = total_quote > 0 ? Math.round((estimated_profit / total_quote) * 100) : 0;
+
+    const linkedCustomer = p.customer_id ? customersById.get(Number(p.customer_id)) : undefined;
+    const customer_name = (linkedCustomer?.name || qMeta?.customer_name || "").trim();
+    const customer_tax_code = (linkedCustomer?.tax_code || qMeta?.customer_tax_code || "").trim();
+    const contact_name = (linkedCustomer?.contact_name || qMeta?.contact_name || "").trim();
+    const contact_phone = (linkedCustomer?.contact_phone || qMeta?.contact_phone || "").trim();
+
+    const items_preview = itemNames.slice(0, 2).join(", ") + (itemNames.length > 2 ? ` (+${itemNames.length - 2})` : "");
+    const vendors_preview =
+      Array.from(vendors).slice(0, 2).join(", ") + (vendors.size > 2 ? ` (+${vendors.size - 2})` : "");
+    const paidCount = pCosts.filter((c) => String(c.payment_status || "").includes("100%")).length;
+    const payment_summary = pCosts.length > 0 ? `${paidCount}/${pCosts.length} Đã TT` : "Chưa có khoản chi";
+
+    return {
+      ...p,
+      business_unit: normalizeBusinessUnit(p.business_unit),
+      customer_id: p.customer_id ?? null,
+      customer_name,
+      customer_tax_code,
+      contact_name,
+      contact_phone,
+      tasks_count,
+      completed_tasks,
+      overall_progress,
+      stages_count,
+      expenses_sum,
+      total_cost,
+      total_quote,
+      total_revenue: total_quote,
+      vat_percent: vatPct,
+      vat_amount,
+      estimated_profit,
+      profit_margin_pct,
+      cost_items_count: pCosts.length,
+      items_preview,
+      vendors_preview,
+      payment_summary,
+    };
+  });
+
+  const customers = customerRows.map((cust) => {
+    const projs = allProjects.filter((p) => Number(p.customer_id) === Number(cust.id));
+    const total_revenue = projs.reduce((s, p) => s + (Number(p.total_revenue) || 0), 0);
+    const total_cost = projs.reduce((s, p) => s + (Number(p.total_cost) || 0), 0);
+    const total_vat = projs.reduce((s, p) => s + (Number(p.vat_amount) || 0), 0);
+    const total_profit = projs.reduce((s, p) => s + (Number(p.estimated_profit) || 0), 0);
+    const profit_margin_pct = total_revenue > 0 ? Math.round((total_profit / total_revenue) * 100) : 0;
+    const unit_counts = {
+      km_gift: projs.filter((p) => p.business_unit === "KM Gift").length,
+      km_brand: projs.filter((p) => p.business_unit === "KM Brand").length,
+      homeplanner: projs.filter((p) => p.business_unit === "Homeplanner").length,
+    };
+    return {
+      ...cust,
+      projects_count: projs.length,
+      unit_counts,
+      total_revenue,
+      total_cost,
+      total_vat,
+      total_profit,
+      profit_margin_pct,
+    };
+  });
+
+  return { allProjects, customers };
+}
+
 function checkPortalAdminPin(c: { req: { header: (k: string) => string | undefined; query: (k: string) => string | undefined } }): boolean {
   const pin = (c.req.header("x-admin-pin") || c.req.query("adminPin") || "").trim();
   if (!pin) return false;
@@ -207,81 +408,7 @@ export const portalRoutes = new Hono()
       }
     }
 
-    const rawProjects = db.prepare("SELECT * FROM pm_projects ORDER BY id ASC").all() as {
-      id: number;
-      name: string;
-      description?: string;
-      budget?: number;
-      status?: string;
-    }[];
-
-    const allProjects = rawProjects.map(p => {
-      const pTasks = db.prepare("SELECT id, progress, status FROM pm_tasks WHERE project_id = ?").all(p.id) as { progress: number; status: string }[];
-      const tasks_count = pTasks.length;
-      const completed_tasks = pTasks.filter(t => t.progress >= 100 || t.status === "completed").length;
-      let overall_progress = 0;
-      if (tasks_count > 0) {
-        const sumPct = pTasks.reduce((s, t) => s + (t.progress || 0), 0);
-        overall_progress = Math.round(sumPct / tasks_count);
-      }
-      const stages_count = (db.prepare("SELECT count(*) as c FROM pm_stages WHERE project_id = ?").get(p.id) as { c: number })?.c || 0;
-      const expenses_sum = (db.prepare("SELECT COALESCE(SUM(amount), 0) as s FROM pm_expenses WHERE project_id = ?").get(p.id) as { s: number })?.s || 0;
-
-      const pCosts = db
-        .prepare("SELECT item_name, vendor_name, cost_amount, quantity, markup_factor, payment_status FROM pm_project_costs WHERE project_id = ? ORDER BY id ASC")
-        .all(p.id) as Array<{
-          item_name: string;
-          vendor_name: string;
-          cost_amount: number;
-          quantity: number;
-          markup_factor: number;
-          payment_status: string;
-        }>;
-      let total_cost = 0;
-      let total_quote = 0;
-      const itemNames: string[] = [];
-      const vendors = new Set<string>();
-      for (const cItem of pCosts) {
-        const qty = Math.max(1, Number(cItem.quantity) || 1);
-        const uCost = Number(cItem.cost_amount) || 0;
-        const markup = Number(cItem.markup_factor) || 1.5;
-        total_cost += uCost * qty;
-        total_quote += Math.round(uCost * markup) * qty;
-        if (cItem.item_name) itemNames.push(cItem.item_name);
-        if (cItem.vendor_name) vendors.add(cItem.vendor_name);
-      }
-      const qMeta = db
-        .prepare("SELECT vat_percent FROM pm_quotations WHERE project_id = ?")
-        .get(p.id) as { vat_percent?: number } | undefined;
-      const vatPct = Number(qMeta?.vat_percent ?? 8);
-      const vat_amount = Math.round((total_quote * vatPct) / 100);
-      // Lợi nhuận = Tổng doanh thu - thuế GTGT (8%) - tổng chi phí
-      const estimated_profit = total_quote - vat_amount - total_cost;
-
-      const items_preview = itemNames.slice(0, 2).join(", ") + (itemNames.length > 2 ? ` (+${itemNames.length - 2})` : "");
-      const vendors_preview = Array.from(vendors).slice(0, 2).join(", ") + (vendors.size > 2 ? ` (+${vendors.size - 2})` : "");
-      const paidCount = pCosts.filter(c => String(c.payment_status || "").includes("100%")).length;
-      const payment_summary = pCosts.length > 0 ? `${paidCount}/${pCosts.length} Đã TT` : "Chưa có khoản chi";
-
-      return {
-        ...p,
-        tasks_count,
-        completed_tasks,
-        overall_progress,
-        stages_count,
-        expenses_sum,
-        total_cost,
-        total_quote,
-        total_revenue: total_quote,
-        vat_percent: vatPct,
-        vat_amount,
-        estimated_profit,
-        cost_items_count: pCosts.length,
-        items_preview,
-        vendors_preview,
-        payment_summary
-      };
-    });
+    const { allProjects, customers } = buildEnrichedProjectsAndCustomers();
 
     const activeProjectId = Number(projectIdParam) || (allProjects[0]?.id as number) || 1;
     const activeProject = allProjects.find(p => p.id === activeProjectId) || allProjects[0] || null;
@@ -376,6 +503,7 @@ export const portalRoutes = new Hono()
     return c.json({
       currentUser,
       projects: allProjects,
+      customers,
       activeProject,
       stages,
       tasks,
@@ -383,6 +511,81 @@ export const portalRoutes = new Hono()
       members,
       smtpConfigured: currentUser.isAdmin ? smtpConfigured : false
     });
+  })
+
+  // API Quản lý Khách hàng (1 Khách hàng -> nhiều Dự án KM Gift / KM Brand / Homeplanner)
+  .get("/api/customers", (c) => {
+    const { allProjects, customers } = buildEnrichedProjectsAndCustomers();
+    return c.json({ ok: true, customers, projects: allProjects });
+  })
+
+  .post("/api/customers", async (c) => {
+    const body = await c.req.json<{
+      name: string;
+      tax_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
+      notes?: string;
+    }>();
+    if (!body.name?.trim()) return c.json({ ok: false, error: "Vui lòng nhập tên khách hàng / doanh nghiệp" }, 400);
+    const row = db
+      .prepare(
+        `INSERT INTO pm_customers (name, tax_code, contact_name, contact_phone, notes)
+         VALUES (?, ?, ?, ?, ?) RETURNING *`,
+      )
+      .get(
+        body.name.trim(),
+        (body.tax_code || "").trim(),
+        (body.contact_name || "").trim(),
+        (body.contact_phone || "").trim(),
+        (body.notes || "").trim(),
+      ) as { id: number; name: string };
+    return c.json({ ok: true, id: row.id, customer: row });
+  })
+
+  .patch("/api/customers/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    const existing = db.prepare("SELECT * FROM pm_customers WHERE id = ?").get(id) as
+      | { id: number; name: string; tax_code?: string; contact_name?: string; contact_phone?: string; notes?: string }
+      | undefined;
+    if (!existing) return c.json({ ok: false, error: "Không tìm thấy khách hàng" }, 404);
+
+    const body = await c.req.json<{
+      name?: string;
+      tax_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
+      notes?: string;
+    }>();
+    const nextName = body.name !== undefined ? body.name.trim() || existing.name : existing.name;
+    const nextTax = body.tax_code !== undefined ? body.tax_code.trim() : existing.tax_code || "";
+    const nextContact = body.contact_name !== undefined ? body.contact_name.trim() : existing.contact_name || "";
+    const nextPhone = body.contact_phone !== undefined ? body.contact_phone.trim() : existing.contact_phone || "";
+    const nextNotes = body.notes !== undefined ? body.notes.trim() : existing.notes || "";
+
+    db.prepare(
+      `UPDATE pm_customers
+       SET name = ?, tax_code = ?, contact_name = ?, contact_phone = ?, notes = ?,
+           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+       WHERE id = ?`,
+    ).run(nextName, nextTax, nextContact, nextPhone, nextNotes, id);
+
+    // Đồng bộ thông tin khách hàng sang bảng báo giá của các dự án thuộc khách hàng này
+    const combinedRep = [nextContact, nextPhone].filter(Boolean).join(" - ");
+    db.prepare(
+      `UPDATE pm_quotations
+       SET customer_name = ?, customer_tax_code = ?, contact_name = ?, contact_phone = ?, customer_rep = ?
+       WHERE project_id IN (SELECT id FROM pm_projects WHERE customer_id = ?)`,
+    ).run(nextName, nextTax, nextContact, nextPhone, combinedRep, id);
+
+    return c.json({ ok: true });
+  })
+
+  .delete("/api/customers/:id", (c) => {
+    const id = Number(c.req.param("id"));
+    db.prepare("UPDATE pm_projects SET customer_id = NULL WHERE customer_id = ?").run(id);
+    db.prepare("DELETE FROM pm_customers WHERE id = ?").run(id);
+    return c.json({ ok: true });
   })
 
   // API Gửi tin nhắn Zalo tùy chọn (Test Bot Trợ Lý Jay)
@@ -421,7 +624,7 @@ export const portalRoutes = new Hono()
     return c.json({ ok: true, id: proj.id });
   })
 
-  // API Tạo dự án Khởi Minh Gift theo quy trình chuẩn + Tự tính SLA từ Ngày Tạm Ứng
+  // API Tạo dự án Khởi Minh Gift / KM Brand / Homeplanner theo quy trình chuẩn + Tự tính SLA từ Ngày Tạm Ứng
   .post("/api/projects/km-gift-template", async (c) => {
     const body = await c.req.json<{
       name: string;
@@ -429,17 +632,25 @@ export const portalRoutes = new Hono()
       flowType?: KmGiftFlowType;
       depositDate?: string;
       budget?: number;
+      customerId?: number | null;
+      customerName?: string;
     }>();
 
     if (!body.name?.trim()) return c.json({ ok: false, error: "Vui lòng nhập tên dự án" }, 400);
     const flowType: KmGiftFlowType = body.flowType === "ready_stock" ? "ready_stock" : "customised";
-    const businessUnit = body.businessUnit?.trim() || "KM Gift";
+    const businessUnit = normalizeBusinessUnit(body.businessUnit);
     const depositDate = body.depositDate?.trim() || new Date().toISOString().slice(0, 10);
+
+    let resolvedCustomerId: number | null = body.customerId ? Number(body.customerId) : null;
+    if (!resolvedCustomerId) {
+      const candidateName = (body.customerName || "").trim() || body.name.split(" - ")[0]!.trim() || body.name.trim();
+      resolvedCustomerId = findOrCreateCustomerId({ name: candidateName });
+    }
 
     const proj = db
       .prepare(
-        `INSERT INTO pm_projects (name, description, budget, status, business_unit, flow_type, deposit_date)
-         VALUES (?, ?, ?, 'active', ?, ?, ?) RETURNING id`,
+        `INSERT INTO pm_projects (name, description, budget, status, business_unit, flow_type, deposit_date, customer_id)
+         VALUES (?, ?, ?, 'active', ?, ?, ?, ?) RETURNING id`,
       )
       .get(
         body.name.trim(),
@@ -448,7 +659,35 @@ export const portalRoutes = new Hono()
         businessUnit,
         flowType,
         depositDate,
+        resolvedCustomerId,
       ) as { id: number };
+
+    if (resolvedCustomerId) {
+      const cust = db
+        .prepare("SELECT name, tax_code, contact_name, contact_phone FROM pm_customers WHERE id = ?")
+        .get(resolvedCustomerId) as
+        | { name: string; tax_code?: string; contact_name?: string; contact_phone?: string }
+        | undefined;
+      if (cust) {
+        const rep = [cust.contact_name || "", cust.contact_phone || ""].filter(Boolean).join(" - ");
+        db.prepare(
+          `INSERT OR IGNORE INTO pm_quotations (
+             project_id, customer_name, customer_tax_code, contact_name, contact_phone, customer_rep,
+             quote_date, title, client_tier, default_markup, vat_percent
+           )
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Doanh nghiệp', 1.5, 8)`,
+        ).run(
+          proj.id,
+          cust.name,
+          cust.tax_code || "",
+          cust.contact_name || "",
+          cust.contact_phone || "",
+          rep,
+          depositDate,
+          `BÁO GIÁ ${body.name.trim().toUpperCase()}`,
+        );
+      }
+    }
 
     const schedule = calculateKmGiftSchedule({ flowType, depositDate });
     const stageStmt = db.prepare(
@@ -557,7 +796,13 @@ export const portalRoutes = new Hono()
   // --- API CHI PHÍ HẠNG MỤC & TẠO BÁO GIÁ TỰ ĐỘNG (COST x HỆ SỐ) ---
   .patch("/api/projects/:id", async (c) => {
     const projectId = Number(c.req.param("id"));
-    const body = await c.req.json<{ contract_code?: string; name?: string; budget?: number }>();
+    const body = await c.req.json<{
+      contract_code?: string;
+      name?: string;
+      budget?: number;
+      business_unit?: string;
+      customer_id?: number | null;
+    }>();
     if (body.contract_code !== undefined) {
       db.prepare("UPDATE pm_projects SET contract_code = ? WHERE id = ?").run(body.contract_code.trim(), projectId);
     }
@@ -566,6 +811,29 @@ export const portalRoutes = new Hono()
     }
     if (body.budget !== undefined) {
       db.prepare("UPDATE pm_projects SET budget = ? WHERE id = ?").run(Number(body.budget) || 0, projectId);
+    }
+    if (body.business_unit !== undefined) {
+      const nextBu = normalizeBusinessUnit(body.business_unit);
+      db.prepare("UPDATE pm_projects SET business_unit = ? WHERE id = ?").run(nextBu, projectId);
+    }
+    if (body.customer_id !== undefined) {
+      const cid = body.customer_id ? Number(body.customer_id) : null;
+      db.prepare("UPDATE pm_projects SET customer_id = ? WHERE id = ?").run(cid, projectId);
+      if (cid) {
+        const cust = db
+          .prepare("SELECT name, tax_code, contact_name, contact_phone FROM pm_customers WHERE id = ?")
+          .get(cid) as
+          | { name: string; tax_code?: string; contact_name?: string; contact_phone?: string }
+          | undefined;
+        if (cust) {
+          const rep = [cust.contact_name || "", cust.contact_phone || ""].filter(Boolean).join(" - ");
+          db.prepare(
+            `UPDATE pm_quotations
+             SET customer_name = ?, customer_tax_code = ?, contact_name = ?, contact_phone = ?, customer_rep = ?
+             WHERE project_id = ?`,
+          ).run(cust.name, cust.tax_code || "", cust.contact_name || "", cust.contact_phone || "", rep, projectId);
+        }
+      }
     }
     return c.json({ ok: true });
   })
@@ -878,6 +1146,18 @@ export const portalRoutes = new Hono()
 
     if (body.applyMarkupToAll) {
       db.prepare("UPDATE pm_project_costs SET markup_factor = ? WHERE project_id = ?").run(defaultMarkup, projectId);
+    }
+
+    if (body.customer_name !== undefined && body.customer_name.trim()) {
+      const matchedCustId = findOrCreateCustomerId({
+        name: body.customer_name,
+        taxCode: body.customer_tax_code,
+        contactName: body.contact_name,
+        contactPhone: body.contact_phone,
+      });
+      if (matchedCustId) {
+        db.prepare("UPDATE pm_projects SET customer_id = ? WHERE id = ?").run(matchedCustId, projectId);
+      }
     }
 
     return c.json({ ok: true });

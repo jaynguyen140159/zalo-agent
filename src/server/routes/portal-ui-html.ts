@@ -741,8 +741,14 @@ export function renderPortalHtml(): string {
         <button class="nav-item active" data-tab="projects" data-bu="KM Gift" onclick="openBusinessUnit('KM Gift')">
           <span class="nav-icon">🎁</span> Dự án Khởi Minh Gift
         </button>
+        <button class="nav-item" data-tab="projects" data-bu="KM Brand" onclick="openBusinessUnit('KM Brand')">
+          <span class="nav-icon">✨</span> Dự án KM Brand
+        </button>
         <button class="nav-item" data-tab="projects" data-bu="Homeplanner" onclick="openBusinessUnit('Homeplanner')">
           <span class="nav-icon">🏠</span> Dự án Homeplanner
+        </button>
+        <button class="nav-item" data-tab="customers" onclick="switchTab('customers')">
+          <span class="nav-icon">💰</span> Khách hàng &amp; Lợi Nhuận
         </button>
         <button class="nav-item" data-tab="tracker" onclick="switchTab('tracker')">
           <span class="nav-icon">📊</span> Theo dõi tiến độ chung
@@ -836,7 +842,14 @@ export function renderPortalHtml(): string {
                     <label>Mảng kinh doanh</label>
                     <select class="select" id="new-km-bu">
                       <option value="KM Gift">Khởi Minh Gift</option>
+                      <option value="KM Brand">KM Brand</option>
                       <option value="Homeplanner">Homeplanner</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Khách hàng (Gom nhiều dự án)</label>
+                    <select class="select" id="new-km-customer">
+                      <option value="">-- Tự tạo theo tên dự án --</option>
                     </select>
                   </div>
                   <div class="field">
@@ -863,6 +876,7 @@ export function renderPortalHtml(): string {
                       <th style="width:42px;">STT</th>
                       <th style="min-width:130px;">Mã Hợp đồng</th>
                       <th style="min-width:190px;">Khách hàng / Dự án</th>
+                      <th style="min-width:130px;">Mảng KD</th>
                       <th style="min-width:240px;">Hạng mục triển khai</th>
                       <th style="min-width:150px;">Freelancer / NCC</th>
                       <th>Mốc SLA &amp; Luồng</th>
@@ -874,7 +888,7 @@ export function renderPortalHtml(): string {
                     </tr>
                   </thead>
                   <tbody id="master-projects-tbody">
-                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
+                    <tr><td colspan="12" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải bảng tổng hợp dự án...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -885,7 +899,16 @@ export function renderPortalHtml(): string {
           <div id="project-detail-view" style="display:none;">
             <div style="margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
               <button class="btn btn-sm" onclick="backToMasterProjects()">← Quay lại Bảng Tổng Hợp Dự Án</button>
-              <span class="badge" id="detail-bu-badge">Khởi Minh Gift</span>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <select class="select" id="detail-customer-select" style="height:32px; font-size:12px;" title="Khách hàng sở hữu dự án này" onchange="changeProjectCustomer(activeProjectId, this.value)">
+                  <option value="">-- Chưa gắn Khách hàng --</option>
+                </select>
+                <select class="select" id="detail-bu-select" style="height:32px; font-size:12px; font-weight:700;" title="Đổi mảng dự án (KM Gift ↔ KM Brand ↔ Homeplanner)" onchange="changeProjectBusinessUnit(activeProjectId, this.value)">
+                  <option value="KM Gift">🎁 Khởi Minh Gift</option>
+                  <option value="KM Brand">✨ KM Brand</option>
+                  <option value="Homeplanner">🏠 Homeplanner</option>
+                </select>
+              </div>
             </div>
 
             <div class="card">
@@ -1101,6 +1124,255 @@ export function renderPortalHtml(): string {
           </div>
         </section>
 
+        <!-- TAB: KHÁCH HÀNG & TÍNH LỢI NHUẬN TỪNG DỰ ÁN (KM GIFT ↔ KM BRAND ↔ HOMEPLANNER) -->
+        <section class="panel" id="panel-customers">
+          <div id="customers-master-view">
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-label">Số Khách hàng</div>
+                <div class="kpi-val" id="cust-kpi-count">0</div>
+                <div class="kpi-sub" id="cust-kpi-filter-lbl">Tất cả các mảng</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
+                <div class="kpi-val" id="cust-kpi-rev" style="font-size:20px; color:var(--primary);">0 ₫</div>
+                <div class="kpi-sub">Cộng gộp mọi dự án của khách</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
+                <div class="kpi-val" id="cust-kpi-cost" style="font-size:20px;">0 ₫</div>
+                <div class="kpi-sub">Tổng chi phí triển khai</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Lợi nhuận ròng dự kiến</div>
+                <div class="kpi-val" id="cust-kpi-profit" style="font-size:20px; color:#059669;">0 ₫</div>
+                <div class="kpi-sub">= Doanh thu - Thuế VAT - Chi phí</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Tổng hợp Lợi nhuận theo Khách hàng (Gồm nhiều dự án KM Gift / KM Brand)</div>
+                  <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                    Bấm vào một Khách hàng để xem &amp; tính lợi nhuận riêng lẻ từng dự án, thêm dự án mới hoặc đổi mảng giữa <strong>KM Gift</strong> và <strong>KM Brand</strong>.
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <div style="display:inline-flex; gap:4px; background:var(--aux-muted); padding:3px; border-radius:8px;">
+                    <button class="btn btn-sm btn-soft cust-bu-pill" data-bu="ALL" onclick="setCustomerBuFilter('ALL')">Tất cả</button>
+                    <button class="btn btn-sm cust-bu-pill" data-bu="KM Gift" onclick="setCustomerBuFilter('KM Gift')">🎁 KM Gift</button>
+                    <button class="btn btn-sm cust-bu-pill" data-bu="KM Brand" onclick="setCustomerBuFilter('KM Brand')">✨ KM Brand</button>
+                    <button class="btn btn-sm cust-bu-pill" data-bu="Homeplanner" onclick="setCustomerBuFilter('Homeplanner')">🏠 Homeplanner</button>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="toggleCustomerCreator()">+ Thêm Khách hàng mới</button>
+                </div>
+              </div>
+
+              <div id="customer-creator-box" style="display:none; padding:16px 20px; background:var(--aux-tint); border-bottom:1px solid var(--border);">
+                <div style="font-size:13px; font-weight:700; margin-bottom:10px;">Thêm Khách hàng mới</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; align-items:end;">
+                  <div class="field">
+                    <label>Tên khách hàng / Doanh nghiệp (*)</label>
+                    <input class="input" id="new-cust-name" placeholder="VD: Tập đoàn ABC">
+                  </div>
+                  <div class="field">
+                    <label>Mã số thuế (MST)</label>
+                    <input class="input" id="new-cust-tax" placeholder="VD: 0109xxxxxx">
+                  </div>
+                  <div class="field">
+                    <label>Người đại diện</label>
+                    <input class="input" id="new-cust-contact" placeholder="VD: Anh Minh">
+                  </div>
+                  <div class="field">
+                    <label>Số điện thoại</label>
+                    <input class="input" id="new-cust-phone" placeholder="VD: 0909xxxxxx">
+                  </div>
+                  <div class="field">
+                    <label>Ghi chú</label>
+                    <input class="input" id="new-cust-notes" placeholder="VD: Khách VIP dùng cả Gift & Brand">
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-primary" onclick="createCustomer()">Lưu Khách hàng</button>
+                    <button class="btn" onclick="toggleCustomerCreator()">Đóng</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:42px;">STT</th>
+                      <th style="min-width:200px;">Khách hàng / Doanh nghiệp</th>
+                      <th>MST &amp; Đại diện</th>
+                      <th style="min-width:170px;">Dự án theo Mảng</th>
+                      <th style="text-align:right;">Tổng Doanh thu</th>
+                      <th style="text-align:right;">Thuế VAT</th>
+                      <th style="text-align:right;">Tổng Chi phí</th>
+                      <th style="text-align:right;">Tổng Lợi nhuận</th>
+                      <th style="text-align:center;">Biên LN</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="customers-master-tbody">
+                    <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:28px;">Đang tải danh sách khách hàng...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- CẤP 2: CHI TIẾT KHÁCH HÀNG -> TÍNH LỢI NHUẬN TỪNG DỰ ÁN & ĐỔI MẢNG -->
+          <div id="customer-detail-view" style="display:none;">
+            <div style="margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+              <button class="btn btn-sm" onclick="backToCustomersMaster()">← Quay lại Danh sách Khách hàng</button>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div style="display:inline-flex; gap:4px; background:var(--aux-muted); padding:3px; border-radius:8px;">
+                  <button class="btn btn-sm btn-soft cust-det-bu-pill" data-bu="ALL" onclick="setCustomerDetailBuFilter('ALL')">Tất cả</button>
+                  <button class="btn btn-sm cust-det-bu-pill" data-bu="KM Gift" onclick="setCustomerDetailBuFilter('KM Gift')">🎁 KM Gift</button>
+                  <button class="btn btn-sm cust-det-bu-pill" data-bu="KM Brand" onclick="setCustomerDetailBuFilter('KM Brand')">✨ KM Brand</button>
+                  <button class="btn btn-sm cust-det-bu-pill" data-bu="Homeplanner" onclick="setCustomerDetailBuFilter('Homeplanner')">🏠 Homeplanner</button>
+                </div>
+                <button class="btn btn-sm" style="color:#DC2626;" onclick="deleteActiveCustomer()">🗑 Xoá khách</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title" id="cust-detail-title">Khách hàng</div>
+                  <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                    Chỉnh sửa thông tin khách hàng (Tự động lưu sang các dự án liên kết)
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; margin-bottom:16px;">
+                  <div class="field">
+                    <label>Tên khách hàng / Doanh nghiệp</label>
+                    <input class="input" id="cust-edit-name" onchange="saveActiveCustomerMeta()">
+                  </div>
+                  <div class="field">
+                    <label>Mã số thuế (MST)</label>
+                    <input class="input" id="cust-edit-tax" onchange="saveActiveCustomerMeta()">
+                  </div>
+                  <div class="field">
+                    <label>Họ tên đại diện</label>
+                    <input class="input" id="cust-edit-contact" onchange="saveActiveCustomerMeta()">
+                  </div>
+                  <div class="field">
+                    <label>Số điện thoại</label>
+                    <input class="input" id="cust-edit-phone" onchange="saveActiveCustomerMeta()">
+                  </div>
+                  <div class="field">
+                    <label>Ghi chú</label>
+                    <input class="input" id="cust-edit-notes" onchange="saveActiveCustomerMeta()">
+                  </div>
+                </div>
+
+                <div class="kpi-grid" style="margin-bottom:0;">
+                  <div class="kpi-card">
+                    <div class="kpi-label">Số Dự án của khách</div>
+                    <div class="kpi-val" id="cust-det-count">0</div>
+                    <div class="kpi-sub" id="cust-det-bu-sub">Mọi mảng</div>
+                  </div>
+                  <div class="kpi-card">
+                    <div class="kpi-label">Tổng Doanh thu (Chưa VAT)</div>
+                    <div class="kpi-val" id="cust-det-rev" style="font-size:20px; color:var(--primary);">0 ₫</div>
+                    <div class="kpi-sub">Tổng thành tiền báo giá</div>
+                  </div>
+                  <div class="kpi-card">
+                    <div class="kpi-label">Tổng Chi phí (Gồm VAT/TNCN)</div>
+                    <div class="kpi-val" id="cust-det-cost" style="font-size:20px;">0 ₫</div>
+                    <div class="kpi-sub">Chi phí các dự án</div>
+                  </div>
+                  <div class="kpi-card">
+                    <div class="kpi-label">Tổng Lợi nhuận ròng</div>
+                    <div class="kpi-val" id="cust-det-profit" style="font-size:20px; color:#059669;">0 ₫</div>
+                    <div class="kpi-sub" id="cust-det-margin">Biên LN: 0%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Bảng Tính Lợi Nhuận Từng Dự Án Riêng Lẻ</div>
+                  <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                    Công thức: <strong>Lợi nhuận = Doanh thu (Chưa VAT) − Thuế VAT − Chi phí (Gồm VAT/TNCN)</strong>. Có thể đổi trực tiếp Mảng dự án giữa <strong>KM Gift ↔ KM Brand</strong> ngay tại bảng.
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <select class="select" id="cust-assign-proj-select" style="height:32px; font-size:12px; max-width:220px;">
+                    <option value="">-- Gán thêm dự án có sẵn --</option>
+                  </select>
+                  <button class="btn btn-soft btn-sm" onclick="assignExistingProjectToCustomer()">+ Gán dự án</button>
+                  <button class="btn btn-primary btn-sm" onclick="toggleCustProjCreator()">+ Tạo Dự án mới cho khách</button>
+                </div>
+              </div>
+
+              <div id="cust-proj-creator" style="display:none; padding:16px 20px; background:var(--aux-tint); border-bottom:1px solid var(--border);">
+                <div style="font-size:13px; font-weight:700; margin-bottom:10px;">Tạo Dự án mới cho Khách hàng này</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; align-items:end;">
+                  <div class="field">
+                    <label>Tên dự án (*)</label>
+                    <input class="input" id="cust-new-proj-name" placeholder="VD: Bộ nhận diện KM Brand T12">
+                  </div>
+                  <div class="field">
+                    <label>Mảng kinh doanh</label>
+                    <select class="select" id="cust-new-proj-bu">
+                      <option value="KM Gift">Khởi Minh Gift</option>
+                      <option value="KM Brand">KM Brand</option>
+                      <option value="Homeplanner">Homeplanner</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Loại quy trình</label>
+                    <select class="select" id="cust-new-proj-flow">
+                      <option value="customised">Customised (9 bước)</option>
+                      <option value="ready_stock">Hàng có sẵn (5 bước)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Ngày bắt đầu / Mốc SLA</label>
+                    <input class="input" type="date" id="cust-new-proj-deposit" value="2026-11-26">
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="btn btn-primary" onclick="createProjectForCustomer()">Tạo dự án</button>
+                    <button class="btn" onclick="toggleCustProjCreator()">Đóng</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:42px;">STT</th>
+                      <th style="min-width:200px;">Tên Dự án</th>
+                      <th style="min-width:125px;">Mã Hợp đồng</th>
+                      <th style="min-width:145px;">Mảng KD (Đổi mảng)</th>
+                      <th style="text-align:right;">Doanh thu (Chưa VAT)</th>
+                      <th style="text-align:center; width:78px;">VAT (%)</th>
+                      <th style="text-align:right;">Tiền thuế VAT</th>
+                      <th style="text-align:right;">Tổng Chi phí</th>
+                      <th style="text-align:right;">Lợi nhuận ròng</th>
+                      <th style="text-align:center;">Biên LN</th>
+                      <th>Chi tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cust-projects-tbody">
+                    <tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có dự án nào.</td></tr>
+                  </tbody>
+                  <tfoot id="cust-projects-tfoot"></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- TAB 1: WORK TRACKER -->
         <section class="panel" id="panel-tracker">
           <div class="kpi-grid">
@@ -1145,6 +1417,7 @@ export function renderPortalHtml(): string {
             </div>
           </div>
         </section>
+
 
         <!-- TAB 2: KHO TÀI LIỆU & GOOGLE DRIVE -->
         <section class="panel" id="panel-drive">
@@ -1206,6 +1479,7 @@ export function renderPortalHtml(): string {
             </div>
           </div>
         </section>
+
 
         <!-- TAB 3: NHẮC VIỆC & TAG NHÓM + CHUYỂN TIẾP BOT -->
         <section class="panel" id="panel-mention">
@@ -1318,6 +1592,7 @@ export function renderPortalHtml(): string {
           </div>
         </section>
 
+
         <!-- TAB 4: QUẢN LÝ ZALO BOT & CÀI ĐẶT KẾT NỐI (CHỈ ADMIN) -->
         <section class="panel" id="panel-settings">
           <div class="card" style="margin-bottom:16px;">
@@ -1422,6 +1697,7 @@ export function renderPortalHtml(): string {
             </div>
           </div>
         </section>
+
       </div>
     </main>
   </div>
@@ -1485,6 +1761,23 @@ export function renderPortalHtml(): string {
 
     var activeBu = 'KM Gift';
     var projectLevel = 'master'; // 'master' | 'detail'
+    var BUSINESS_UNITS = [
+      { value: 'KM Gift', label: '🎁 KM Gift', fullName: 'Khởi Minh Gift' },
+      { value: 'KM Brand', label: '✨ KM Brand', fullName: 'KM Brand' },
+      { value: 'Homeplanner', label: '🏠 Homeplanner', fullName: 'Homeplanner' }
+    ];
+
+    function buDisplayName(bu) {
+      var hit = BUSINESS_UNITS.find(function(x) { return x.value === bu; });
+      return hit ? hit.fullName : 'Khởi Minh Gift';
+    }
+
+    function buOptionsHtml(selected) {
+      var cur = selected || 'KM Gift';
+      return BUSINESS_UNITS.map(function(u) {
+        return '<option value="' + u.value + '"' + (cur === u.value ? ' selected' : '') + '>' + u.label + '</option>';
+      }).join('');
+    }
 
     function openBusinessUnit(bu) {
       activeBu = bu;
@@ -1500,7 +1793,7 @@ export function renderPortalHtml(): string {
       projectLevel = 'master';
       document.getElementById('projects-master-view').style.display = 'block';
       document.getElementById('project-detail-view').style.display = 'none';
-      document.getElementById('topbar-title').textContent = 'Dự án ' + (activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner');
+      document.getElementById('topbar-title').textContent = 'Dự án ' + buDisplayName(activeBu);
       loadProjectsData(activeProjectId);
     }
 
@@ -1510,6 +1803,14 @@ export function renderPortalHtml(): string {
       document.getElementById('projects-master-view').style.display = 'none';
       document.getElementById('project-detail-view').style.display = 'block';
       await loadProjectsData(pid);
+      if (pmData && pmData.activeProject && pmData.activeProject.business_unit) {
+        activeBu = pmData.activeProject.business_unit;
+        document.querySelectorAll('.nav-item').forEach(function(btn) {
+          var bTab = btn.getAttribute('data-tab');
+          var bBu = btn.getAttribute('data-bu');
+          btn.classList.toggle('active', bTab === 'projects' && bBu === activeBu);
+        });
+      }
       setProjectView('costs');
     }
 
@@ -1519,7 +1820,8 @@ export function renderPortalHtml(): string {
         return;
       }
       var titles = {
-        projects: 'Dự án ' + (activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner'),
+        projects: 'Dự án ' + buDisplayName(activeBu),
+        customers: 'Khách hàng & Tính Lợi Nhuận Dự Án',
         tracker: 'Theo dõi tiến độ công việc',
         drive: 'Kho tài liệu & Google Drive AI',
         mention: 'Nhắc việc & Chuyển tiếp Zalo Bot (Admin)',
@@ -1540,6 +1842,7 @@ export function renderPortalHtml(): string {
       });
       document.getElementById('sidebar').classList.remove('open');
       if (tab === 'projects') loadProjectsData(activeProjectId);
+      if (tab === 'customers') loadCustomersTab();
       if (tab === 'drive') loadAssets();
       if (tab === 'mention') {
         loadBotForwarding();
@@ -1703,7 +2006,363 @@ export function renderPortalHtml(): string {
         body: JSON.stringify({ contract_code: String(val || '').trim() })
       });
       showToast('Đã cập nhật Mã Hợp đồng');
-      loadProjectsData(activeProjectId);
+      await loadProjectsData(activeProjectId);
+      renderCustomersTab();
+    }
+
+    async function changeProjectBusinessUnit(pid, nextBu) {
+      await fetch('/portal/api/projects/' + pid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_unit: nextBu })
+      });
+      showToast('Đã chuyển dự án sang mảng ' + buDisplayName(nextBu));
+      await loadProjectsData(activeProjectId);
+      renderCustomersTab();
+    }
+
+    async function changeProjectCustomer(pid, custIdVal) {
+      await fetch('/portal/api/projects/' + pid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: custIdVal ? Number(custIdVal) : null })
+      });
+      showToast('Đã cập nhật khách hàng sở hữu dự án');
+      await loadProjectsData(activeProjectId);
+      renderCustomersTab();
+    }
+
+    var activeCustomerId = null;
+    var customerLevel = 'master'; // 'master' | 'detail'
+    var customerBuFilter = 'ALL';
+    var customerDetailBuFilter = 'ALL';
+
+    function setCustomerBuFilter(bu) {
+      customerBuFilter = bu;
+      document.querySelectorAll('.cust-bu-pill').forEach(function(b) {
+        b.className = 'btn btn-sm cust-bu-pill ' + (b.getAttribute('data-bu') === bu ? 'btn-soft' : '');
+      });
+      renderCustomersTab();
+    }
+
+    function setCustomerDetailBuFilter(bu) {
+      customerDetailBuFilter = bu;
+      document.querySelectorAll('.cust-det-bu-pill').forEach(function(b) {
+        b.className = 'btn btn-sm cust-det-bu-pill ' + (b.getAttribute('data-bu') === bu ? 'btn-soft' : '');
+      });
+      renderCustomersTab();
+    }
+
+    async function loadCustomersTab() {
+      await loadProjectsData(activeProjectId);
+      renderCustomersTab();
+    }
+
+    function backToCustomersMaster() {
+      customerLevel = 'master';
+      activeCustomerId = null;
+      renderCustomersTab();
+    }
+
+    function openCustomerDetail(cid) {
+      customerLevel = 'detail';
+      activeCustomerId = Number(cid);
+      customerDetailBuFilter = 'ALL';
+      document.querySelectorAll('.cust-det-bu-pill').forEach(function(b) {
+        b.className = 'btn btn-sm cust-det-bu-pill ' + (b.getAttribute('data-bu') === 'ALL' ? 'btn-soft' : '');
+      });
+      renderCustomersTab();
+    }
+
+    function toggleCustomerCreator() {
+      var box = document.getElementById('customer-creator-box');
+      if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleCustProjCreator() {
+      var box = document.getElementById('cust-proj-creator');
+      if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function createCustomer() {
+      var name = document.getElementById('new-cust-name').value.trim();
+      if (!name) { showToast('Vui lòng nhập tên khách hàng', true); return; }
+      var res = await fetch('/portal/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          tax_code: document.getElementById('new-cust-tax').value.trim(),
+          contact_name: document.getElementById('new-cust-contact').value.trim(),
+          contact_phone: document.getElementById('new-cust-phone').value.trim(),
+          notes: document.getElementById('new-cust-notes').value.trim()
+        })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        ['new-cust-name', 'new-cust-tax', 'new-cust-contact', 'new-cust-phone', 'new-cust-notes'].forEach(function(id) {
+          var el = document.getElementById(id); if (el) el.value = '';
+        });
+        document.getElementById('customer-creator-box').style.display = 'none';
+        showToast('Đã thêm khách hàng mới!');
+        await loadCustomersTab();
+        if (data.id) openCustomerDetail(data.id);
+      } else {
+        showToast(data.error || 'Lỗi thêm khách hàng', true);
+      }
+    }
+
+    async function saveActiveCustomerMeta() {
+      if (!activeCustomerId) return;
+      var payload = {
+        name: document.getElementById('cust-edit-name').value.trim(),
+        tax_code: document.getElementById('cust-edit-tax').value.trim(),
+        contact_name: document.getElementById('cust-edit-contact').value.trim(),
+        contact_phone: document.getElementById('cust-edit-phone').value.trim(),
+        notes: document.getElementById('cust-edit-notes').value.trim()
+      };
+      await fetch('/portal/api/customers/' + activeCustomerId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      showToast('Đã tự động lưu thông tin khách hàng');
+      await loadCustomersTab();
+    }
+
+    async function deleteActiveCustomer() {
+      if (!activeCustomerId) return;
+      if (!confirm('Xoá khách hàng này? (Các dự án đang gắn vẫn được giữ lại, chỉ bỏ liên kết)')) return;
+      await fetch('/portal/api/customers/' + activeCustomerId, { method: 'DELETE' });
+      showToast('Đã xoá khách hàng');
+      backToCustomersMaster();
+      await loadCustomersTab();
+    }
+
+    async function createProjectForCustomer() {
+      if (!activeCustomerId) return;
+      var name = document.getElementById('cust-new-proj-name').value.trim();
+      if (!name) { showToast('Vui lòng nhập tên dự án', true); return; }
+      var bu = document.getElementById('cust-new-proj-bu').value;
+      var flow = document.getElementById('cust-new-proj-flow').value;
+      var dep = document.getElementById('cust-new-proj-deposit').value;
+      var res = await fetch('/portal/api/projects/km-gift-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, businessUnit: bu, flowType: flow, depositDate: dep, customerId: activeCustomerId })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        document.getElementById('cust-new-proj-name').value = '';
+        document.getElementById('cust-proj-creator').style.display = 'none';
+        showToast('Đã tạo dự án "' + name + '" (' + buDisplayName(bu) + ') cho khách hàng!');
+        await loadCustomersTab();
+      } else {
+        showToast(data.error || 'Lỗi tạo dự án', true);
+      }
+    }
+
+    async function assignExistingProjectToCustomer() {
+      if (!activeCustomerId) return;
+      var sel = document.getElementById('cust-assign-proj-select');
+      var pid = Number(sel && sel.value);
+      if (!pid) { showToast('Vui lòng chọn dự án cần gán', true); return; }
+      await fetch('/portal/api/projects/' + pid, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: activeCustomerId })
+      });
+      showToast('Đã gán dự án vào khách hàng!');
+      await loadCustomersTab();
+    }
+
+    async function updateProjectVatInCustomerView(pid, val) {
+      var vatPct = Math.max(0, Math.min(100, Number(val) || 0));
+      await fetch('/portal/api/projects/' + pid + '/quotation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vat_percent: vatPct })
+      });
+      showToast('Đã cập nhật thuế VAT (' + vatPct + '%) & tính lại lợi nhuận');
+      await loadCustomersTab();
+    }
+
+    async function openProjectFromCustomer(pid) {
+      await openProjectDetail(pid);
+      switchTab('projects');
+      document.getElementById('projects-master-view').style.display = 'none';
+      document.getElementById('project-detail-view').style.display = 'block';
+    }
+
+    function renderCustomersTab() {
+      var mv = document.getElementById('customers-master-view');
+      var dv = document.getElementById('customer-detail-view');
+      if (!mv || !dv) return;
+
+      var allProjects = pmData.projects || [];
+      var allCustomers = pmData.customers || [];
+
+      if (customerLevel === 'detail' && activeCustomerId) {
+        var cust = allCustomers.find(function(c) { return Number(c.id) === Number(activeCustomerId); });
+        if (!cust) {
+          customerLevel = 'master';
+        } else {
+          mv.style.display = 'none';
+          dv.style.display = 'block';
+          document.getElementById('cust-detail-title').textContent = '🏢 ' + cust.name;
+          document.getElementById('cust-edit-name').value = cust.name || '';
+          document.getElementById('cust-edit-tax').value = cust.tax_code || '';
+          document.getElementById('cust-edit-contact').value = cust.contact_name || '';
+          document.getElementById('cust-edit-phone').value = cust.contact_phone || '';
+          document.getElementById('cust-edit-notes').value = cust.notes || '';
+
+          var otherProjs = allProjects.filter(function(p) { return Number(p.customer_id) !== Number(cust.id); });
+          var assignSel = document.getElementById('cust-assign-proj-select');
+          if (assignSel) {
+            assignSel.innerHTML = '<option value="">-- Gán thêm dự án có sẵn --</option>' + otherProjs.map(function(p) {
+              return '<option value="' + p.id + '">' + esc(p.name) + ' (' + esc(p.business_unit || 'KM Gift') + ')</option>';
+            }).join('');
+          }
+
+          var cProjsAll = allProjects.filter(function(p) { return Number(p.customer_id) === Number(cust.id); });
+          var cProjs = customerDetailBuFilter === 'ALL'
+            ? cProjsAll
+            : cProjsAll.filter(function(p) { return (p.business_unit || 'KM Gift') === customerDetailBuFilter; });
+
+          var sumRev = 0, sumVat = 0, sumCost = 0, sumProfit = 0;
+          cProjs.forEach(function(p) {
+            var rev = Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0;
+            var vat = p.vat_amount !== undefined ? Number(p.vat_amount) : Math.round(rev * (Number(p.vat_percent !== undefined ? p.vat_percent : 8)) / 100);
+            var cost = Number(p.total_cost) || 0;
+            var prof = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (rev - vat - cost);
+            sumRev += rev; sumVat += vat; sumCost += cost; sumProfit += prof;
+          });
+          var sumMargin = sumRev > 0 ? Math.round((sumProfit * 100) / sumRev) : 0;
+
+          document.getElementById('cust-det-count').textContent = String(cProjs.length);
+          document.getElementById('cust-det-bu-sub').textContent = customerDetailBuFilter === 'ALL'
+            ? ('KM Gift: ' + cProjsAll.filter(function(p) { return p.business_unit === 'KM Gift'; }).length + ' • KM Brand: ' + cProjsAll.filter(function(p) { return p.business_unit === 'KM Brand'; }).length + ' • Homeplanner: ' + cProjsAll.filter(function(p) { return p.business_unit === 'Homeplanner'; }).length)
+            : ('Đang lọc mảng: ' + buDisplayName(customerDetailBuFilter));
+          document.getElementById('cust-det-rev').textContent = fmtVnd(sumRev);
+          document.getElementById('cust-det-cost').textContent = fmtVnd(sumCost);
+          var detProfEl = document.getElementById('cust-det-profit');
+          detProfEl.textContent = fmtVnd(sumProfit);
+          detProfEl.style.color = sumProfit >= 0 ? '#059669' : '#DC2626';
+          document.getElementById('cust-det-margin').textContent = 'VAT: ' + fmtVnd(sumVat) + ' • Biên LN: ' + sumMargin + '%';
+
+          var pTbody = document.getElementById('cust-projects-tbody');
+          var pTfoot = document.getElementById('cust-projects-tfoot');
+          if (cProjs.length === 0) {
+            pTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:24px;">Khách hàng này chưa có dự án nào trong bộ lọc hiện tại. Hãy bấm "+ Tạo Dự án mới cho khách" hoặc gán dự án có sẵn.</td></tr>';
+            pTfoot.innerHTML = '';
+          } else {
+            pTbody.innerHTML = cProjs.map(function(p, idx) {
+              var rev = Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0;
+              var vatPct = p.vat_percent !== undefined ? Number(p.vat_percent) : 8;
+              var vat = p.vat_amount !== undefined ? Number(p.vat_amount) : Math.round(rev * vatPct / 100);
+              var cost = Number(p.total_cost) || 0;
+              var prof = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (rev - vat - cost);
+              var margin = rev > 0 ? Math.round((prof * 100) / rev) : 0;
+              return '<tr>' +
+                '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+                '<td><div style="font-weight:700; color:var(--text-main); cursor:pointer;" onclick="openProjectFromCustomer(' + p.id + ')">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">Tiến độ: ' + (p.overall_progress || 0) + '% • ' + esc(p.items_preview || '-') + '</div></td>' +
+                '<td><input class="wt-cell-input" style="font-family:JetBrains Mono,monospace; font-size:12px; min-width:110px;" placeholder="Mã HĐ..." value="' + esc(p.contract_code || '') + '" onchange="updateProjectContractCode(' + p.id + ', this.value)"></td>' +
+                '<td><select class="select" style="height:30px; font-size:12px; min-width:130px; font-weight:600;" onchange="changeProjectBusinessUnit(' + p.id + ', this.value)">' + buOptionsHtml(p.business_unit) + '</select></td>' +
+                '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(rev) + '</td>' +
+                '<td style="text-align:center;"><input type="number" min="0" max="30" class="wt-cell-input" style="width:54px; text-align:center; font-family:JetBrains Mono,monospace; border:1px solid var(--border);" value="' + vatPct + '" onchange="updateProjectVatInCustomerView(' + p.id + ', this.value)"></td>' +
+                '<td style="text-align:right; font-family:JetBrains Mono,monospace; color:var(--text-muted); white-space:nowrap;">' + fmtVnd(vat) + '</td>' +
+                '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(cost) + '</td>' +
+                '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:800; color:' + (prof >= 0 ? '#059669' : '#DC2626') + '; white-space:nowrap;">' + fmtVnd(prof) + '</td>' +
+                '<td style="text-align:center;"><span class="badge ' + (prof >= 0 ? 'done' : 'err') + '">' + margin + '%</span></td>' +
+                '<td><button class="btn btn-soft btn-sm" onclick="openProjectFromCustomer(' + p.id + ')">💰 Chi tiết Chi phí →</button></td>' +
+              '</tr>';
+            }).join('');
+            pTfoot.innerHTML = '<tr style="background:var(--aux-muted); font-weight:800;">' +
+              '<td colspan="4" style="text-align:right; color:var(--text-main);">TỔNG CỘNG (' + cProjs.length + ' dự án):</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; color:var(--primary); white-space:nowrap;">' + fmtVnd(sumRev) + '</td>' +
+              '<td style="text-align:center;">—</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; color:var(--text-muted); white-space:nowrap;">' + fmtVnd(sumVat) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; white-space:nowrap;">' + fmtVnd(sumCost) + '</td>' +
+              '<td style="text-align:right; font-family:JetBrains Mono,monospace; color:' + (sumProfit >= 0 ? '#059669' : '#DC2626') + '; white-space:nowrap;">' + fmtVnd(sumProfit) + '</td>' +
+              '<td style="text-align:center;"><span class="badge ' + (sumProfit >= 0 ? 'done' : 'err') + '">' + sumMargin + '%</span></td>' +
+              '<td></td>' +
+            '</tr>';
+          }
+          return;
+        }
+      }
+
+      mv.style.display = 'block';
+      dv.style.display = 'none';
+
+      var filteredCustRows = allCustomers.map(function(cust) {
+        var cAll = allProjects.filter(function(p) { return Number(p.customer_id) === Number(cust.id); });
+        var cFiltered = customerBuFilter === 'ALL'
+          ? cAll
+          : cAll.filter(function(p) { return (p.business_unit || 'KM Gift') === customerBuFilter; });
+        var rev = 0, cost = 0, vat = 0, prof = 0;
+        cFiltered.forEach(function(p) {
+          var r = Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0;
+          var v = p.vat_amount !== undefined ? Number(p.vat_amount) : Math.round(r * 0.08);
+          var co = Number(p.total_cost) || 0;
+          var pr = p.estimated_profit !== undefined ? Number(p.estimated_profit) : (r - v - co);
+          rev += r; vat += v; cost += co; prof += pr;
+        });
+        return {
+          cust: cust,
+          projs: cFiltered,
+          allProjs: cAll,
+          rev: rev,
+          vat: vat,
+          cost: cost,
+          prof: prof,
+          margin: rev > 0 ? Math.round((prof * 100) / rev) : 0
+        };
+      }).filter(function(row) {
+        return customerBuFilter === 'ALL' || row.projs.length > 0;
+      });
+
+      var grandRev = filteredCustRows.reduce(function(s, r) { return s + r.rev; }, 0);
+      var grandCost = filteredCustRows.reduce(function(s, r) { return s + r.cost; }, 0);
+      var grandProf = filteredCustRows.reduce(function(s, r) { return s + r.prof; }, 0);
+
+      document.getElementById('cust-kpi-count').textContent = String(filteredCustRows.length);
+      document.getElementById('cust-kpi-filter-lbl').textContent = customerBuFilter === 'ALL' ? 'Tất cả các mảng (KM Gift, KM Brand, Homeplanner)' : ('Đang lọc mảng: ' + buDisplayName(customerBuFilter));
+      document.getElementById('cust-kpi-rev').textContent = fmtVnd(grandRev);
+      document.getElementById('cust-kpi-cost').textContent = fmtVnd(grandCost);
+      var kpiProfEl = document.getElementById('cust-kpi-profit');
+      kpiProfEl.textContent = fmtVnd(grandProf);
+      kpiProfEl.style.color = grandProf >= 0 ? '#059669' : '#DC2626';
+
+      var cTbody = document.getElementById('customers-master-tbody');
+      if (filteredCustRows.length === 0) {
+        cTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:28px;">Không có khách hàng nào trong mảng đang lọc.</td></tr>';
+        return;
+      }
+      cTbody.innerHTML = filteredCustRows.map(function(row, idx) {
+        var c = row.cust;
+        var gCnt = row.projs.filter(function(p) { return p.business_unit === 'KM Gift'; }).length;
+        var bCnt = row.projs.filter(function(p) { return p.business_unit === 'KM Brand'; }).length;
+        var hCnt = row.projs.filter(function(p) { return p.business_unit === 'Homeplanner'; }).length;
+        var badges = [];
+        if (gCnt > 0) badges.push('<span class="badge">🎁 ' + gCnt + ' KM Gift</span>');
+        if (bCnt > 0) badges.push('<span class="badge" style="background:#EFF6FF; color:#1D4ED8;">✨ ' + bCnt + ' KM Brand</span>');
+        if (hCnt > 0) badges.push('<span class="badge muted">🏠 ' + hCnt + ' Homeplanner</span>');
+        if (badges.length === 0) badges.push('<span class="badge muted">Chưa có dự án</span>');
+        var repStr = [c.contact_name, c.contact_phone].filter(Boolean).join(' • ');
+        return '<tr style="cursor:pointer;" onclick="openCustomerDetail(' + c.id + ')">' +
+          '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+          '<td><div style="font-weight:700; color:var(--text-main);">' + esc(c.name) + '</div>' + (c.notes ? '<div style="font-size:11.5px; color:var(--text-muted);">' + esc(c.notes) + '</div>' : '') + '</td>' +
+          '<td style="font-size:12px; color:var(--text-body);">' + (c.tax_code ? '<div>MST: ' + esc(c.tax_code) + '</div>' : '') + (repStr ? '<div style="color:var(--text-muted);">' + esc(repStr) + '</div>' : '<span style="color:var(--text-muted);">—</span>') + '</td>' +
+          '<td><div style="display:flex; gap:4px; flex-wrap:wrap;">' + badges.join('') + '</div></td>' +
+          '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:700; color:var(--primary); white-space:nowrap;">' + fmtVnd(row.rev) + '</td>' +
+          '<td style="text-align:right; font-family:JetBrains Mono,monospace; color:var(--text-muted); white-space:nowrap;">' + fmtVnd(row.vat) + '</td>' +
+          '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:600; white-space:nowrap;">' + fmtVnd(row.cost) + '</td>' +
+          '<td style="text-align:right; font-family:JetBrains Mono,monospace; font-weight:800; color:' + (row.prof >= 0 ? '#059669' : '#DC2626') + '; white-space:nowrap;">' + fmtVnd(row.prof) + '</td>' +
+          '<td style="text-align:center;"><span class="badge ' + (row.prof >= 0 ? 'done' : 'err') + '">' + row.margin + '%</span></td>' +
+          '<td><button class="btn btn-soft btn-sm" onclick="event.stopPropagation(); openCustomerDetail(' + c.id + ')">Tính lợi nhuận &amp; Dự án →</button></td>' +
+        '</tr>';
+      }).join('');
     }
 
     async function updateCostRow(costId, patch) {
@@ -2135,6 +2794,8 @@ export function renderPortalHtml(): string {
         pmData = data;
         activeProjectId = (data.activeProject && data.activeProject.id) || 1;
         renderProjectsTab();
+        var custPanel = document.getElementById('panel-customers');
+        if (custPanel && custPanel.classList.contains('active')) renderCustomersTab();
       } catch (e) {}
     }
 
@@ -2153,6 +2814,8 @@ export function renderPortalHtml(): string {
     async function createKmGiftProject() {
       var name = document.getElementById('new-km-name').value.trim();
       var businessUnit = document.getElementById('new-km-bu').value;
+      var customerSel = document.getElementById('new-km-customer');
+      var customerId = customerSel && customerSel.value ? Number(customerSel.value) : null;
       var flowType = document.getElementById('new-km-flow').value;
       var depositDate = document.getElementById('new-km-deposit').value;
       if (!name) {
@@ -2162,7 +2825,7 @@ export function renderPortalHtml(): string {
       var res = await fetch('/portal/api/projects/km-gift-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, businessUnit: businessUnit, flowType: flowType, depositDate: depositDate })
+        body: JSON.stringify({ name: name, businessUnit: businessUnit, customerId: customerId, flowType: flowType, depositDate: depositDate })
       });
       var data = await res.json();
       if (data.ok) {
@@ -2294,9 +2957,19 @@ export function renderPortalHtml(): string {
     }
 
     function renderProjectsTab() {
-      var buName = activeBu === 'KM Gift' ? 'Khởi Minh Gift' : 'Homeplanner';
+      var buName = buDisplayName(activeBu);
       var rawList = pmData.projects || pmData.allProjects || [];
+      var custList = pmData.customers || [];
       var list = rawList.filter(function(p) { return (p.business_unit || 'KM Gift') === activeBu; });
+
+      var newCustSel = document.getElementById('new-km-customer');
+      if (newCustSel) {
+        var prevVal = newCustSel.value;
+        newCustSel.innerHTML = '<option value="">-- Tự tạo theo tên dự án --</option>' + custList.map(function(c) {
+          return '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+        }).join('');
+        if (prevVal) newCustSel.value = prevVal;
+      }
 
       var totalBuCost = list.reduce(function(s, p) { return s + (Number(p.total_cost) || 0); }, 0);
       var totalBuQuote = list.reduce(function(s, p) { return s + (Number(p.total_revenue !== undefined ? p.total_revenue : p.total_quote) || 0); }, 0);
@@ -2317,7 +2990,7 @@ export function renderPortalHtml(): string {
       var masterTbody = document.getElementById('master-projects-tbody');
       if (masterTbody) {
         if (list.length === 0) {
-          masterTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)".</td></tr>';
+          masterTbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--text-muted); padding:28px;">Chưa có dự án nào trong mảng ' + esc(buName) + '. Bấm "+ Tạo Dự án mới (Auto SLA)" hoặc chuyển mảng từ dự án khác.</td></tr>';
         } else {
           masterTbody.innerHTML = list.map(function(p, idx) {
             var flowLbl = p.flow_type === 'ready_stock' ? 'Hàng có sẵn' : 'Customised';
@@ -2327,7 +3000,8 @@ export function renderPortalHtml(): string {
             return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
               '<td style="text-align:center; font-weight:700; color:var(--text-muted);">' + (idx + 1) + '</td>' +
               '<td onclick="event.stopPropagation()"><input class="wt-cell-input" style="font-family:JetBrains Mono,monospace; font-size:12px; min-width:120px;" placeholder="Nhập mã HĐ..." value="' + esc(p.contract_code || '') + '" onchange="updateProjectContractCode(' + p.id + ', this.value)"></td>' +
-              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + esc(p.payment_summary || '') + '</div></td>' +
+              '<td><div style="font-weight:700; color:var(--text-main);">' + esc(p.name) + '</div><div style="font-size:11.5px; color:var(--text-muted);">' + (p.customer_name ? '🏢 ' + esc(p.customer_name) + ' • ' : '') + esc(p.payment_summary || '') + '</div></td>' +
+              '<td onclick="event.stopPropagation()"><select class="select" style="height:30px; font-size:11.5px; min-width:120px;" onchange="changeProjectBusinessUnit(' + p.id + ', this.value)">' + buOptionsHtml(p.business_unit) + '</select></td>' +
               '<td style="font-size:12.5px; color:var(--text-body); white-space:normal; line-height:1.45; min-width:220px;">' + esc(p.items_preview || p.description || '-') + '</td>' +
               '<td style="font-size:12.5px; color:var(--text-muted); white-space:normal;">' + esc(p.vendors_preview || 'Chưa gán NCC') + '</td>' +
               '<td><div class="badge" style="margin-bottom:4px;">' + flowLbl + '</div><div style="font-size:11.5px; font-family:JetBrains Mono,monospace; color:var(--text-muted);">Mốc: ' + fmtShortDate(p.deposit_date) + '</div></td>' +
@@ -2345,11 +3019,20 @@ export function renderPortalHtml(): string {
       if (ap) {
         var apRev = Number(ap.total_revenue !== undefined ? ap.total_revenue : ap.total_quote) || 0;
         var apProfit = ap.estimated_profit !== undefined ? Number(ap.estimated_profit) : (apRev - Math.round(apRev * 0.08) - Number(ap.total_cost || 0));
-        document.getElementById('detail-bu-badge').textContent = ap.business_unit === 'Homeplanner' ? '🏠 Homeplanner' : '🎁 Khởi Minh Gift';
+        var detBuSel = document.getElementById('detail-bu-select');
+        if (detBuSel) detBuSel.value = ap.business_unit || 'KM Gift';
+        var detCustSel = document.getElementById('detail-customer-select');
+        if (detCustSel) {
+          detCustSel.innerHTML = '<option value="">-- Chưa gắn Khách hàng --</option>' + custList.map(function(c) {
+            return '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+          }).join('');
+          detCustSel.value = ap.customer_id ? String(ap.customer_id) : '';
+        }
         document.getElementById('active-project-title').textContent = ap.name;
         document.getElementById('active-project-meta').textContent =
+          (ap.customer_name ? 'Khách hàng: ' + ap.customer_name + '  •  ' : '') +
           (ap.contract_code ? 'Mã HĐ: ' + ap.contract_code + '  •  ' : '') +
-          'Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Chi phí: ' + fmtVnd(ap.total_cost) + '  •  Tổng Doanh thu: ' + fmtVnd(apRev) + '  •  Lợi nhuận (sau VAT 8%): ' + fmtVnd(apProfit);
+          'Tiến độ: ' + (ap.overall_progress || 0) + '%  •  Tổng Chi phí: ' + fmtVnd(ap.total_cost) + '  •  Tổng Doanh thu: ' + fmtVnd(apRev) + '  •  Lợi nhuận (sau VAT): ' + fmtVnd(apProfit);
       }
 
       var tbody = document.getElementById('project-tasks-tbody');

@@ -1098,6 +1098,20 @@ function taoBangWorkTracker(database: DatabaseSync): void {
     updKnownGroupName.run(alias, tid);
   }
 
+  // Bảng Quản lý Khách hàng (1 Khách hàng -> nhiều Dự án qua các mảng KM Gift / KM Brand / Homeplanner)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS pm_customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL DEFAULT '',
+      tax_code TEXT DEFAULT '',
+      contact_name TEXT DEFAULT '',
+      contact_phone TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
   // Migration các trường mới cho Quản lý Dự án, Chi phí, Hợp đồng & Báo giá KM Gift
   const ensureColumn = (tableName: string, colName: string, colDef: string) => {
     const existingCols = new Set(
@@ -1109,6 +1123,7 @@ function taoBangWorkTracker(database: DatabaseSync): void {
   };
 
   ensureColumn("pm_projects", "contract_code", "TEXT DEFAULT ''");
+  ensureColumn("pm_projects", "customer_id", "INTEGER DEFAULT NULL");
 
   ensureColumn("pm_project_costs", "attachment_name", "TEXT DEFAULT ''");
   ensureColumn("pm_project_costs", "attachment_data", "TEXT DEFAULT ''");
@@ -1121,6 +1136,49 @@ function taoBangWorkTracker(database: DatabaseSync): void {
   ensureColumn("pm_quotations", "bank_info", "TEXT DEFAULT ''");
   ensureColumn("pm_quotations", "bank_qr_url", "TEXT DEFAULT ''");
   ensureColumn("pm_quotations", "display_mode", "TEXT DEFAULT 'all'");
+
+  // Backfill pm_customers và gán customer_id cho các dự án chưa có liên kết khách hàng
+  const unlinkedProjects = database
+    .prepare(
+      `SELECT p.id, p.name,
+              q.customer_name, q.customer_tax_code, q.contact_name, q.contact_phone, q.customer_rep
+       FROM pm_projects p
+       LEFT JOIN pm_quotations q ON q.project_id = p.id
+       WHERE p.customer_id IS NULL
+       ORDER BY p.id ASC`,
+    )
+    .all() as Array<{
+      id: number;
+      name: string;
+      customer_name?: string;
+      customer_tax_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
+      customer_rep?: string;
+    }>;
+
+  if (unlinkedProjects.length > 0) {
+    const findCust = database.prepare("SELECT id FROM pm_customers WHERE lower(trim(name)) = lower(trim(?)) LIMIT 1");
+    const insCust = database.prepare(
+      `INSERT INTO pm_customers (name, tax_code, contact_name, contact_phone)
+       VALUES (?, ?, ?, ?) RETURNING id`,
+    );
+    const linkProj = database.prepare("UPDATE pm_projects SET customer_id = ? WHERE id = ?");
+
+    for (const pr of unlinkedProjects) {
+      const custName = (pr.customer_name || "").trim() || pr.name.split(" - ")[0]!.trim() || pr.name.trim();
+      let cRow = findCust.get(custName) as { id: number } | undefined;
+      if (!cRow) {
+        cRow = insCust.get(
+          custName,
+          (pr.customer_tax_code || "").trim(),
+          (pr.contact_name || pr.customer_rep || "").trim(),
+          (pr.contact_phone || "").trim(),
+        ) as { id: number };
+      }
+      linkProj.run(cRow.id, pr.id);
+    }
+  }
 
   // Chuyển các dự án đang bị SLA tính lùi ngược (start_date < deposit_date) sang tính xuôi về sau
   const projsWithDeposit = database
