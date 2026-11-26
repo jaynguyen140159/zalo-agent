@@ -1086,6 +1086,11 @@
                     <label>Chứng từ (.docx/.pdf/.xlsx)</label>
                     <input class="input" type="file" id="new-cost-file" accept=".docx,.doc,.pdf,.xlsx,.xls" style="padding:5px;">
                   </div>
+                  <div class="field">
+                    <label>Ảnh sản phẩm (Hiển thị trên Báo giá)</label>
+                    <input class="input" id="new-cost-image-url" placeholder="Dán link ảnh hoặc chọn file..." style="margin-bottom:4px;">
+                    <input class="input" type="file" id="new-cost-image-file" accept="image/*" style="padding:5px;">
+                  </div>
                   <div style="display:flex; gap:6px;">
                     <button class="btn btn-primary btn-sm" onclick="submitNewCostItem()">Lưu hạng mục</button>
                     <button class="btn btn-sm" onclick="toggleCostCreator()">Đóng</button>
@@ -1097,7 +1102,8 @@
                   <thead>
                     <tr>
                       <th>Giai đoạn</th>
-                      <th style="min-width:260px;">Hạng mục &amp; Quy cách (Hiển thị đầy đủ)</th>
+                      <th style="min-width:128px;">Ảnh SP (Báo giá)</th>
+                      <th style="min-width:240px;">Hạng mục &amp; Quy cách (Hiển thị đầy đủ)</th>
                       <th>Freelancer / NCC</th>
                       <th>SLA (ngày)</th>
                       <th>Chi phí (VND)<br><span style="font-weight:400; font-size:10px; color:var(--text-muted);">(Gồm VAT/TNCN)</span></th>
@@ -2019,7 +2025,7 @@
           var ex = st.costs.find(function(x) { return x.id === body.id; });
           if (ex) Object.assign(ex, body);
         } else {
-          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán', contract_ref: '', attachment_name: '', attachment_data: '', show_in_quote: 1 }, body));
+          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán', contract_ref: '', attachment_name: '', attachment_data: '', product_image: '', show_in_quote: 1 }, body));
         }
         saveStore(st);
         return jsonRes({ ok: true });
@@ -2359,7 +2365,7 @@
 
       var tbody = document.getElementById('project-costs-tbody');
       if (costs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập chi phí (đã gồm VAT/Thuế TNCN).</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:var(--text-muted); padding:24px;">Chưa có khoản chi nào. Bấm "+ Thêm khoản chi / Hạng mục" để nhập chi phí (đã gồm VAT/Thuế TNCN).</td></tr>';
         return;
       }
 
@@ -2374,10 +2380,20 @@
           var dlHref = c.attachment_data ? c.attachment_data : ('/portal/api/projects/costs/' + c.id + '/attachment');
           attLink = '<a href="' + esc(dlHref) + '" download="' + esc(c.attachment_name || ('chung-tu-' + c.id)) + '" style="display:block; font-size:11px; color:var(--primary); margin-top:3px; word-break:break-all;">📎 ' + esc(c.attachment_name || 'Tải chứng từ') + '</a>';
         }
+        var prodImg = c.product_image || '';
+        var imgPreview = prodImg
+          ? '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;"><img src="' + esc(prodImg) + '" alt="SP" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--border); background:#fff;"><button type="button" class="btn btn-sm" style="height:22px; padding:0 6px; font-size:10.5px; color:#DC2626;" title="Xoá ảnh" onclick="clearCostProductImage(' + c.id + ')">✕</button></div>'
+          : '';
+        var imgCellHtml = '<div style="min-width:118px;">' +
+          imgPreview +
+          '<input class="wt-cell-input" style="font-size:11px; width:116px; margin-bottom:2px;" placeholder="Link ảnh SP..." value="' + esc(prodImg.indexOf('data:') === 0 ? '' : prodImg) + '" onchange="updateCostRow(' + c.id + ', {product_image: this.value.trim()})">' +
+          '<label style="display:inline-block; font-size:11px; color:var(--primary); cursor:pointer;">📷 Tải ảnh SP<input type="file" accept="image/*" style="display:none;" onchange="uploadCostProductImage(' + c.id + ', this)"></label>' +
+        '</div>';
         var showChecked = Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0;
         return '<tr>' +
           '<td><select class="select" style="height:30px; font-size:12px; max-width:115px;" onchange="updateCostRow(' + c.id + ', {stage_id: Number(this.value) || null})">' + stageOpts + '</select></td>' +
-          '<td><textarea class="wt-cell-input" rows="2" style="font-weight:600; min-width:250px; white-space:pre-wrap; resize:vertical; line-height:1.4;" onchange="updateCostRow(' + c.id + ', {item_name: this.value})">' + esc(c.item_name) + '</textarea></td>' +
+          '<td>' + imgCellHtml + '</td>' +
+          '<td><textarea class="wt-cell-input" rows="2" style="font-weight:600; min-width:230px; white-space:pre-wrap; resize:vertical; line-height:1.4;" onchange="updateCostRow(' + c.id + ', {item_name: this.value})">' + esc(c.item_name) + '</textarea></td>' +
           '<td><input class="wt-cell-input" style="min-width:120px;" value="' + esc(c.vendor_name) + '" onchange="updateCostRow(' + c.id + ', {vendor_name: this.value})"></td>' +
           '<td><input type="number" min="0" class="wt-cell-input" style="width:48px; font-family:JetBrains Mono,monospace;" value="' + (c.duration_days || 0) + '" onchange="updateCostRow(' + c.id + ', {duration_days: Number(this.value)})"></td>' +
           '<td><input type="text" inputmode="numeric" class="wt-cell-input" style="width:112px; font-family:JetBrains Mono,monospace; text-align:right;" value="' + Number(c.cost_amount || 0).toLocaleString('vi-VN') + '" oninput="formatVndInputLive(this)" onchange="updateCostRow(' + c.id + ', {cost_amount: parseVndNumber(this.value)})"></td>' +
@@ -2408,6 +2424,54 @@
         r.onerror = function() { reject(new Error('Không đọc được file')); };
         r.readAsDataURL(file);
       });
+    }
+
+    function readProductImageAsDataUrl(file, maxDim) {
+      var limit = maxDim || 640;
+      return readFileAsDataUrl(file).then(function(rawUrl) {
+        return new Promise(function(resolve) {
+          var img = new Image();
+          img.onload = function() {
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            if (!w || !h || (w <= limit && h <= limit && file.size <= 350000)) {
+              resolve(rawUrl);
+              return;
+            }
+            var ratio = Math.min(limit / w, limit / h);
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(w * ratio));
+            canvas.height = Math.max(1, Math.round(h * ratio));
+            var ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(rawUrl); return; }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            try {
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            } catch (e) {
+              resolve(rawUrl);
+            }
+          };
+          img.onerror = function() { resolve(rawUrl); };
+          img.src = rawUrl;
+        });
+      });
+    }
+
+    async function clearCostProductImage(costId) {
+      await updateCostRow(costId, { product_image: '' });
+      showToast('Đã xoá ảnh sản phẩm');
+    }
+
+    async function uploadCostProductImage(costId, inp) {
+      var file = inp && inp.files && inp.files[0];
+      if (!file) return;
+      if (file.size > 6 * 1024 * 1024) {
+        showToast('Ảnh sản phẩm tối đa 6MB', true);
+        return;
+      }
+      var dataUrl = await readProductImageAsDataUrl(file, 640);
+      await updateCostRow(costId, { product_image: dataUrl });
+      showToast('Đã gắn ảnh sản phẩm cho báo giá!');
     }
 
     async function uploadCostAttachment(costId, inp) {
@@ -2832,6 +2896,14 @@
         attachment_name = file.name;
         attachment_data = await readFileAsDataUrl(file);
       }
+      var imgUrlInp = document.getElementById('new-cost-image-url');
+      var imgFileInp = document.getElementById('new-cost-image-file');
+      var product_image = imgUrlInp ? imgUrlInp.value.trim() : '';
+      var imgFile = imgFileInp && imgFileInp.files && imgFileInp.files[0];
+      if (imgFile) {
+        if (imgFile.size > 6 * 1024 * 1024) { showToast('Ảnh sản phẩm tối đa 6MB', true); return; }
+        product_image = await readProductImageAsDataUrl(imgFile, 640);
+      }
       var defaultMarkup = Number(document.getElementById('q-default-markup').value) || 1.5;
       await fetch('/portal/api/projects/' + activeProjectId + '/costs', {
         method: 'POST',
@@ -2845,6 +2917,7 @@
           contract_ref: contractRef,
           attachment_name: attachment_name,
           attachment_data: attachment_data,
+          product_image: product_image,
           show_in_quote: 1
         })
       });
@@ -2853,6 +2926,8 @@
       document.getElementById('new-cost-amount').value = '';
       document.getElementById('new-cost-contract').value = '';
       if (fileInp) fileInp.value = '';
+      if (imgUrlInp) imgUrlInp.value = '';
+      if (imgFileInp) imgFileInp.value = '';
       document.getElementById('cost-creator-box').style.display = 'none';
       showToast('Đã thêm hạng mục chi phí mới');
       await loadProjectCosts();
@@ -2921,6 +2996,14 @@
       var bankInfo = document.getElementById('q-bank-info').value.trim() || q.bank_info || '';
       var bankQr = document.getElementById('q-bank-qr-url').value.trim() || q.bank_qr_url || '';
 
+      function renderQuoteRowHtml(item, idx, includeImgCol) {
+        var imgCell = includeImgCol
+          ? '<td style="text-align:center;vertical-align:middle;width:80px;">' + (item.product_image ? '<img src="' + esc(item.product_image) + '" alt="' + esc(item.item_name) + '" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #CBD5E1;display:block;margin:0 auto;">' : '<span style="color:#94A3B8;font-size:11px;">—</span>') + '</td>'
+          : '';
+        return '<tr><td style="text-align:center;">' + (idx + 1) + '</td>' + imgCell + '<td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+      }
+
+      var hasAnyImage = false;
       var rows = '';
       if (displayMode === 'hidden') {
         var visibleItems = costs.filter(function(c) { return Number(c.show_in_quote !== undefined ? c.show_in_quote : 1) !== 0; });
@@ -2928,16 +3011,18 @@
         if (visibleItems.length === 0 || (hiddenSum === 0 && costs.length > 0 && visibleItems.length === costs.length)) {
           rows = '<tr><td style="text-align:center;">1</td><td><strong>Trọn gói triển khai dự án: ' + esc(ap.name || 'Quà tặng doanh nghiệp') + '</strong><div style="font-size:12px;color:#475569;margin-top:3px;">Bao gồm toàn bộ thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(sum.totalQuoteExclVat || 0).toLocaleString('vi-VN') + '</td><td>Theo tiến độ HĐ</td></tr>';
         } else {
+          hasAnyImage = visibleItems.some(function(c) { return Boolean(c.product_image && String(c.product_image).trim()); });
           rows = visibleItems.map(function(item, idx) {
-            return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+            return renderQuoteRowHtml(item, idx, hasAnyImage);
           }).join('');
           if (hiddenSum > 0) {
-            rows += '<tr><td style="text-align:center;">' + (visibleItems.length + 1) + '</td><td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td></td></tr>';
+            rows += '<tr><td style="text-align:center;">' + (visibleItems.length + 1) + '</td>' + (hasAnyImage ? '<td style="text-align:center;color:#94A3B8;font-size:11px;">—</td>' : '') + '<td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td><td style="text-align:center;">gói</td><td style="text-align:center;">1</td><td style="text-align:right;font-family:monospace;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(hiddenSum).toLocaleString('vi-VN') + '</td><td></td></tr>';
           }
         }
       } else {
+        hasAnyImage = costs.some(function(c) { return Boolean(c.product_image && String(c.product_image).trim()); });
         rows = costs.map(function(item, idx) {
-          return '<tr><td style="text-align:center;">' + (idx + 1) + '</td><td><strong>' + esc(item.item_name) + '</strong></td><td style="text-align:center;">' + esc(item.unit || 'gói') + '</td><td style="text-align:center;">' + (item.quantity || 1) + '</td><td style="text-align:right;font-family:monospace;">' + Number(item.quote_unit_price || 0).toLocaleString('vi-VN') + '</td><td style="text-align:right;font-family:monospace;font-weight:700;">' + Number(item.quote_line_total || 0).toLocaleString('vi-VN') + '</td><td style="font-size:12px;color:#475569;">' + (item.duration_days ? 'Dự kiến ' + item.duration_days + ' ngày' : '') + '</td></tr>';
+          return renderQuoteRowHtml(item, idx, hasAnyImage);
         }).join('');
       }
 
@@ -2951,7 +3036,7 @@
         '<div class="header"><div><div class="co-name">CÔNG TY CỔ PHẦN TƯ VẤN, DỊCH VỤ VÀ THƯƠNG MẠI KHỞI MINH (KHOI MINH CST)</div><div class="co-meta">VPGD: 102/6 Lê Thánh Tông, Hoàn Kiếm, Hà Nội<br>Showroom: 6/38 Phố Huế, Cửa Nam, Hà Nội | Liên hệ: 079.338.1666</div></div>' +
         '<div class="cust-box"><div><strong>Khách hàng:</strong> ' + esc(custName) + '</div>' + (custTax ? '<div><strong>MST:</strong> ' + esc(custTax) + '</div>' : '') + '<div><strong>Đại diện:</strong> ' + esc(contactDisplay) + '</div>' + (contractCode ? '<div><strong>Mã HĐ:</strong> ' + esc(contractCode) + '</div>' : '') + '<div><strong>Ngày:</strong> ' + esc(q.quote_date || '') + '</div></div></div>' +
         '<h1>' + esc(q.title || 'BÁO GIÁ SẢN PHẨM & DỊCH VỤ') + ' (CHƯA BAO GỒM ' + vatPct + '% VAT)</h1>' +
-        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th><th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<table><thead><tr><th style="width:40px;text-align:center;">No.</th>' + (hasAnyImage ? '<th style="width:80px;text-align:center;">HÌNH ẢNH</th>' : '') + '<th>MÔ TẢ HẠNG MỤC</th><th style="width:65px;text-align:center;">ĐƠN VỊ</th><th style="width:60px;text-align:center;">SL</th><th style="width:110px;text-align:right;">ĐƠN GIÁ</th><th style="width:120px;text-align:right;">THÀNH TIỀN</th><th>GHI CHÚ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<table class="totals"><tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right;font-weight:700;">' + fmtVnd(sum.totalQuoteExclVat) + '</td></tr><tr><td>Thuế GTGT (' + vatPct + '%):</td><td style="text-align:right;">' + fmtVnd(sum.vatAmount) + '</td></tr><tr class="grand"><td>TỔNG THANH TOÁN:</td><td style="text-align:right;">' + fmtVnd(sum.totalQuoteInclVat) + '</td></tr></table>' +
         '<div class="pay-box"><div style="flex:1;"><div><strong>Điều khoản thanh toán:</strong><br>' + esc(payTerms).replace(/\n/g, '<br>') + '</div><div style="margin-top:8px;"><strong>Thông tin STK &amp; Ngân hàng:</strong><br>' + esc(bankInfo).replace(/\n/g, '<br>') + '</div></div>' + qrHtml + '</div>' +
         '</div></body></html>';
