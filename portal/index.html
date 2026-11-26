@@ -754,7 +754,7 @@
           <span class="nav-icon">📁</span> Kho tài liệu &amp; Drive
         </button>
         <button class="nav-item admin-only" id="nav-admin-mention" data-tab="mention" style="display:none;" onclick="switchTab('mention')">
-          <span class="nav-icon">🔔</span> Nhắc việc &amp; Chuyển tiếp Bot
+          <span class="nav-icon">🔔</span> Nhắc việc &amp; Gửi tin Bot
         </button>
         <button class="nav-item admin-only" id="nav-admin-settings" data-tab="settings" style="display:none;" onclick="switchTab('settings')">
           <span class="nav-icon">🤖</span> Quản lý Zalo Bot &amp; Kết nối
@@ -1484,21 +1484,21 @@
         </section>
 
 
-        <!-- TAB 3: NHẮC VIỆC & TAG NHÓM + CHUYỂN TIẾP BOT -->
+        <!-- TAB 3: NHẮC VIỆC & GỬI TIN NHẮN QUA ZALO BOT -->
         <section class="panel" id="panel-mention">
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-title">📨 Chuyển tiếp tin nhắn sang nhóm khác (Qua Zalo Bot Trợ Lý Jay)</div>
+                <div class="card-title">🤖 Gửi tin nhắn vào nhóm qua Zalo Bot (Trợ Lý Jay)</div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                  Chuyển tiếp nhanh sang 1 hoặc nhiều nhóm cùng lúc, hoặc cài cầu nối tự động chuyển từ Nhóm A sang Nhóm B. Trên Zalo gõ: <code>chuyển sang Nhóm Test: Nội dung</code> hoặc <code>đặt tên nhóm 1: Tên mới</code>.
+                  Gửi tin nhắn trực tiếp từ Zalo Bot vào 1 hoặc nhiều nhóm đã kết nối (có thể đặt lại tên nhóm để dễ phân biệt).
                 </div>
               </div>
-              <button class="btn btn-soft btn-sm" onclick="loadBotForwarding()">↻ Làm mới danh sách Bot</button>
+              <button class="btn btn-soft btn-sm" onclick="loadBotForwarding()">↻ Làm mới danh sách nhóm Bot</button>
             </div>
             <div class="card-body">
-              <div style="margin-bottom:16px;">
-                <div style="font-size:13px; font-weight:700; margin-bottom:8px;">1. Danh sách Nhóm &amp; Người nhận đã kết nối với Bot (tick chọn để chuyển tiếp &amp; có thể sửa tên nhóm)</div>
+              <div style="margin-bottom:4px;">
+                <div style="font-size:13px; font-weight:700; margin-bottom:8px;">1. Danh sách Nhóm &amp; Người nhận đã kết nối với Bot (tick chọn nhiều hoặc bấm gửi trực tiếp từng dòng)</div>
                 <div class="table-scroll" style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px;">
                   <table>
                     <thead>
@@ -1506,46 +1506,27 @@
                         <th style="width:44px; text-align:center;">Chọn</th>
                         <th style="width:44px; text-align:center;">STT</th>
                         <th style="width:90px;">Loại</th>
-                        <th style="min-width:240px;">Tên nhóm / Người nhận (Sửa &amp; Lưu)</th>
+                        <th style="min-width:230px;">Tên nhóm / Người nhận (Sửa &amp; Lưu)</th>
                         <th>Thành viên &amp; Tin nhắn nhận diện</th>
+                        <th style="width:140px; text-align:center;">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody id="bot-targets-tbody">
-                      <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
+                      <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Đang tải danh sách nhóm của Bot...</td></tr>
                     </tbody>
                   </table>
                 </div>
                 <div class="form-grid" style="margin-bottom:10px;">
                   <div class="field">
-                    <label>Nhãn người gửi / nguồn chuyển tiếp (tuỳ chọn)</label>
-                    <input class="input" id="fw-sender-label" placeholder="VD: Quản lý Khởi Minh / Nhóm Khách Hàng">
+                    <label>Tiêu đề / Nhãn gửi kèm (tuỳ chọn — để trống sẽ gửi nguyên văn)</label>
+                    <input class="input" id="fw-sender-label" placeholder="VD: Thông báo từ Quản lý Khởi Minh">
                   </div>
                   <div class="field">
-                    <label>Nội dung cần chuyển tiếp sang các nhóm đã tick</label>
-                    <textarea class="textarea" id="fw-message" rows="2" placeholder="Nhập nội dung hoặc dán thông báo cần gửi sang nhóm khác..."></textarea>
+                    <label>Nội dung tin nhắn gửi vào nhóm qua Bot</label>
+                    <textarea class="textarea" id="fw-message" rows="2" placeholder="Nhập nội dung cần gửi qua Bot vào nhóm..."></textarea>
                   </div>
                 </div>
-                <button class="btn btn-primary" id="btn-fw-send" onclick="sendBotForwardNow()">📨 Chuyển tiếp sang các nhóm đã chọn</button>
-              </div>
-
-              <div style="border-top:1px solid var(--border); padding-top:16px;">
-                <div style="font-size:13px; font-weight:700; margin-bottom:8px;">2. Cầu nối Tự động chuyển tiếp (Hễ có tin từ Nhóm Nguồn → Tự đẩy sang Nhóm Đích)</div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; align-items:end; margin-bottom:12px;">
-                  <div class="field">
-                    <label>Nhóm nguồn</label>
-                    <select class="select" id="fw-rule-source"></select>
-                  </div>
-                  <div class="field">
-                    <label>Nhóm đích</label>
-                    <select class="select" id="fw-rule-target"></select>
-                  </div>
-                  <div class="field">
-                    <label>Lọc từ khóa (để trống = mọi tin)</label>
-                    <input class="input" id="fw-rule-kw" placeholder="VD: báo cáo, mẫu, gấp">
-                  </div>
-                  <button class="btn btn-soft" onclick="addBotForwardRule()">+ Tạo cầu nối tự động</button>
-                </div>
-                <div id="bot-rules-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <button class="btn btn-primary" id="btn-fw-send" onclick="sendBotForwardNow()">🤖 Gửi tin nhắn qua Bot vào các nhóm đã chọn</button>
               </div>
             </div>
           </div>
@@ -2262,7 +2243,7 @@
         customers: 'Khách hàng & Tính Lợi Nhuận Dự Án',
         tracker: 'Theo dõi tiến độ công việc',
         drive: 'Kho tài liệu & Google Drive AI',
-        mention: 'Nhắc việc & Chuyển tiếp Zalo Bot (Admin)',
+        mention: 'Nhắc việc & Gửi tin qua Zalo Bot (Admin)',
         settings: 'Quản lý Zalo Bot & Kết nối (Admin)'
       };
       document.getElementById('topbar-title').textContent = titles[tab] || 'Khởi Minh Workspace';
@@ -4136,7 +4117,7 @@
       var tbody = document.getElementById('bot-targets-tbody');
       if (tbody) {
         if (targets.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Chưa có nhóm nào từng nhắn với Bot. Hãy tag @Bot trong nhóm Zalo 1 lần để kết nối.</td></tr>';
         } else {
           tbody.innerHTML = targets.map(function(t) {
             var kind = t.threadType === 1 ? '<span class="badge">Nhóm</span>' : '<span class="badge muted">Cá nhân</span>';
@@ -4151,100 +4132,78 @@
               '<td>' + kind + '</td>' +
               '<td><div style="display:flex; align-items:center; gap:6px;"><input class="wt-cell-input" style="font-weight:600; flex:1;" data-tid="' + esc(t.threadId) + '" value="' + esc(t.displayName) + '" onchange="renameBotThreadFromInput(this)"><button type="button" class="btn btn-soft btn-sm" style="padding:4px 8px; font-size:11px; white-space:nowrap;" onclick="saveBotThreadRenameBtn(this)">Lưu tên</button></div></td>' +
               '<td>' + infoHtml + '</td>' +
+              '<td style="text-align:center;"><button type="button" class="btn btn-primary btn-sm" style="height:28px; font-size:11.5px; white-space:nowrap;" data-tid="' + esc(t.threadId) + '" data-name="' + esc(t.displayName) + '" onclick="sendBotToSingleBtn(this)">🤖 Gửi vào đây</button></td>' +
             '</tr>';
           }).join('');
         }
       }
+    }
 
-      var opts = targets.map(function(t) {
-        return '<option value="' + esc(t.threadId) + '">' + t.index + '. ' + esc(t.displayName) + '</option>';
-      }).join('');
-      var srcSel = document.getElementById('fw-rule-source');
-      var dstSel = document.getElementById('fw-rule-target');
-      if (srcSel && dstSel) {
-        srcSel.innerHTML = opts;
-        dstSel.innerHTML = opts;
-        if (targets.length > 1) dstSel.selectedIndex = 1;
+    async function sendBotMessagesToTargets(targetIds) {
+      var msgEl = document.getElementById('fw-message');
+      var msg = msgEl ? msgEl.value.trim() : '';
+      var labelEl = document.getElementById('fw-sender-label');
+      var label = labelEl ? labelEl.value.trim() : '';
+      if (!targetIds || targetIds.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 nhóm/người nhận', true);
+        return false;
       }
+      if (!msg) {
+        showToast('Vui lòng nhập nội dung tin nhắn trước khi gửi qua Bot', true);
+        if (msgEl) msgEl.focus();
+        return false;
+      }
+      var res = await fetch('/portal/api/bot-forwarding/send', {
+        method: 'POST',
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ targetThreadIds: targetIds, message: msg, senderLabel: label })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        showToast('Bot đã gửi tin nhắn vào ' + data.sentCount + ' nhóm/người nhận!');
+        if (msgEl) msgEl.value = '';
+        return true;
+      }
+      showToast((data.errors && data.errors[0]) || data.error || 'Bot gửi tin nhắn thất bại', true);
+      return false;
+    }
 
-      var rList = document.getElementById('bot-rules-list');
-      if (rList) {
-        if (rules.length === 0) {
-          rList.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">Chưa có cầu nối tự động nào.</div>';
-        } else {
-          var tMap = {};
-          targets.forEach(function(t) { tMap[t.threadId] = t.displayName; });
-          rList.innerHTML = rules.map(function(r) {
-            return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--bg-canvas); border:1px solid var(--border); border-radius:8px; font-size:12.5px;">' +
-              '<span><strong>' + esc(tMap[r.source_thread_id] || r.source_thread_id) + '</strong> → <strong>' + esc(tMap[r.target_thread_id] || r.target_thread_id) + '</strong>' +
-              (r.keyword_filter ? ' (Từ khóa: <em>' + esc(r.keyword_filter) + '</em>)' : ' (Tất cả tin nhắn)') + '</span>' +
-              '<button class="btn btn-sm" style="height:26px; color:#DC2626;" onclick="deleteBotForwardRule(' + r.id + ')">Xóa</button>' +
-            '</div>';
-          }).join('');
-        }
+    async function sendBotToSingleBtn(btn) {
+      var tid = btn && btn.getAttribute('data-tid');
+      var name = btn && btn.getAttribute('data-name');
+      if (!tid) return;
+      btn.disabled = true;
+      var oldTxt = btn.textContent;
+      btn.textContent = 'Đang gửi...';
+      try {
+        var ok = await sendBotMessagesToTargets([tid]);
+        if (ok) showToast('Bot đã gửi tin nhắn vào "' + (name || tid) + '"!');
+      } catch (e) {
+        showToast('Lỗi kết nối khi gửi tin qua Bot', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldTxt;
       }
     }
 
     async function sendBotForwardNow() {
       var chks = Array.from(document.querySelectorAll('.fw-target-chk:checked'));
       var ids = chks.map(function(c) { return c.value; });
-      var msg = document.getElementById('fw-message').value.trim();
-      var label = document.getElementById('fw-sender-label').value.trim();
-      if (ids.length === 0 || !msg) {
-        showToast('Vui lòng tick chọn ít nhất 1 nhóm/người nhận và nhập nội dung', true);
+      if (ids.length === 0) {
+        showToast('Vui lòng tick chọn ít nhất 1 nhóm/người nhận (hoặc bấm "🤖 Gửi vào đây" ở từng dòng)', true);
         return;
       }
       var btn = document.getElementById('btn-fw-send');
       btn.disabled = true;
-      btn.textContent = 'Đang chuyển tiếp...';
+      btn.textContent = 'Đang gửi qua Bot...';
       try {
-        var res = await fetch('/portal/api/bot-forwarding/send', {
-          method: 'POST',
-          headers: adminHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ targetThreadIds: ids, message: msg, senderLabel: label })
-        });
-        var data = await res.json();
-        if (data.ok) {
-          showToast('Đã chuyển tiếp tin nhắn sang ' + data.sentCount + ' nhóm/người nhận!');
-          document.getElementById('fw-message').value = '';
-        } else {
-          showToast((data.errors && data.errors[0]) || data.error || 'Chuyển tiếp thất bại', true);
-        }
+        await sendBotMessagesToTargets(ids);
       } catch (e) {
-        showToast('Lỗi kết nối khi chuyển tiếp', true);
+        showToast('Lỗi kết nối khi gửi tin qua Bot', true);
       } finally {
         btn.disabled = false;
-        btn.textContent = '📨 Chuyển tiếp sang các nhóm đã chọn';
+        btn.textContent = '🤖 Gửi tin nhắn qua Bot vào các nhóm đã chọn';
       }
-    }
-
-    async function addBotForwardRule() {
-      var src = document.getElementById('fw-rule-source').value;
-      var dst = document.getElementById('fw-rule-target').value;
-      var kw = document.getElementById('fw-rule-kw').value.trim();
-      if (!src || !dst || src === dst) {
-        showToast('Nhóm nguồn và đích phải khác nhau', true);
-        return;
-      }
-      var res = await fetch('/portal/api/bot-forwarding/rules', {
-        method: 'POST',
-        headers: adminHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ source_thread_id: src, target_thread_id: dst, keyword_filter: kw })
-      });
-      var data = await res.json();
-      if (data.ok) {
-        showToast('Đã tạo cầu nối tự động chuyển tiếp!');
-        document.getElementById('fw-rule-kw').value = '';
-        loadBotForwarding();
-      } else {
-        showToast(data.error || 'Lỗi tạo cầu nối', true);
-      }
-    }
-
-    async function deleteBotForwardRule(id) {
-      await fetch('/portal/api/bot-forwarding/rules/' + id, { method: 'DELETE', headers: adminHeaders() });
-      showToast('Đã xóa cầu nối chuyển tiếp');
-      loadBotForwarding();
     }
 
     /* GROUP MENTION REMINDER */
