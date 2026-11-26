@@ -1527,6 +1527,7 @@
                   </div>
                 </div>
                 <button class="btn btn-primary" id="btn-fw-send" onclick="sendBotForwardNow()">🤖 Gửi tin nhắn qua Bot vào các nhóm đã chọn</button>
+                <div id="bot-send-result" style="margin-top:10px; font-size:12.5px;"></div>
               </div>
             </div>
           </div>
@@ -4139,32 +4140,54 @@
       }
     }
 
-    async function sendBotMessagesToTargets(targetIds) {
+    function setBotSendResult(html, isErr) {
+      var box = document.getElementById('bot-send-result');
+      if (!box) return;
+      if (!html) {
+        box.innerHTML = '';
+        return;
+      }
+      var bg = isErr ? '#FEF2F2' : '#ECFDF5';
+      var bd = isErr ? '#FECACA' : '#A7F3D0';
+      var fg = isErr ? '#991B1B' : '#065F46';
+      box.innerHTML = '<div style="padding:10px 12px; border-radius:8px; background:' + bg + '; border:1px solid ' + bd + '; color:' + fg + ';">' + html + '</div>';
+    }
+
+    async function sendBotMessagesToTargets(targetIds, singleTargetName) {
       var msgEl = document.getElementById('fw-message');
       var msg = msgEl ? msgEl.value.trim() : '';
       var labelEl = document.getElementById('fw-sender-label');
       var label = labelEl ? labelEl.value.trim() : '';
       if (!targetIds || targetIds.length === 0) {
+        setBotSendResult('⚠️ Vui lòng chọn ít nhất 1 nhóm/người nhận.', true);
         showToast('Vui lòng chọn ít nhất 1 nhóm/người nhận', true);
         return false;
       }
       if (!msg) {
+        setBotSendResult('⚠️ Vui lòng nhập nội dung tin nhắn trước khi gửi qua Bot.', true);
         showToast('Vui lòng nhập nội dung tin nhắn trước khi gửi qua Bot', true);
         if (msgEl) msgEl.focus();
         return false;
       }
+      setBotSendResult('<span style="color:#475569;">⏳ Đang gửi tin nhắn qua Zalo Bot...</span>', false);
       var res = await fetch('/portal/api/bot-forwarding/send', {
         method: 'POST',
         headers: adminHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ targetThreadIds: targetIds, message: msg, senderLabel: label })
       });
-      var data = await res.json();
-      if (data.ok) {
-        showToast('Bot đã gửi tin nhắn vào ' + data.sentCount + ' nhóm/người nhận!');
+      var data = await res.json().catch(function() { return { ok: false, error: 'Lỗi phản hồi máy chủ (HTTP ' + res.status + ')' }; });
+      if (res.ok && data.ok) {
+        var successMsg = singleTargetName
+          ? '✅ Bot đã gửi tin nhắn thành công vào "' + esc(singleTargetName) + '"!'
+          : '✅ Bot đã gửi tin nhắn thành công vào ' + data.sentCount + ' nhóm/người nhận!';
+        setBotSendResult(successMsg, false);
+        showToast(singleTargetName ? ('Bot đã gửi tin nhắn vào "' + singleTargetName + '"!') : ('Bot đã gửi tin nhắn vào ' + data.sentCount + ' nhóm/người nhận!'));
         if (msgEl) msgEl.value = '';
         return true;
       }
-      showToast((data.errors && data.errors[0]) || data.error || 'Bot gửi tin nhắn thất bại', true);
+      var errText = (data.errors && data.errors[0]) || data.error || ('Bot gửi tin nhắn thất bại (HTTP ' + res.status + ')');
+      setBotSendResult('❌ Không gửi được: ' + esc(errText), true);
+      showToast(errText, true);
       return false;
     }
 
@@ -4176,9 +4199,9 @@
       var oldTxt = btn.textContent;
       btn.textContent = 'Đang gửi...';
       try {
-        var ok = await sendBotMessagesToTargets([tid]);
-        if (ok) showToast('Bot đã gửi tin nhắn vào "' + (name || tid) + '"!');
+        await sendBotMessagesToTargets([tid], name || tid);
       } catch (e) {
+        setBotSendResult('❌ Lỗi kết nối khi gửi tin qua Bot.', true);
         showToast('Lỗi kết nối khi gửi tin qua Bot', true);
       } finally {
         btn.disabled = false;
@@ -4190,6 +4213,7 @@
       var chks = Array.from(document.querySelectorAll('.fw-target-chk:checked'));
       var ids = chks.map(function(c) { return c.value; });
       if (ids.length === 0) {
+        setBotSendResult('⚠️ Vui lòng tick chọn ít nhất 1 nhóm/người nhận (hoặc bấm "🤖 Gửi vào đây" ở từng dòng).', true);
         showToast('Vui lòng tick chọn ít nhất 1 nhóm/người nhận (hoặc bấm "🤖 Gửi vào đây" ở từng dòng)', true);
         return;
       }
@@ -4199,6 +4223,7 @@
       try {
         await sendBotMessagesToTargets(ids);
       } catch (e) {
+        setBotSendResult('❌ Lỗi kết nối khi gửi tin qua Bot.', true);
         showToast('Lỗi kết nối khi gửi tin qua Bot', true);
       } finally {
         btn.disabled = false;
