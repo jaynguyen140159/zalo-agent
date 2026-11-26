@@ -2169,9 +2169,7 @@ export const portalRoutes = new Hono()
     if (!Array.isArray(body.targetThreadIds) || body.targetThreadIds.length === 0 || !body.message?.trim()) {
       return c.json({ ok: false, error: "Cần chọn ít nhất 1 nhóm/người nhận và nhập nội dung" }, 400);
     }
-    const header = body.senderLabel?.trim()
-      ? `📨 [Chuyển tiếp từ ${body.senderLabel.trim()}]:\n`
-      : `📨 [Thông báo chuyển tiếp từ Zalo Bot]:\n`;
+    const header = body.senderLabel?.trim() ? `[${body.senderLabel.trim()}]:\n` : "";
     const res = await forwardViaBotClient({
       accountId: body.accountId || "bot-tro-ly-jay",
       targetThreadIds: body.targetThreadIds,
