@@ -565,7 +565,7 @@ export function renderStaticFetchInterceptorScript(): string {
     "          var ex = st.costs.find(function(x) { return x.id === body.id; });",
     "          if (ex) Object.assign(ex, body);",
     "        } else {",
-    "          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán', contract_ref: '', attachment_name: '', attachment_data: '', show_in_quote: 1 }, body));",
+    "          st.costs.push(Object.assign({ id: st.nextIds.cost++, project_id: pid, stage_id: null, quantity: 1, unit: 'gói', duration_days: 0, markup_factor: 1.5, payment_status: 'Chưa thanh toán', contract_ref: '', attachment_name: '', attachment_data: '', product_image: '', show_in_quote: 1 }, body));",
     "        }",
     "        saveStore(st);",
     "        return jsonRes({ ok: true });",

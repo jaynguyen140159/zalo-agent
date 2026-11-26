@@ -849,7 +849,8 @@ export const portalRoutes = new Hono()
                 pc.vendor_name, pc.cost_amount, pc.quantity, pc.unit, pc.duration_days, pc.markup_factor,
                 pc.description_specs, pc.payment_status, pc.contract_ref, pc.attachment_name,
                 CASE WHEN pc.attachment_data IS NOT NULL AND pc.attachment_data != '' THEN 1 ELSE 0 END as has_attachment,
-                COALESCE(pc.show_in_quote, 1) as show_in_quote
+                COALESCE(pc.show_in_quote, 1) as show_in_quote,
+                COALESCE(pc.product_image, '') as product_image
          FROM pm_project_costs pc
          LEFT JOIN pm_stages s ON pc.stage_id = s.id
          WHERE pc.project_id = ?
@@ -874,6 +875,7 @@ export const portalRoutes = new Hono()
         attachment_name: string;
         has_attachment: number;
         show_in_quote: number;
+        product_image: string;
       }>;
 
     const rawQ = db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
@@ -988,18 +990,20 @@ export const portalRoutes = new Hono()
       attachment_name?: string;
       attachment_data?: string;
       show_in_quote?: number;
+      product_image?: string;
     }>();
 
     if (!body.item_name?.trim()) return c.json({ ok: false, error: "Thiếu tên hạng mục" }, 400);
 
     if (body.id) {
       const existing = db
-        .prepare("SELECT attachment_name, attachment_data, show_in_quote FROM pm_project_costs WHERE id = ? AND project_id = ?")
+        .prepare("SELECT attachment_name, attachment_data, show_in_quote, product_image FROM pm_project_costs WHERE id = ? AND project_id = ?")
         .get(body.id, projectId) as
-        | { attachment_name?: string; attachment_data?: string; show_in_quote?: number }
+        | { attachment_name?: string; attachment_data?: string; show_in_quote?: number; product_image?: string }
         | undefined;
       const attName = body.attachment_name !== undefined ? body.attachment_name : existing?.attachment_name || "";
       const attData = body.attachment_data !== undefined ? body.attachment_data : existing?.attachment_data || "";
+      const prodImg = body.product_image !== undefined ? body.product_image : existing?.product_image || "";
       const showQuote =
         body.show_in_quote !== undefined ? (Number(body.show_in_quote) ? 1 : 0) : existing?.show_in_quote ?? 1;
 
@@ -1007,7 +1011,7 @@ export const portalRoutes = new Hono()
         `UPDATE pm_project_costs
          SET stage_id = ?, category = ?, item_name = ?, vendor_name = ?, cost_amount = ?, quantity = ?, unit = ?,
              duration_days = ?, markup_factor = ?, description_specs = ?, payment_status = ?, contract_ref = ?,
-             attachment_name = ?, attachment_data = ?, show_in_quote = ?
+             attachment_name = ?, attachment_data = ?, show_in_quote = ?, product_image = ?
          WHERE id = ? AND project_id = ?`,
       ).run(
         body.stage_id ?? null,
@@ -1025,6 +1029,7 @@ export const portalRoutes = new Hono()
         attName,
         attData,
         showQuote,
+        prodImg,
         body.id,
         projectId,
       );
@@ -1034,8 +1039,8 @@ export const portalRoutes = new Hono()
     const row = db
       .prepare(
         `INSERT INTO pm_project_costs
-          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref, attachment_name, attachment_data, show_in_quote)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          (project_id, stage_id, category, item_name, vendor_name, cost_amount, quantity, unit, duration_days, markup_factor, description_specs, payment_status, contract_ref, attachment_name, attachment_data, show_in_quote, product_image)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       )
       .get(
         projectId,
@@ -1054,6 +1059,7 @@ export const portalRoutes = new Hono()
         body.attachment_name || "",
         body.attachment_data || "",
         body.show_in_quote !== undefined ? (Number(body.show_in_quote) ? 1 : 0) : 1,
+        body.product_image || "",
       ) as { id: number };
 
     return c.json({ ok: true, id: row.id });
@@ -1183,6 +1189,7 @@ export const portalRoutes = new Hono()
       markup_factor: number;
       description_specs: string;
       show_in_quote?: number;
+      product_image?: string;
     }>;
 
     const qRaw = db.prepare("SELECT * FROM pm_quotations WHERE project_id = ?").get(projectId) as
@@ -1227,6 +1234,24 @@ export const portalRoutes = new Hono()
       return { ...item, qty, unitPrice, lineTotal };
     });
 
+    const renderQuoteItemRow = (item: (typeof calculatedItems)[0], idx: number, includeImgCol: boolean) => {
+      const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
+      const imgCell = includeImgCol
+        ? `<td style="text-align:center; vertical-align:middle; width:82px;">${item.product_image ? `<img src="${escHtml(item.product_image)}" alt="${escHtml(item.item_name)}" width="64" height="64" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #CBD5E1; display:block; margin:0 auto;">` : '<span style="color:#94A3B8; font-size:11px;">—</span>'}</td>`
+        : "";
+      return `<tr>
+        <td style="text-align:center;">${idx + 1}</td>
+        ${imgCell}
+        <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
+        <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
+        <td style="text-align:center;">${item.qty.toLocaleString("vi-VN")}</td>
+        <td style="text-align:right; font-family:monospace;">${item.unitPrice.toLocaleString("vi-VN")}</td>
+        <td style="text-align:right; font-family:monospace; font-weight:700;">${item.lineTotal.toLocaleString("vi-VN")}</td>
+        <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
+      </tr>`;
+    };
+
+    let hasAnyImage = false;
     let rowsHtml = "";
     if (q.display_mode === "hidden") {
       // Báo giá ẩn chi tiết: chỉ hiện 1 dòng tổng hợp gói dịch vụ hoặc các mục cho phép hiện
@@ -1234,7 +1259,7 @@ export const portalRoutes = new Hono()
       const hiddenTotal = calculatedItems
         .filter((it) => Number(it.show_in_quote ?? 1) === 0)
         .reduce((s, x) => s + x.lineTotal, 0);
-      if (visibleItems.length === 0 || hiddenTotal === 0 && calculatedItems.length > 0 && visibleItems.length === calculatedItems.length) {
+      if (visibleItems.length === 0 || (hiddenTotal === 0 && calculatedItems.length > 0 && visibleItems.length === calculatedItems.length)) {
         rowsHtml = `<tr>
           <td style="text-align:center;">1</td>
           <td><strong>Trọn gói triển khai dự án: ${escHtml(proj.name)}</strong><div style="font-size:12px; color:#475569; margin-top:4px;">Bao gồm toàn bộ hạng mục thiết kế, sản xuất &amp; hoàn thiện theo yêu cầu.</div></td>
@@ -1245,23 +1270,12 @@ export const portalRoutes = new Hono()
           <td style="font-size:12px; color:#475569;">Theo tiến độ HĐ</td>
         </tr>`;
       } else {
-        rowsHtml = visibleItems
-          .map((item, idx) => {
-            const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
-            return `<tr>
-              <td style="text-align:center;">${idx + 1}</td>
-              <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
-              <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
-              <td style="text-align:center;">${item.qty.toLocaleString("vi-VN")}</td>
-              <td style="text-align:right; font-family:monospace;">${item.unitPrice.toLocaleString("vi-VN")}</td>
-              <td style="text-align:right; font-family:monospace; font-weight:700;">${item.lineTotal.toLocaleString("vi-VN")}</td>
-              <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
-            </tr>`;
-          })
-          .join("");
+        hasAnyImage = visibleItems.some((it) => Boolean(it.product_image && it.product_image.trim()));
+        rowsHtml = visibleItems.map((item, idx) => renderQuoteItemRow(item, idx, hasAnyImage)).join("");
         if (hiddenTotal > 0) {
           rowsHtml += `<tr>
             <td style="text-align:center;">${visibleItems.length + 1}</td>
+            ${hasAnyImage ? '<td style="text-align:center; color:#94A3B8; font-size:11px;">—</td>' : ""}
             <td><strong>Chi phí triển khai, vận hành &amp; hoàn thiện dự án (Gói gộp)</strong></td>
             <td style="text-align:center;">gói</td>
             <td style="text-align:center;">1</td>
@@ -1272,20 +1286,8 @@ export const portalRoutes = new Hono()
         }
       }
     } else {
-      rowsHtml = calculatedItems
-        .map((item, idx) => {
-          const specs = escHtml(item.description_specs).replace(/\n/g, "<br>");
-          return `<tr>
-            <td style="text-align:center;">${idx + 1}</td>
-            <td><strong>${escHtml(item.item_name)}</strong>${specs ? `<div style="font-size:12px; color:#475569; margin-top:4px;">${specs}</div>` : ""}</td>
-            <td style="text-align:center;">${escHtml(item.unit || "bộ")}</td>
-            <td style="text-align:center;">${item.qty.toLocaleString("vi-VN")}</td>
-            <td style="text-align:right; font-family:monospace;">${item.unitPrice.toLocaleString("vi-VN")}</td>
-            <td style="text-align:right; font-family:monospace; font-weight:700;">${item.lineTotal.toLocaleString("vi-VN")}</td>
-            <td style="font-size:12px; color:#475569;">${item.duration_days ? `Dự kiến ${item.duration_days} ngày` : ""}</td>
-          </tr>`;
-        })
-        .join("");
+      hasAnyImage = calculatedItems.some((it) => Boolean(it.product_image && it.product_image.trim()));
+      rowsHtml = calculatedItems.map((item, idx) => renderQuoteItemRow(item, idx, hasAnyImage)).join("");
     }
 
     const vatPct = Number(q.vat_percent) || 0;
@@ -1353,6 +1355,7 @@ export const portalRoutes = new Hono()
       <thead>
         <tr>
           <th style="width:42px; text-align:center;">No.</th>
+          ${hasAnyImage ? '<th style="width:82px; text-align:center;">HÌNH ẢNH</th>' : ""}
           <th>MÔ TẢ HẠNG MỤC &amp; QUY CÁCH</th>
           <th style="width:65px; text-align:center;">ĐƠN VỊ</th>
           <th style="width:65px; text-align:center;">SL</th>
@@ -1361,7 +1364,7 @@ export const portalRoutes = new Hono()
           <th style="width:110px;">GHI CHÚ</th>
         </tr>
       </thead>
-      <tbody>${rowsHtml || '<tr><td colspan="7" style="text-align:center; color:#64748B;">Chưa có hạng mục nào</td></tr>'}</tbody>
+      <tbody>${rowsHtml || `<tr><td colspan="${hasAnyImage ? 8 : 7}" style="text-align:center; color:#64748B;">Chưa có hạng mục nào</td></tr>`}</tbody>
     </table>
     <table class="totals">
       <tr><td>Tổng doanh thu (Chưa VAT):</td><td style="text-align:right; font-weight:700;">${subTotal.toLocaleString("vi-VN")} ₫</td></tr>

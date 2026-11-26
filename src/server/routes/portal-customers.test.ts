@@ -67,7 +67,7 @@ describe("Portal Customers & Multi-Project Profit (KM Gift <-> KM Brand)", () =>
     const p2Json = (await p2Res.json()) as { ok: boolean; id: number };
     assert.equal(p2Json.ok, true);
 
-    // Thêm chi phí dự án 1: Chi phí 10.000.000, hệ số 2.0 => Doanh thu 20.000.000, VAT 8% = 1.600.000 => Lợi nhuận = 8.400.000
+    // Thêm chi phí dự án 1 có ảnh sản phẩm: Chi phí 10.000.000, hệ số 2.0 => Doanh thu 20.000.000, VAT 8% = 1.600.000 => Lợi nhuận = 8.400.000
     await app.request(`/portal/api/projects/${p1Json.id}/costs`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -76,8 +76,24 @@ describe("Portal Customers & Multi-Project Profit (KM Gift <-> KM Brand)", () =>
         cost_amount: 10000000,
         quantity: 1,
         markup_factor: 2.0,
+        product_image: "https://example.com/hop-qua.jpg",
       }),
     });
+
+    const costsRes = (await (await app.request(`/portal/api/projects/${p1Json.id}/costs`)).json()) as {
+      ok: boolean;
+      costs: Array<{ product_image: string }>;
+    };
+    assert.equal(costsRes.costs[0]!.product_image, "https://example.com/hop-qua.jpg");
+
+    const printHtml = await (await app.request(`/portal/api/projects/${p1Json.id}/quotation/print`)).text();
+    assert.match(printHtml, /HÌNH ẢNH/);
+    assert.match(printHtml, /https:\/\/example\.com\/hop-qua\.jpg/);
+
+    const docRes = await app.request(`/portal/api/projects/${p1Json.id}/quotation/print?download=doc`);
+    assert.equal(docRes.headers.get("content-type")?.includes("application/msword"), true);
+    const docHtml = await docRes.text();
+    assert.match(docHtml, /https:\/\/example\.com\/hop-qua\.jpg/);
 
     // Thêm chi phí dự án 2: Chi phí 20.000.000, hệ số 1.5 => Doanh thu 30.000.000, VAT 8% = 2.400.000 => Lợi nhuận = 7.600.000
     await app.request(`/portal/api/projects/${p2Json.id}/costs`, {

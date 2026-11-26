@@ -1128,6 +1128,7 @@ function taoBangWorkTracker(database: DatabaseSync): void {
   ensureColumn("pm_project_costs", "attachment_name", "TEXT DEFAULT ''");
   ensureColumn("pm_project_costs", "attachment_data", "TEXT DEFAULT ''");
   ensureColumn("pm_project_costs", "show_in_quote", "INTEGER DEFAULT 1");
+  ensureColumn("pm_project_costs", "product_image", "TEXT DEFAULT ''");
 
   ensureColumn("pm_quotations", "customer_tax_code", "TEXT DEFAULT ''");
   ensureColumn("pm_quotations", "contact_name", "TEXT DEFAULT ''");
