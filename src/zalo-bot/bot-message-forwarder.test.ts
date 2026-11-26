@@ -4,6 +4,7 @@ import {
   extractQuotedMessageFromRaw,
   formatBotTargetsListMessage,
   inferGroupDisplayName,
+  listBotTargets,
   parseForwardCommand,
   resolveForwardTargets,
   type BotTargetThread,
@@ -172,5 +173,12 @@ describe("bot-message-forwarder", () => {
     });
 
     assert.equal(extractQuotedMessageFromRaw({ rawData: {} }), null);
+  });
+
+  it("listBotTargets chỉ lấy nhóm/người nhận thuộc đúng tài khoản Bot, không lẫn hay trùng nhóm nick cá nhân", () => {
+    const targets = listBotTargets("bot-tro-ly-jay");
+    assert.ok(targets.every((t) => t.accountId === "bot-tro-ly-jay"));
+    const kmGroups = targets.filter((t) => t.displayName.toLowerCase().includes("km") && t.threadType === 1);
+    assert.ok(kmGroups.length <= 1);
   });
 });

@@ -133,21 +133,16 @@ export function inferGroupDisplayName(params: {
 }
 
 export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] {
-  const personalIds = listAccounts()
-    .filter((a) => a.loai === "ca_nhan")
-    .map((a) => a.id);
-
-  // Gộp cả kênh Zalo cá nhân và Bot để người dùng nhìn thấy đầy đủ các nhóm dù gọi từ đâu
-  const queryIds = Array.from(new Set([accountId, "bot-tro-ly-jay", ...personalIds]));
-  const placeholders = queryIds.map(() => "?").join(", ");
+  // Chỉ lấy các nhóm/người nhận thuộc đúng tài khoản Bot đang dùng để tránh lẫn/trùng
+  // với ID số của Zalo Cá Nhân (Bot API không gửi được vào thread ID của nick cá nhân).
   const rawRows = db
     .prepare(
       `SELECT account_id, thread_id, thread_type, display_name, last_sender_name, last_message_at
        FROM threads
-       WHERE account_id IN (${placeholders})
+       WHERE account_id = ?
        ORDER BY thread_type DESC, last_message_at DESC`,
     )
-    .all(...queryIds) as Array<{
+    .all(accountId) as Array<{
     account_id: string;
     thread_id: string;
     thread_type: number;
@@ -156,7 +151,7 @@ export function listBotTargets(accountId = "bot-tro-ly-jay"): BotTargetThread[] 
     last_message_at: string | null;
   }>;
 
-  // Khử trùng lặp theo thread_id (ưu tiên row có display_name đẹp hoặc đúng accountId)
+  // Khử trùng lặp theo thread_id (ưu tiên row có display_name đẹp)
   const deduped = new Map<string, (typeof rawRows)[number]>();
   for (const r of rawRows) {
     const prev = deduped.get(r.thread_id);
@@ -503,35 +498,30 @@ export async function forwardViaBotClient(params: {
         .prepare("SELECT account_id, thread_type FROM threads WHERE thread_id = ? ORDER BY last_message_at DESC LIMIT 1")
         .get(tid) as { account_id?: string; thread_type?: number } | undefined;
       const tType = row?.thread_type ?? 1;
+      const ownerAccountId = row?.account_id;
+      const isBotOwned = isBotThread || !ownerAccountId || ownerAccountId === params.accountId || ownerAccountId === "bot-tro-ly-jay";
 
-      if (isBotThread || (!params.kenh && row?.account_id === "bot-tro-ly-jay")) {
-        if (params.kenh && params.accountId === "bot-tro-ly-jay") {
+      if (isBotOwned) {
+        if (params.kenh && params.accountId === (ownerAccountId || params.accountId)) {
           await params.kenh.duongGui(tid, tType)({ text: params.text });
         } else if (botClient) {
           await botClient.sendMessage(tid, params.text, null);
         } else {
-          throw new Error("Chưa cấu hình token Zalo Bot");
+          throw new Error(`Chưa có token cho tài khoản ${params.accountId}`);
         }
-      } else if (params.kenh && (params.accountId !== "bot-tro-ly-jay" || !tid.startsWith("zgr-"))) {
-        if (params.accountId !== "bot-tro-ly-jay") {
+      } else {
+        // Đích là nhóm/người dùng thuộc tài khoản khác (VD: Zalo cá nhân)
+        const { getRunningAccountKenh } = await import("../zalo/account-manager.js");
+        const ownerKenh = getRunningAccountKenh(ownerAccountId);
+        if (ownerKenh) {
+          await ownerKenh.duongGui(tid, tType)({ text: params.text });
+        } else if (params.kenh && params.accountId === ownerAccountId) {
           await params.kenh.duongGui(tid, tType)({ text: params.text });
         } else {
-          // Đích là nhóm/người dùng thuộc kênh Zalo cá nhân, đang gọi từ Bot hoặc Portal
-          const { getRunningAccountKenh } = await import("../zalo/account-manager.js");
-          const personalAcc = listAccounts().find((a) => a.loai === "ca_nhan");
-          const personalKenh = personalAcc ? getRunningAccountKenh(personalAcc.id) : undefined;
-          if (personalKenh) {
-            await personalKenh.duongGui(tid, tType)({ text: params.text });
-          } else if (botClient && row?.account_id === "bot-tro-ly-jay") {
-            await botClient.sendMessage(tid, params.text, null);
-          } else {
-            throw new Error("Tài khoản Zalo cá nhân chưa kết nối để gửi tới nhóm này");
-          }
+          throw new Error(
+            `Nhóm này thuộc tài khoản "${ownerAccountId}" chưa đăng nhập — Zalo Bot không thể gửi hộ. Hãy chọn nhóm của Bot.`,
+          );
         }
-      } else if (botClient) {
-        await botClient.sendMessage(tid, params.text, null);
-      } else {
-        throw new Error(`Chưa có token cho tài khoản ${params.accountId}`);
       }
 
       if (botClient && isBotThread && params.imageUrls && params.imageUrls.length > 0) {
