@@ -1534,8 +1534,97 @@
                     <textarea class="textarea" id="fw-message" rows="2" placeholder="Nhập nội dung cần gửi qua Bot vào nhóm..."></textarea>
                   </div>
                 </div>
-                <button class="btn btn-primary" id="btn-fw-send" onclick="sendBotForwardNow()">🤖 Gửi tin nhắn qua Bot vào các nhóm đã chọn</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <button class="btn btn-primary" id="btn-fw-send" onclick="sendBotForwardNow()">🤖 Gửi ngay qua Bot vào các nhóm đã chọn</button>
+                  <button type="button" class="btn btn-soft" onclick="toggleBotScheduleBox()">⏰ Hẹn giờ gửi / Lặp định kỳ</button>
+                </div>
                 <div id="bot-send-result" style="margin-top:10px; font-size:12.5px;"></div>
+
+                <div id="bot-schedule-box" style="margin-top:14px; padding:14px; background:var(--aux-tint); border:1px solid var(--border); border-radius:10px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--text-main);">⏰ 2. Đặt lịch hẹn giờ Bot tự nhắn vào nhóm đã tick (Múi giờ Việt Nam)</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                      <button type="button" class="btn btn-soft btn-sm" onclick="setQuickBotScheduleOffset(15)">+15 phút</button>
+                      <button type="button" class="btn btn-soft btn-sm" onclick="setQuickBotScheduleOffset(30)">+30 phút</button>
+                      <button type="button" class="btn btn-soft btn-sm" onclick="setQuickBotScheduleOffset(60)">+1 giờ</button>
+                    </div>
+                  </div>
+                  <div class="form-grid" style="margin-bottom:10px;">
+                    <div class="field">
+                      <label>Kiểu lịch chạy</label>
+                      <select class="select" id="fw-sched-kind" onchange="onBotScheduleKindChange()">
+                        <option value="once">Gửi 1 lần đúng Ngày &amp; Giờ</option>
+                        <option value="daily">Lặp hàng ngày theo giờ</option>
+                        <option value="weekly">Lặp theo thứ trong tuần</option>
+                        <option value="every">Lặp mỗi X phút</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Tên gợi nhớ lịch hẹn (tuỳ chọn)</label>
+                      <input class="input" id="fw-sched-name" placeholder="VD: Nhắc kiểm tra đơn hàng sáng T2">
+                    </div>
+                  </div>
+                  <div id="fw-sched-once-fields" class="form-grid" style="margin-bottom:10px;">
+                    <div class="field">
+                      <label>Ngày gửi</label>
+                      <input class="input" type="date" id="fw-sched-date">
+                    </div>
+                    <div class="field">
+                      <label>Giờ gửi (HH:mm)</label>
+                      <input class="input" type="time" id="fw-sched-time">
+                    </div>
+                  </div>
+                  <div id="fw-sched-cron-fields" style="display:none; margin-bottom:10px;">
+                    <div class="form-grid" style="margin-bottom:8px;">
+                      <div class="field">
+                        <label>Giờ chạy cố định (HH:mm)</label>
+                        <input class="input" type="time" id="fw-sched-cron-time" value="09:00">
+                      </div>
+                      <div class="field" id="fw-sched-weekdays-wrap" style="display:none;">
+                        <label>Chọn các thứ chạy trong tuần</label>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:6px; font-size:12.5px;">
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="1" checked> T2</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="2" checked> T3</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="3" checked> T4</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="4" checked> T5</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="5" checked> T6</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="6"> T7</label>
+                          <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="fw-cron-dow" value="0"> CN</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="fw-sched-every-fields" style="display:none; margin-bottom:10px;">
+                    <div class="field" style="max-width:260px;">
+                      <label>Lặp lại sau mỗi (phút — tối thiểu 5 phút)</label>
+                      <input class="input" type="number" min="5" id="fw-sched-minutes" value="60">
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-fw-schedule" onclick="createBotScheduleNow()">⏰ Lưu lịch hẹn gửi qua Bot vào các nhóm đã chọn</button>
+                </div>
+
+                <div style="margin-top:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:13px; font-weight:700;">3. Danh sách lịch hẹn giờ đã đặt cho Zalo Bot</div>
+                    <button type="button" class="btn btn-soft btn-sm" onclick="loadBotSchedules()">↻ Tải lại lịch hẹn</button>
+                  </div>
+                  <div class="table-scroll" style="border:1px solid var(--border); border-radius:8px;">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Tên lịch &amp; Nội dung tin nhắn</th>
+                          <th style="min-width:160px;">Nhóm / Người nhận</th>
+                          <th style="min-width:160px;">Lịch chạy</th>
+                          <th style="min-width:135px;">Lần gửi tới / Trạng thái</th>
+                          <th style="width:190px; text-align:center;">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody id="bot-schedules-tbody">
+                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:14px;">Đang tải danh sách lịch hẹn của Bot...</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1912,6 +2001,29 @@
       if (url === '/portal/api/bot-forwarding/send' && method === 'POST') return jsonRes({ ok: true, sentCount: (body.targetThreadIds || []).length, failedCount: 0, errors: [] });
       if (url === '/portal/api/bot-forwarding/rules' && method === 'POST') { st.botRules.unshift({ id: Date.now(), source_thread_id: body.source_thread_id, target_thread_id: body.target_thread_id, keyword_filter: body.keyword_filter || '' }); saveStore(st); return jsonRes({ ok: true }); }
       if (method === 'DELETE') { var rId = Number(url.split('/').pop()); st.botRules = st.botRules.filter(function(r) { return r.id !== rId; }); saveStore(st); return jsonRes({ ok: true }); }
+    }
+    if (url.indexOf('/portal/api/bot-schedules') === 0) {
+      if (!st.botSchedules) st.botSchedules = [];
+      if (url === '/portal/api/bot-schedules' && method === 'GET') return jsonRes({ ok: true, timezone: 'Asia/Ho_Chi_Minh', jobs: st.botSchedules });
+      if (url === '/portal/api/bot-schedules' && method === 'POST') {
+        var tids = body.targetThreadIds || [];
+        var hdr = body.senderLabel ? ('[' + body.senderLabel + ']:\n') : '';
+        var jobsNew = tids.map(function(tid) {
+          var tg = (st.botTargets || []).find(function(x) { return x.threadId === tid; });
+          var j = { id: 'demo-' + Date.now() + '-' + Math.floor(Math.random()*999), accountId: 'bot-tro-ly-jay', threadId: tid, targetDisplayName: tg ? tg.displayName : tid, name: body.name || String(body.message || '').slice(0, 35), payload: hdr + body.message, scheduleKind: (body.schedule && body.schedule.kind) || 'once', runAt: (body.schedule && body.schedule.date) ? (body.schedule.date + ' ' + body.schedule.time) : null, everyMinutes: body.schedule && body.schedule.minutes, cronExpr: body.schedule && body.schedule.expr, enabled: true, nextRunAt: new Date(Date.now() + 1800000).toISOString(), lastStatus: null };
+          st.botSchedules.unshift(j);
+          return j;
+        });
+        saveStore(st);
+        return jsonRes({ ok: true, createdCount: jobsNew.length, jobs: jobsNew });
+      }
+      var mSch = url.match(/^\/portal\/api\/bot-schedules\/([^/?]+)/);
+      if (mSch) {
+        var sId = decodeURIComponent(mSch[1]);
+        if (method === 'PATCH') { var sj = st.botSchedules.find(function(x) { return x.id === sId; }); if (sj && body.enabled !== undefined) sj.enabled = !!body.enabled; saveStore(st); return jsonRes({ ok: true, job: sj }); }
+        if (method === 'DELETE') { st.botSchedules = st.botSchedules.filter(function(x) { return x.id !== sId; }); saveStore(st); return jsonRes({ ok: true }); }
+        if (method === 'POST') return jsonRes({ ok: true, run: { status: 'ok' } });
+      }
     }
     if (url.indexOf('/portal/api/assets') === 0 && method === 'GET') {
       var projsMap = {};
@@ -4175,18 +4287,142 @@
       }
     }
 
-    /* ZALO BOT FORWARDING */
+    /* ZALO BOT FORWARDING & SCHEDULES */
     var botFwData = { targets: [], rules: [] };
+    var botSchedulesData = [];
+
+    function initDefaultBotScheduleInputs() {
+      var dEl = document.getElementById('fw-sched-date');
+      var tEl = document.getElementById('fw-sched-time');
+      if (!dEl || !tEl) return;
+      if (!dEl.value || !tEl.value) {
+        setQuickBotScheduleOffset(30, true);
+      }
+    }
+
+    function toggleBotScheduleBox() {
+      var box = document.getElementById('bot-schedule-box');
+      if (!box) return;
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      if (box.style.display !== 'none') initDefaultBotScheduleInputs();
+    }
+
+    function setQuickBotScheduleOffset(mins, silent) {
+      var d = new Date(Date.now() + (Number(mins) || 30) * 60000);
+      var vnFmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      var parts = {};
+      vnFmt.formatToParts(d).forEach(function(p) { parts[p.type] = p.value; });
+      var dateStr = parts.year + '-' + parts.month + '-' + parts.day;
+      var hourStr = (parts.hour === '24' ? '00' : parts.hour) + ':' + parts.minute;
+      var kindEl = document.getElementById('fw-sched-kind');
+      if (kindEl) { kindEl.value = 'once'; onBotScheduleKindChange(); }
+      var dEl = document.getElementById('fw-sched-date');
+      var tEl = document.getElementById('fw-sched-time');
+      if (dEl) dEl.value = dateStr;
+      if (tEl) tEl.value = hourStr;
+      if (!silent) showToast('Đã đặt giờ hẹn: ' + hourStr + ' ngày ' + dateStr);
+    }
+
+    function onBotScheduleKindChange() {
+      var kind = (document.getElementById('fw-sched-kind') && document.getElementById('fw-sched-kind').value) || 'once';
+      var onceBox = document.getElementById('fw-sched-once-fields');
+      var cronBox = document.getElementById('fw-sched-cron-fields');
+      var weekBox = document.getElementById('fw-sched-weekdays-wrap');
+      var everyBox = document.getElementById('fw-sched-every-fields');
+      if (onceBox) onceBox.style.display = kind === 'once' ? 'grid' : 'none';
+      if (cronBox) cronBox.style.display = (kind === 'daily' || kind === 'weekly') ? 'block' : 'none';
+      if (weekBox) weekBox.style.display = kind === 'weekly' ? 'block' : 'none';
+      if (everyBox) everyBox.style.display = kind === 'every' ? 'block' : 'none';
+    }
 
     async function loadBotForwarding() {
       if (!isAdminMode) return;
+      initDefaultBotScheduleInputs();
       try {
         var res = await fetch('/portal/api/bot-forwarding', { headers: adminHeaders() });
         var data = await res.json();
-        if (!data.ok) return;
-        botFwData = data;
-        renderBotForwarding();
+        if (data.ok) {
+          botFwData = data;
+          renderBotForwarding();
+        }
       } catch (e) {}
+      loadBotSchedules();
+    }
+
+    async function loadBotSchedules() {
+      if (!isAdminMode) return;
+      try {
+        var res = await fetch('/portal/api/bot-schedules', { headers: adminHeaders() });
+        var data = await res.json();
+        if (!data.ok) return;
+        botSchedulesData = data.jobs || [];
+        renderBotSchedules();
+      } catch (e) {}
+    }
+
+    function fmtBotSchedTime(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+      } catch (e) { return iso; }
+    }
+
+    function describeBotJobSchedule(j) {
+      if (j.scheduleKind === 'once') return '1 lần lúc ' + fmtBotSchedTime(j.runAt);
+      if (j.scheduleKind === 'every') return 'Lặp mỗi ' + (j.everyMinutes || 0) + ' phút';
+      if (j.scheduleKind === 'cron') {
+        var parts = String(j.cronExpr || '').trim().split(/s+/);
+        if (parts.length === 5) {
+          var hhmm = String(parts[1]).padStart(2, '0') + ':' + String(parts[0]).padStart(2, '0');
+          if (parts[2] === '*' && parts[3] === '*' && parts[4] === '*') return 'Hàng ngày lúc ' + hhmm;
+          if (parts[2] === '*' && parts[3] === '*') {
+            var dMap = { '0': 'CN', '1': 'T2', '2': 'T3', '3': 'T4', '4': 'T5', '5': 'T6', '6': 'T7' };
+            var days = parts[4].split(',').map(function(x) { return dMap[x] || x; }).join(', ');
+            return 'Các thứ (' + days + ') lúc ' + hhmm;
+          }
+        }
+        return 'Cron: ' + (j.cronExpr || '');
+      }
+      return j.scheduleKind || '';
+    }
+
+    function renderBotSchedules() {
+      var tbody = document.getElementById('bot-schedules-tbody');
+      if (!tbody) return;
+      if (!botSchedulesData || botSchedulesData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:14px;">Chưa có lịch hẹn nào cho Bot. Tick chọn nhóm ở trên rồi đặt giờ hẹn gửi.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = botSchedulesData.map(function(j) {
+        var stBadge = j.enabled
+          ? '<span class="badge" style="background:#ECFDF5;color:#065F46;">Đang bật</span>'
+          : (j.lastStatus === 'ok' && j.scheduleKind === 'once'
+              ? '<span class="badge muted">Đã gửi xong</span>'
+              : '<span class="badge muted">Tạm dừng</span>');
+        var nextStr = j.nextRunAt ? ('<div style="font-size:11.5px; color:var(--text-main); margin-top:3px;">Tới: ' + esc(fmtBotSchedTime(j.nextRunAt)) + '</div>') : '';
+        var lastStr = j.lastRunAt ? ('<div style="font-size:11px; color:' + (j.lastStatus === 'error' ? '#DC2626' : 'var(--text-muted)') + '; margin-top:2px;">Gần nhất: ' + esc(fmtBotSchedTime(j.lastRunAt)) + (j.lastStatus ? ' (' + esc(j.lastStatus) + ')' : '') + '</div>') : '';
+        var jid = esc(j.id);
+        var jtid = esc(j.threadId);
+        return '<tr>' +
+          '<td><div style="font-weight:700; font-size:12.5px;">' + esc(j.name) + '</div><div style="font-size:11.5px; color:var(--text-muted); white-space:pre-wrap; margin-top:2px;">' + esc(j.payload) + '</div></td>' +
+          '<td><span class="badge">' + esc(j.targetDisplayName || j.threadId) + '</span></td>' +
+          '<td style="font-size:12px;">' + esc(describeBotJobSchedule(j)) + '</td>' +
+          '<td>' + stBadge + nextStr + lastStr + '</td>' +
+          '<td style="text-align:center; white-space:nowrap;">' +
+            '<button type="button" class="btn btn-soft btn-sm" style="height:26px; font-size:11px; margin-right:4px;" data-jid="' + jid + '" data-jtid="' + jtid + '" onclick="runBotScheduleBtn(this)" title="Gửi thử ngay 1 lần mà không đổi lịch">▶ Thử</button>' +
+            '<button type="button" class="btn btn-soft btn-sm" style="height:26px; font-size:11px; margin-right:4px;" data-jid="' + jid + '" data-jtid="' + jtid + '" data-next="' + (!j.enabled ? '1' : '0') + '" onclick="toggleBotScheduleBtn(this)">' + (j.enabled ? '⏸ Tắt' : '▶ Bật') + '</button>' +
+            '<button type="button" class="btn btn-sm" style="height:26px; font-size:11px; color:#DC2626;" data-jid="' + jid + '" data-jtid="' + jtid + '" onclick="deleteBotScheduleBtn(this)">✕</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
     }
 
     function saveBotThreadRenameBtn(btn) {
@@ -4324,7 +4560,136 @@
         showToast('Lỗi kết nối khi gửi tin qua Bot', true);
       } finally {
         btn.disabled = false;
-        btn.textContent = '🤖 Gửi tin nhắn qua Bot vào các nhóm đã chọn';
+        btn.textContent = '🤖 Gửi ngay qua Bot vào các nhóm đã chọn';
+      }
+    }
+
+    async function createBotScheduleNow() {
+      var chks = Array.from(document.querySelectorAll('.fw-target-chk:checked'));
+      var ids = chks.map(function(c) { return c.value; });
+      var msgEl = document.getElementById('fw-message');
+      var msg = msgEl ? msgEl.value.trim() : '';
+      var labelEl = document.getElementById('fw-sender-label');
+      var label = labelEl ? labelEl.value.trim() : '';
+      var nameEl = document.getElementById('fw-sched-name');
+      var name = nameEl ? nameEl.value.trim() : '';
+      if (ids.length === 0) {
+        setBotSendResult('⚠️ Vui lòng tick chọn ít nhất 1 nhóm/người nhận ở bảng trên để hẹn giờ gửi.', true);
+        showToast('Vui lòng tick chọn ít nhất 1 nhóm/người nhận', true);
+        return;
+      }
+      if (!msg) {
+        setBotSendResult('⚠️ Vui lòng nhập nội dung tin nhắn cần Bot gửi theo lịch.', true);
+        showToast('Vui lòng nhập nội dung tin nhắn trước khi lưu lịch', true);
+        if (msgEl) msgEl.focus();
+        return;
+      }
+      var kind = (document.getElementById('fw-sched-kind') && document.getElementById('fw-sched-kind').value) || 'once';
+      var scheduleObj = null;
+      if (kind === 'once') {
+        var dVal = document.getElementById('fw-sched-date').value;
+        var tVal = document.getElementById('fw-sched-time').value;
+        if (!dVal || !tVal) {
+          setBotSendResult('⚠️ Vui lòng chọn đầy đủ Ngày và Giờ gửi.', true);
+          return;
+        }
+        scheduleObj = { kind: 'once', date: dVal, time: tVal };
+      } else if (kind === 'daily' || kind === 'weekly') {
+        var ctVal = (document.getElementById('fw-sched-cron-time') && document.getElementById('fw-sched-cron-time').value) || '09:00';
+        var cp = ctVal.split(':');
+        var hh = Number(cp[0] || 9);
+        var mm = Number(cp[1] || 0);
+        var dow = '*';
+        if (kind === 'weekly') {
+          var dows = Array.from(document.querySelectorAll('.fw-cron-dow:checked')).map(function(x) { return x.value; });
+          if (dows.length === 0) {
+            setBotSendResult('⚠️ Vui lòng chọn ít nhất 1 thứ trong tuần để lặp lại.', true);
+            return;
+          }
+          dow = dows.join(',');
+        }
+        scheduleObj = { kind: 'cron', expr: mm + ' ' + hh + ' * * ' + dow };
+      } else {
+        var mins = Number(document.getElementById('fw-sched-minutes').value) || 0;
+        scheduleObj = { kind: 'every', minutes: mins };
+      }
+      var btn = document.getElementById('btn-fw-schedule');
+      btn.disabled = true;
+      btn.textContent = 'Đang lưu lịch hẹn...';
+      try {
+        var res = await fetch('/portal/api/bot-schedules', {
+          method: 'POST',
+          headers: adminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ targetThreadIds: ids, message: msg, senderLabel: label, name: name, schedule: scheduleObj })
+        });
+        var data = await res.json().catch(function() { return { ok: false, error: 'Lỗi phản hồi máy chủ' }; });
+        if (res.ok && data.ok) {
+          var firstNext = data.jobs && data.jobs[0] && data.jobs[0].nextRunAt ? fmtBotSchedTime(data.jobs[0].nextRunAt) : '';
+          setBotSendResult('✅ Đã tạo ' + data.createdCount + ' lịch hẹn gửi qua Bot!' + (firstNext ? (' Lần gửi kế tiếp: <strong>' + esc(firstNext) + '</strong>') : ''), false);
+          showToast('Đã lưu lịch hẹn gửi vào ' + data.createdCount + ' nhóm qua Bot!');
+          if (msgEl) msgEl.value = '';
+          if (nameEl) nameEl.value = '';
+          loadBotSchedules();
+        } else {
+          setBotSendResult('❌ Không lưu được lịch: ' + esc(data.error || 'Lỗi không xác định'), true);
+          showToast(data.error || 'Không lưu được lịch hẹn', true);
+        }
+      } catch (e) {
+        setBotSendResult('❌ Lỗi kết nối khi tạo lịch hẹn.', true);
+        showToast('Lỗi kết nối khi tạo lịch hẹn', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⏰ Lưu lịch hẹn gửi qua Bot vào các nhóm đã chọn';
+      }
+    }
+
+    function runBotScheduleBtn(btn) {
+      if (!btn) return;
+      runBotScheduleTrial(btn.getAttribute('data-jid'), btn.getAttribute('data-jtid'));
+    }
+
+    function toggleBotScheduleBtn(btn) {
+      if (!btn) return;
+      toggleBotSchedule(btn.getAttribute('data-jid'), btn.getAttribute('data-jtid'), btn.getAttribute('data-next') === '1');
+    }
+
+    function deleteBotScheduleBtn(btn) {
+      if (!btn) return;
+      deleteBotSchedule(btn.getAttribute('data-jid'), btn.getAttribute('data-jtid'));
+    }
+
+    async function toggleBotSchedule(id, threadId, enabled) {
+      var res = await fetch('/portal/api/bot-schedules/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ threadId: threadId, enabled: enabled })
+      });
+      var data = await res.json().catch(function() { return { ok: false }; });
+      if (!res.ok || !data.ok) { showToast(data.error || 'Cập nhật lịch thất bại', true); return; }
+      showToast(enabled ? 'Đã bật lại lịch hẹn!' : 'Đã tạm dừng lịch hẹn!');
+      loadBotSchedules();
+    }
+
+    async function runBotScheduleTrial(id, threadId) {
+      var res = await fetch('/portal/api/bot-schedules/' + encodeURIComponent(id) + '/run', {
+        method: 'POST',
+        headers: adminHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ threadId: threadId })
+      });
+      var data = await res.json().catch(function() { return { ok: false }; });
+      if (!res.ok || !data.ok) { showToast(data.error || 'Chạy thử thất bại', true); return; }
+      showToast('Đã chạy thử gửi tin theo lịch!');
+      loadBotSchedules();
+    }
+
+    async function deleteBotSchedule(id, threadId) {
+      var res = await fetch('/portal/api/bot-schedules/' + encodeURIComponent(id) + '?threadId=' + encodeURIComponent(threadId), {
+        method: 'DELETE',
+        headers: adminHeaders()
+      });
+      if (res.ok) {
+        showToast('Đã xoá lịch hẹn');
+        loadBotSchedules();
       }
     }
 
