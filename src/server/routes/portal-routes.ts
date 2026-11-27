@@ -25,6 +25,14 @@ import {
 } from "../../zalo-bot/bot-message-forwarder.js";
 import { renderPortalHtml } from "./portal-ui-html.js";
 import { taoZaloBotClient } from "../../zalo-bot/zalo-bot-api-client.js";
+import { botTimeZone, getTuning } from "../../config/runtime-tuning-settings.js";
+import { findThreadStatus } from "../../conversation/thread-store.js";
+import { hasRunningRun } from "../../scheduler/job-run-log-store.js";
+import { runScheduledJobTrial } from "../../scheduler/run-scheduled-job-trial.js";
+import { parseSchedule, type ScheduleInput } from "../../scheduler/schedule-parser.js";
+import { listJobsForAccount } from "../../scheduler/scheduled-job-list-store.js";
+import { createJob, deleteJob, getJob, setEnabled } from "../../scheduler/scheduled-job-store.js";
+import { checkThreadJobCap } from "../../scheduler/scheduled-job-thread-cap.js";
 import { classifyPendingAssetsWithAI } from "../../drive/ai-project-classifier.js";
 import { addDaysIso, calculateKmGiftSchedule, type KmGiftFlowType } from "../../drive/km-gift-sla.js";
 import type { CollectedAssetRow } from "../../drive/asset-collector-store.js";
@@ -2242,6 +2250,136 @@ export const portalRoutes = new Hono()
     }
     const id = Number(c.req.param("id"));
     db.prepare("DELETE FROM pm_bot_forward_rules WHERE id = ?").run(id);
+    return c.json({ ok: true });
+  })
+
+  // --- HẸN LỊCH GỬI TIN NHẮN TỰ ĐỘNG VÀO NHÓM QUA ZALO BOT (DÙNG CHUNG ENGINE SCHEDULER) ---
+  .get("/api/bot-schedules", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const accountId = c.req.query("accountId") || "bot-tro-ly-jay";
+    const targets = listBotTargets(accountId);
+    const nameMap = new Map(targets.map((t) => [t.threadId, t.displayName]));
+    const jobs = listJobsForAccount(accountId).map((j) => ({
+      ...j,
+      targetDisplayName: nameMap.get(j.threadId) || j.threadId,
+    }));
+    return c.json({ ok: true, accountId, timezone: botTimeZone(), jobs });
+  })
+
+  .post("/api/bot-schedules", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const body = await c.req.json<{
+      accountId?: string;
+      targetThreadIds: string[];
+      message: string;
+      senderLabel?: string;
+      name?: string;
+      schedule: ScheduleInput;
+    }>();
+    const accountId = body.accountId || "bot-tro-ly-jay";
+    if (!Array.isArray(body.targetThreadIds) || body.targetThreadIds.length === 0 || !body.message?.trim()) {
+      return c.json({ ok: false, error: "Cần chọn ít nhất 1 nhóm/người nhận và nhập nội dung tin nhắn" }, 400);
+    }
+    const tz = botTimeZone();
+    const minIntervalMinutes = getTuning("SCHEDULER_MIN_INTERVAL_MINUTES");
+    const parsedSched = parseSchedule(body.schedule, { timeZone: tz, minIntervalMinutes });
+    if (!parsedSched.ok) {
+      return c.json({ ok: false, error: parsedSched.error }, 400);
+    }
+
+    const header = body.senderLabel?.trim() ? `[${body.senderLabel.trim()}]:\n` : "";
+    const payloadText = `${header}${body.message.trim()}`;
+    const targets = listBotTargets(accountId);
+    const targetMap = new Map(targets.map((t) => [t.threadId, t]));
+
+    const createdJobs = [];
+    const errors: string[] = [];
+    for (const tid of body.targetThreadIds) {
+      const st = findThreadStatus(accountId, tid);
+      if (!st) {
+        errors.push(`${tid}: Nhóm chưa từng kết nối với Bot (${accountId})`);
+        continue;
+      }
+      const cap = checkThreadJobCap(accountId, tid);
+      if (!cap.ok) {
+        errors.push(`${targetMap.get(tid)?.displayName || tid}: ${cap.reason}`);
+        continue;
+      }
+      const targetName = targetMap.get(tid)?.displayName || tid;
+      const baseTitle = body.name?.trim() || body.message.trim().replace(/\s+/g, " ").slice(0, 42);
+      const jobName =
+        body.targetThreadIds.length > 1 ? `${baseTitle} (${targetName})`.slice(0, 80) : baseTitle.slice(0, 80);
+      const job = createJob({
+        accountId,
+        threadId: tid,
+        threadType: targetMap.get(tid)?.threadType ?? (tid.startsWith("zgr-") ? 1 : 0),
+        name: jobName,
+        kind: "message",
+        payload: payloadText,
+        schedule: parsedSched.schedule,
+        createdBy: "portal",
+      });
+      createdJobs.push({ ...job, targetDisplayName: targetName });
+    }
+
+    if (createdJobs.length === 0) {
+      return c.json({ ok: false, error: errors[0] || "Không tạo được lịch hẹn nào", errors }, 400);
+    }
+    return c.json({ ok: true, createdCount: createdJobs.length, jobs: createdJobs, errors, timezone: tz });
+  })
+
+  .patch("/api/bot-schedules/:id", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as {
+      accountId?: string;
+      threadId?: string;
+      enabled?: boolean;
+    } | null;
+    const accountId = body?.accountId || "bot-tro-ly-jay";
+    const threadId = body?.threadId || "";
+    if (!threadId) return c.json({ ok: false, error: "Thiếu threadId" }, 400);
+    const job = getJob(accountId, threadId, id);
+    if (!job) return c.json({ ok: false, error: "Không tìm thấy lịch hẹn" }, 404);
+    if (body?.enabled === true && !job.enabled) {
+      const cap = checkThreadJobCap(accountId, threadId);
+      if (!cap.ok) return c.json({ ok: false, error: cap.reason }, 400);
+    }
+    if (body?.enabled !== undefined) setEnabled(accountId, threadId, id, Boolean(body.enabled));
+    return c.json({ ok: true, job: getJob(accountId, threadId, id) });
+  })
+
+  .post("/api/bot-schedules/:id/run", async (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as { accountId?: string; threadId?: string } | null;
+    const accountId = body?.accountId || "bot-tro-ly-jay";
+    const threadId = body?.threadId || "";
+    if (!threadId) return c.json({ ok: false, error: "Thiếu threadId" }, 400);
+    const job = getJob(accountId, threadId, id);
+    if (!job) return c.json({ ok: false, error: "Không tìm thấy lịch hẹn" }, 404);
+    if (hasRunningRun(id)) return c.json({ ok: false, error: "Lịch hẹn đang chạy, thử lại sau ít phút" }, 409);
+    const run = await runScheduledJobTrial(job);
+    return c.json({ ok: true, run: run ?? null });
+  })
+
+  .delete("/api/bot-schedules/:id", (c) => {
+    if (!checkPortalAdminPin(c)) {
+      return c.json({ ok: false, error: "Chỉ Quản trị viên (Admin) mới có quyền truy cập" }, 403);
+    }
+    const id = c.req.param("id");
+    const accountId = c.req.query("accountId") || "bot-tro-ly-jay";
+    const threadId = c.req.query("threadId") || "";
+    if (!threadId) return c.json({ ok: false, error: "Thiếu threadId" }, 400);
+    if (!deleteJob(accountId, threadId, id)) return c.json({ ok: false, error: "Không tìm thấy lịch hẹn" }, 404);
     return c.json({ ok: true });
   })
 
